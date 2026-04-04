@@ -1,0 +1,6 @@
+@Autoria_HostAddress = http://localhost:5236
+
+GET {{Autoria_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
