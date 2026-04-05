@@ -25,7 +25,6 @@
     <Folder Include="features\auth\dto\" />
     <Folder Include="features\auth\validations\" />
     <Folder Include="features\auth\service\" />
-    <Folder Include="shared\" />
   </ItemGroup>
 
   <ItemGroup>
