@@ -7,14 +7,22 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="features\auth\data\**" />
     <Compile Remove="features\auth\dto\**" />
+    <Compile Remove="features\auth\service\**" />
+    <Compile Remove="features\auth\validations\**" />
+    <Content Remove="features\auth\data\**" />
     <Content Remove="features\auth\dto\**" />
+    <Content Remove="features\auth\service\**" />
+    <Content Remove="features\auth\validations\**" />
+    <EmbeddedResource Remove="features\auth\data\**" />
     <EmbeddedResource Remove="features\auth\dto\**" />
+    <EmbeddedResource Remove="features\auth\service\**" />
+    <EmbeddedResource Remove="features\auth\validations\**" />
+    <None Remove="features\auth\data\**" />
     <None Remove="features\auth\dto\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Remove="features\auth\data\auth.repository.cs" />
+    <None Remove="features\auth\service\**" />
+    <None Remove="features\auth\validations\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,15 +36,6 @@
     <PackageReference Include="Microsoft.SqlServer.Server" Version="1.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="features\auth\validations\" />
-    <Folder Include="features\auth\service\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="features\auth\data\auth.repository.cs" />
   </ItemGroup>
 
 </Project>

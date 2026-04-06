@@ -20,6 +20,7 @@ namespace Autoria.Infrastructure.Persistence
             builder.Entity<IdentityRole>().ToTable("Roles");
             builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
             builder.Entity<User>().ToTable("users");
+            builder.Entity<User>().Ignore(u => u.UserName);
             builder.Entity<RefreshToken>().ToTable("RefreshTokens");
 
         }

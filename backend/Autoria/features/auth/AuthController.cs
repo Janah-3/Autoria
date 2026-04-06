@@ -1,4 +1,5 @@
 ﻿using Autoria.features.auth.Login;
+using Autoria.features.auth.register;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -22,6 +23,15 @@ namespace Autoria.features.auth
         {
             var result = await _mediator.Send(command);
             return Ok(result);
+        }
+
+
+        [HttpPost("register")]
+        public async Task<IActionResult> register(RegisterCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Ok(result);
+
         }
         
 
