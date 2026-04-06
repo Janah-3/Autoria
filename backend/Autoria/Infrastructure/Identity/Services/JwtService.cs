@@ -4,21 +4,26 @@ using System.Text;
 using Autoria.features.auth.Dtos;
 using Autoria.features.user.entity;
 using Autoria.Infrastructure.Identity.Contracts;
+using Autoria.Infrastructure.Identity.entities;
+using Autoria.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Autoria.Infrastructure.Identity
+namespace Autoria.Infrastructure.Identity.Services
 {
     public class JwtService : IJwtService
     {
         private readonly JwtSettings _settings;
         private readonly UserManager<User> _userManager;
+        private readonly AppDbContext _dbContext;
 
-        public JwtService(IOptions<JwtSettings> settings, UserManager<User> userManager)
+        public JwtService(IOptions<JwtSettings> settings, UserManager<User> userManager, AppDbContext dbContext)
         {
             _settings = settings.Value;
             _userManager = userManager;
+            _dbContext = dbContext;
         }
 
         public async Task<AuthResponseDto> GenerateToken(User user)
@@ -54,7 +59,22 @@ namespace Autoria.Infrastructure.Identity
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
 
-            var refreshToken = Guid.NewGuid().ToString();
+
+
+            var refreshToken = new RefreshToken
+            {
+                id = Guid.NewGuid(),
+                token = Guid.NewGuid().ToString(), 
+                ExpiresAt = DateTime.UtcNow.AddDays(7), 
+                UserId = user.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+          
+                
+             _dbContext.RefreshTokens.Add(refreshToken);
+             await _dbContext.SaveChangesAsync();
+
+
 
             return new AuthResponseDto(
                 accessToken,
@@ -65,9 +85,9 @@ namespace Autoria.Infrastructure.Identity
 
         public ClaimsPrincipal? ValidateToken(string token)
         {
-                var TokenHandler = new JwtSecurityTokenHandler();
+            var TokenHandler = new JwtSecurityTokenHandler();
 
-                var key = Encoding.UTF8.GetBytes(_settings.Secret);
+            var key = Encoding.UTF8.GetBytes(_settings.Secret);
 
             try
             {
@@ -92,7 +112,7 @@ namespace Autoria.Infrastructure.Identity
 
                 return principal;
             }
-            catch 
+            catch
             {
                 return null;
             }

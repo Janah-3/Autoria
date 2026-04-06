@@ -5,6 +5,7 @@ using Autoria.features.auth.Dtos;
 using Autoria.features.user.entity;
 using Autoria.Infrastructure.Identity;
 using Autoria.Infrastructure.Identity.Contracts;
+using Autoria.Infrastructure.Identity.entities;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -24,19 +25,18 @@ namespace Autoria.features.auth.Login
         }
         public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
-            //login logic
+            ////login logic
 
             var user = await _userManager.FindByEmailAsync(request.Email);
 
-            if (user == null || !await _userManager.CheckPasswordAsync(user,request.Password))
+            if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
             {
                 throw new UnauthorizedAccessException("Invalid credentials");
-               
+
             }
 
-            return await _jwtService.GenerateToken(user);
+           return await _jwtService.GenerateToken(user);
 
-          
         }
     }
 }

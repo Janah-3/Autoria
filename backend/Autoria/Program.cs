@@ -7,6 +7,7 @@ using Autoria.Infrastructure.Persistence.Seeding;
 using Autoria.Infrastructure.Identity.Contracts;
 using Autoria.Infrastructure.Identity;
 using System.Reflection;
+using Autoria.Infrastructure.Identity.Services;
 
 namespace Autoria
 {
@@ -16,24 +17,11 @@ namespace Autoria
         {
             var builder = WebApplication.CreateBuilder(args);
 
+
             // Add services to the container.
+           
 
-            builder.Services.AddControllers();
-            builder.Services.AddMediatR(cfg =>
-             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-            builder.Services.AddIdentityCore<User>()
-            .AddRoles<IdentityRole>()
-            .AddEntityFrameworkStores<AppDbContext>();
-
-            builder.Services.Configure<JwtSettings>(
-            builder.Configuration.GetSection("JwtSettings"));
-
-            builder.Services.AddScoped<IJwtService, JwtService>();
-
-
+            // Add DbContext 
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
                 options.UseSqlServer(
@@ -41,7 +29,30 @@ namespace Autoria
                 );
             });
 
+            // Add Identity
+            builder.Services.AddIdentityCore<User>()
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<AppDbContext>();
+
+            // Controllers & MediatR
+            builder.Services.AddControllers();
+            builder.Services.AddMediatR(cfg =>
+                cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
+            // JWT Service
+            builder.Services.AddScoped<IJwtService, JwtService>();
+            builder.Services.Configure<JwtSettings>(
+                builder.Configuration.GetSection("JwtSettings"));
+
+            // Data seeder
             builder.Services.AddScoped<DataSeeder>();
+            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+
+
 
 
             var app = builder.Build();

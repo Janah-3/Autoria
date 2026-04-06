@@ -1,4 +1,5 @@
 ﻿using Autoria.features.user.entity;
+using Autoria.Infrastructure.Identity.entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,11 @@ namespace Autoria.Infrastructure.Persistence
             builder.Entity<IdentityRole>().ToTable("Roles");
             builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
             builder.Entity<User>().ToTable("users");
+            builder.Entity<RefreshToken>().ToTable("RefreshTokens");
 
         }
+
+        public DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
+
     }
 }

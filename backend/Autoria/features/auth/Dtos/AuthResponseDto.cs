@@ -1,8 +1,10 @@
-﻿namespace Autoria.features.auth.Dtos
+﻿using Autoria.Infrastructure.Identity.entities;
+
+namespace Autoria.features.auth.Dtos
 {
     public record AuthResponseDto(
        string AccessToken,
-       string RefreshToken,
+       RefreshToken RefreshToken,
        DateTime ExpiresAt
         );
     
