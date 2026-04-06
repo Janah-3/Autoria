@@ -7,10 +7,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="features\auth\dto\**" />
+    <Content Remove="features\auth\dto\**" />
+    <EmbeddedResource Remove="features\auth\dto\**" />
+    <None Remove="features\auth\dto\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="features\auth\data\auth.repository.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MediatR" Version="14.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.25" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.25" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.25">
@@ -19,10 +27,10 @@
     </PackageReference>
     <PackageReference Include="Microsoft.SqlServer.Server" Version="1.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="features\auth\dto\" />
     <Folder Include="features\auth\validations\" />
     <Folder Include="features\auth\service\" />
   </ItemGroup>

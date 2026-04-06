@@ -4,6 +4,9 @@ using Autoria.features.user.entity;
 using Microsoft.AspNetCore.Identity;
 using Autoria.Infrastructure.Persistence.Seeding.Seeds;
 using Autoria.Infrastructure.Persistence.Seeding;
+using Autoria.Infrastructure.Identity.Contracts;
+using Autoria.Infrastructure.Identity;
+using System.Reflection;
 
 namespace Autoria
 {
@@ -16,13 +19,20 @@ namespace Autoria
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddMediatR(cfg =>
+             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddIdentityCore<User>()
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<AppDbContext>();
-          
+
+            builder.Services.Configure<JwtSettings>(
+            builder.Configuration.GetSection("JwtSettings"));
+
+            builder.Services.AddScoped<IJwtService, JwtService>();
+
 
             builder.Services.AddDbContext<AppDbContext>(options =>
             {
