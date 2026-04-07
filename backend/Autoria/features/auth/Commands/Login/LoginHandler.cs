@@ -34,6 +34,9 @@ namespace Autoria.features.auth.Commands.Login
 
             }
 
+            if (!user.EmailConfirmed)
+                throw new Exception("Please verify your email before logging in");
+
             return await _jwtService.GenerateToken(user);
 
         }

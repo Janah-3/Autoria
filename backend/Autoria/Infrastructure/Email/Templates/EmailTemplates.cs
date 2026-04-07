@@ -13,5 +13,19 @@
         </a>
         <p>If you didn't request this, ignore this email.</p>
     """;
+
+
+        public static string VerifyEmail(string userName, string verificationLink) => $"""
+        <h2>Hi {userName},</h2>
+        <p>Thanks for registering on Autoria!</p>
+        <p>Please verify your email address by clicking the button below.
+           This link expires in 24 hours.</p>
+        <a href="{verificationLink}"
+           style="background:#007bff;color:white;padding:10px 20px;
+                  border-radius:5px;text-decoration:none;">
+           Verify Email
+        </a>
+        <p>If you didn't create an account, ignore this email.</p>
+    """;
     }
 }

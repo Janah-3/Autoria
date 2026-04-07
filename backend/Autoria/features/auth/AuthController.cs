@@ -2,7 +2,9 @@
 using Autoria.features.auth.Commands.Login;
 using Autoria.features.auth.Commands.logout;
 using Autoria.features.auth.Commands.register;
+using Autoria.features.auth.Commands.ResendVerificationEmail;
 using Autoria.features.auth.Commands.ResetPassword;
+using Autoria.features.auth.Commands.VerifyEmail;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -67,6 +69,20 @@ namespace Autoria.features.auth
             return Ok(new { message = "Logged out successfully" });
         }
 
+        
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail(VerifyEmailCommand command)
+        {
+            await _mediator.Send(command);
+            return Ok("Email verified successfully");
+        }
+
+        [HttpPost("resend-verification")]
+        public async Task<IActionResult> ResendVerification(ResendVerificationEmailCommand command)
+        {
+            await _mediator.Send(command);
+            return Ok("Verification email sent");
+        }
 
     }
 }
