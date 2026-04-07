@@ -1,5 +1,6 @@
 ﻿using Autoria.features.auth.Commands.forgetPassword;
 using Autoria.features.auth.Commands.Login;
+using Autoria.features.auth.Commands.logout;
 using Autoria.features.auth.Commands.register;
 using Autoria.features.auth.Commands.ResetPassword;
 using MediatR;
@@ -57,7 +58,15 @@ namespace Autoria.features.auth
                 message = "Password reset successfully"
             });
         }
-        
+
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(LogoutCommand command)
+        {
+            await _mediator.Send(command);
+            return Ok(new { message = "Logged out successfully" });
+        }
+
 
     }
 }
