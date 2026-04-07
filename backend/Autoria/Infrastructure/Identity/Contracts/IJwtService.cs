@@ -1,6 +1,6 @@
 ﻿using System.Security.Claims;
 using Autoria.features.auth.Dtos;
-using Autoria.features.user.entity;
+using Autoria.Infrastructure.Identity.entities;
 
 namespace Autoria.Infrastructure.Identity.Contracts
 {

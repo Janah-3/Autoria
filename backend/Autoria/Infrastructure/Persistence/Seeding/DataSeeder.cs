@@ -1,4 +1,4 @@
-﻿using Autoria.features.user.entity;
+﻿using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Persistence.Seeding.Seeds;
 using Microsoft.AspNetCore.Identity;
 

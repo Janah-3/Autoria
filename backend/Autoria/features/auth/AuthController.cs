@@ -1,5 +1,6 @@
-﻿using Autoria.features.auth.Login;
-using Autoria.features.auth.register;
+﻿using Autoria.features.auth.Commands.forgetPassword;
+using Autoria.features.auth.Commands.Login;
+using Autoria.features.auth.Commands.register;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -32,6 +33,13 @@ namespace Autoria.features.auth
             var result = await _mediator.Send(command);
             return Ok(result);
 
+        }
+
+        [HttpPost("forget")]
+        public async Task<IActionResult> ForgetPass(ForgetPassCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return  Ok(result);
         }
         
 

@@ -1,7 +1,7 @@
 ﻿using Autoria.features.auth.Dtos;
 using MediatR;
 
-namespace Autoria.features.auth.register
+namespace Autoria.features.auth.Commands.register
 {
     public record RegisterCommand(
         string FullName,
@@ -9,6 +9,6 @@ namespace Autoria.features.auth.register
         string Password,
         string ConfirmPassword,
         string PhoneNumber
-        ) :IRequest<AuthResponseDto>;
-    
+        ) : IRequest<AuthResponseDto>;
+
 }

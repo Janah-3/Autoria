@@ -1,14 +1,13 @@
 ﻿using System;
-using Autoria.Infrastructure.Identity.entities;
 using Microsoft.AspNetCore.Identity;
 
-namespace Autoria.features.user.entity
+namespace Autoria.Infrastructure.Identity.entities
 {
     public class User : IdentityUser
     {
         public override string UserName
         {
-            get => Email; 
+            get => Email;
             set { }
         }
         public string FullName { get; set; } = default!;

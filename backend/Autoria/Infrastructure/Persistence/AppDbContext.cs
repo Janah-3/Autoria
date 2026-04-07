@@ -1,5 +1,4 @@
-﻿using Autoria.features.user.entity;
-using Autoria.Infrastructure.Identity.entities;
+﻿using Autoria.Infrastructure.Identity.entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;

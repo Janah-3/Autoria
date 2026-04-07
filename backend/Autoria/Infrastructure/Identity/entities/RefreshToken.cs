@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Text.Json.Serialization;
-using Autoria.features.user.entity;
 
 namespace Autoria.Infrastructure.Identity.entities
 {

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Autoria.Infrastructure.Persistence;
-using Autoria.features.user.entity;
 using Microsoft.AspNetCore.Identity;
 using Autoria.Infrastructure.Persistence.Seeding.Seeds;
 using Autoria.Infrastructure.Persistence.Seeding;
@@ -8,6 +7,10 @@ using Autoria.Infrastructure.Identity.Contracts;
 using Autoria.Infrastructure.Identity;
 using System.Reflection;
 using Autoria.Infrastructure.Identity.Services;
+using Autoria.Infrastructure.Identity.entities;
+using Autoria.Infrastructure.Email.Models;
+using Autoria.Infrastructure.Email.Contracts;
+using Autoria.Infrastructure.Email.Services;
 
 namespace Autoria
 {
@@ -16,10 +19,11 @@ namespace Autoria
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            builder.Services.AddDataProtection();
 
 
             // Add services to the container.
-           
+
 
             // Add DbContext 
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -31,8 +35,9 @@ namespace Autoria
 
             // Add Identity
             builder.Services.AddIdentityCore<User>()
-                .AddRoles<IdentityRole>()
-                .AddEntityFrameworkStores<AppDbContext>();
+            .AddRoles<IdentityRole>()
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddDefaultTokenProviders(); ;
 
             // Controllers & MediatR
             builder.Services.AddControllers();
@@ -51,6 +56,12 @@ namespace Autoria
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            //mail
+            builder.Services.Configure<MailSettings>(
+            builder.Configuration.GetSection("MailSettings"));
+
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
 
 

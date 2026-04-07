@@ -1,5 +1,5 @@
 ﻿using System.Data;
-using Autoria.features.user.entity;
+using Autoria.Infrastructure.Identity.entities;
 using Autoria.shared.constants;
 using Microsoft.AspNetCore.Identity;
 using static System.Runtime.InteropServices.JavaScript.JSType;

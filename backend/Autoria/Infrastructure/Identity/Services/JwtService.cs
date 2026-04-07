@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using System.Text;
 using Autoria.features.auth.Dtos;
-using Autoria.features.user.entity;
 using Autoria.Infrastructure.Identity.Contracts;
 using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Persistence;
