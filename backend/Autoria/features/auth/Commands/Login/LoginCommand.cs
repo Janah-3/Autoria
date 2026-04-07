@@ -1,4 +1,5 @@
 ﻿using Autoria.features.auth.Dtos;
+using Autoria.shared.Dtos;
 using MediatR;
 
 namespace Autoria.features.auth.Commands.Login

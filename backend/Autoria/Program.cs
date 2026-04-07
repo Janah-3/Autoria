@@ -11,6 +11,9 @@ using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Email.Models;
 using Autoria.Infrastructure.Email.Contracts;
 using Autoria.Infrastructure.Email.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Autoria
 {
@@ -20,7 +23,7 @@ namespace Autoria
         {
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddDataProtection();
-
+            builder.Services.AddHttpContextAccessor();
 
             // Add services to the container.
 
@@ -50,6 +53,27 @@ namespace Autoria
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.Configure<JwtSettings>(
                 builder.Configuration.GetSection("JwtSettings"));
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"])
+        )
+    };
+});
 
             // Data seeder
             builder.Services.AddScoped<DataSeeder>();
@@ -87,6 +111,8 @@ namespace Autoria
             }
 
             app.UseHttpsRedirection();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
