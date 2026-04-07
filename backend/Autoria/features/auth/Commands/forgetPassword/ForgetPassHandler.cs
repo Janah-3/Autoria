@@ -1,8 +1,10 @@
-﻿using Autoria.Infrastructure.Email.Contracts;
+﻿using System.Text;
+using Autoria.Infrastructure.Email.Contracts;
 using Autoria.Infrastructure.Email.Templates;
 using Autoria.Infrastructure.Identity.entities;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.WebUtilities;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Autoria.features.auth.Commands.forgetPassword
@@ -29,7 +31,11 @@ namespace Autoria.features.auth.Commands.forgetPassword
             }
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(User);
-            var resetLink = $"https://autoria.com/reset-password?token={Uri.EscapeDataString(token)}&email={request.Email}";
+            var encodedToken = WebEncoders.Base64UrlEncode(
+            Encoding.UTF8.GetBytes(token)
+            );
+
+            var resetLink = $"https://autoria.com/reset-password?token={encodedToken}&email={request.Email}";
 
             await _emailService.SendMailAsync(
                 to: User.Email!,

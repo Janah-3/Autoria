@@ -1,9 +1,10 @@
 ﻿using Autoria.features.auth.Commands.forgetPassword;
 using Autoria.features.auth.Commands.Login;
 using Autoria.features.auth.Commands.register;
+using Autoria.features.auth.Commands.ResetPassword;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
+
 
 namespace Autoria.features.auth
 {
@@ -35,11 +36,26 @@ namespace Autoria.features.auth
 
         }
 
-        [HttpPost("forget")]
+        [HttpPost("forgetPass")]
         public async Task<IActionResult> ForgetPass(ForgetPassCommand command)
         {
             var result = await _mediator.Send(command);
-            return  Ok(result);
+            return Ok(new
+            {
+                message = "a reset link has been sent."
+            });
+        }
+
+
+        [HttpPost("ResetPass")]
+        public async Task<IActionResult> RestPassword(ResetPassCommand command)
+        {
+            var result = await _mediator.Send(command);
+
+            return Ok(new
+            {
+                message = "Password reset successfully"
+            });
         }
         
 
