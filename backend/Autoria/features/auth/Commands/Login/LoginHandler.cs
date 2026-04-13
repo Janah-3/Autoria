@@ -5,9 +5,11 @@ using Autoria.features.auth.Dtos;
 using Autoria.Infrastructure.Identity;
 using Autoria.Infrastructure.Identity.Contracts;
 using Autoria.Infrastructure.Identity.entities;
+using Autoria.shared.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Autoria.features.auth.Commands.Login
 {
@@ -26,9 +28,12 @@ namespace Autoria.features.auth.Commands.Login
         {
 
 
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            
+            var user = await _userManager.FindByEmailAsync(request.Email)
+            ?? throw new NotFoundException("User not found");
 
-            if (user == null || !await _userManager.CheckPasswordAsync(user, request.Password))
+
+            if (!await _userManager.CheckPasswordAsync(user, request.Password))
             {
                 throw new UnauthorizedAccessException("Invalid credentials");
 

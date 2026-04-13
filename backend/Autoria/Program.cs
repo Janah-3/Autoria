@@ -14,6 +14,7 @@ using Autoria.Infrastructure.Email.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Autoria.shared.Middlewares;
 
 namespace Autoria
 {
@@ -24,6 +25,8 @@ namespace Autoria
             var builder = WebApplication.CreateBuilder(args);
             builder.Services.AddDataProtection();
             builder.Services.AddHttpContextAccessor();
+
+            builder.Services.AddScoped<GlobalExceptionHandler>();
 
             // Add services to the container.
 
@@ -109,6 +112,8 @@ namespace Autoria
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseMiddleware<GlobalExceptionHandler>();
 
             app.UseHttpsRedirection();
 
