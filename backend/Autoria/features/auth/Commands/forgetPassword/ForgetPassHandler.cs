@@ -23,12 +23,7 @@ namespace Autoria.features.auth.Commands.forgetPassword
         async Task<Unit> IRequestHandler<ForgetPassCommand, Unit>.Handle(ForgetPassCommand request, CancellationToken cancellationToken)
         {
 
-            var User = await _userManager.FindByEmailAsync(request.Email);
-
-            if (User == null)
-            {             
-                return Unit.Value;
-            }
+            var User = await _userManager.FindByEmailAsync(request.Email)?? throw new UnauthorizedAccessException("email doesn't exist");
 
             var token = await _userManager.GeneratePasswordResetTokenAsync(User);
             var encodedToken = WebEncoders.Base64UrlEncode(

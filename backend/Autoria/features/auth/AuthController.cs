@@ -8,6 +8,7 @@ using Autoria.features.auth.Commands.ResetPassword;
 using Autoria.features.auth.Commands.VerifyEmail;
 using Autoria.shared.Controllers;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -52,6 +53,7 @@ namespace Autoria.features.auth
         }
 
         [HttpPost("resetPass")]
+
         public async Task<IActionResult> ResetPassword(ResetPassCommand command)
         {
             await _mediator.Send(command);
@@ -60,6 +62,7 @@ namespace Autoria.features.auth
         }
 
         [HttpPost("logout")]
+        [Authorize]
         public async Task<IActionResult> Logout(LogoutCommand command)
         {
             await _mediator.Send(command);
@@ -84,6 +87,7 @@ namespace Autoria.features.auth
         }
 
         [HttpPatch("changePassword")]
+        [Authorize]
         public async Task<IActionResult> ChangePassword(ChangePasswordCommand command)
         {
             await _mediator.Send(command);

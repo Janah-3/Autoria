@@ -28,19 +28,18 @@ namespace Autoria.features.auth.Commands.Login
         {
 
 
-            
             var user = await _userManager.FindByEmailAsync(request.Email)
             ?? throw new NotFoundException("User not found");
 
 
             if (!await _userManager.CheckPasswordAsync(user, request.Password))
             {
-                throw new UnauthorizedAccessException("Invalid credentials");
+                throw new UnauthorizedException("Invalid credentials");
 
             }
 
             if (!user.EmailConfirmed)
-                throw new Exception("Please verify your email before logging in");
+                throw new ForbiddenException("Please verify your email before logging in");
 
             return await _jwtService.GenerateToken(user);
 

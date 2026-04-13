@@ -4,7 +4,14 @@
     {
         public List<string>? Errors { get; set; }
 
-        public BadRequestException(string message, List<string>? errors = null)
+
+        public BadRequestException(string message)
+            : base(message)
+        {
+        }
+
+        public BadRequestException(string message, List<string>? errors)
+            : base(message)
         {
             Errors = errors;
         }

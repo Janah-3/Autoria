@@ -1,4 +1,5 @@
 ﻿using Autoria.Infrastructure.Identity.entities;
+using Autoria.shared.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
@@ -14,16 +15,12 @@ namespace Autoria.features.auth.Commands.VerifyEmail
         }
         public async Task<Unit> Handle(VerifyEmailCommand request, CancellationToken cancellationToken)
         {
-            var user= await _userManager.FindByEmailAsync(request.Email);
+            var user= await _userManager.FindByEmailAsync(request.Email) ?? throw new BadRequestException("user not found"); ;
 
-            if (user == null)
-            {
-                throw new Exception("User not found");
-            }
-
+          
             if (user.EmailConfirmed)
             {
-                throw new Exception("Email already verified");
+                throw new BadRequestException("Email already verified");
             }
 
             var decodedToken = Uri.UnescapeDataString(request.Token);
@@ -32,7 +29,7 @@ namespace Autoria.features.auth.Commands.VerifyEmail
 
             if (!result.Succeeded)
             {
-                throw new Exception("Invalid or expired verification token");
+                throw new BadRequestException("Invalid or expired verification token");
             }
 
             return Unit.Value;

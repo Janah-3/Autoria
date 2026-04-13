@@ -4,6 +4,7 @@ using Autoria.Infrastructure.Email.Services;
 using Autoria.Infrastructure.Email.Templates;
 using Autoria.Infrastructure.Identity.Contracts;
 using Autoria.Infrastructure.Identity.entities;
+using Autoria.shared.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
@@ -26,27 +27,12 @@ namespace Autoria.features.auth.Commands.register
         public async Task<AuthResponseDto> Handle(RegisterCommand request, CancellationToken cancellationToken)
         {
 
-            if (string.IsNullOrWhiteSpace(request.FullName) ||
-               string.IsNullOrWhiteSpace(request.Email) ||
-               string.IsNullOrWhiteSpace(request.PhoneNumber) ||
-               string.IsNullOrWhiteSpace(request.Password) ||
-               string.IsNullOrWhiteSpace(request.ConfirmPassword)
-                )
-            {
-                throw new ArgumentException("fields are required.");
-            }
-
-
-            if (request.Password != request.ConfirmPassword)
-            {
-                throw new ArgumentException("Passwords do not match.");
-            }
 
             var existingUser = await _userManager.FindByEmailAsync(request.Email);
 
             if (existingUser != null)
             {
-                throw new InvalidOperationException("A user with this email already exists.");
+                throw new BadRequestException("A user with this email already exists.");
             }
 
 
@@ -63,9 +49,11 @@ namespace Autoria.features.auth.Commands.register
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
             {
+                var errors = result.Errors.Select(e => e.Description).ToList();
 
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"User creation failed: {errors}");
+                throw new BadRequestException("User creation failed", errors);
+
+              
             }
 
             await _userManager.AddToRoleAsync(user, "User");

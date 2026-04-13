@@ -1,6 +1,7 @@
 ﻿using Autoria.Infrastructure.Email.Contracts;
 using Autoria.Infrastructure.Email.Templates;
 using Autoria.Infrastructure.Identity.entities;
+using Autoria.shared.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
@@ -20,16 +21,11 @@ namespace Autoria.features.auth.Commands.ResendVerificationEmail
         public async Task Handle(ResendVerificationEmailCommand request, CancellationToken cancellationToken)
         {
 
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            var user = await _userManager.FindByEmailAsync(request.Email)?? throw new BadRequestException("user not found") ;
 
-            if (user == null)
-            {
-                throw new Exception("User not found");
-            }
-
-          
+            
             if (user.EmailConfirmed)
-                throw new ArgumentException("Email already verified");
+                throw new BadRequestException("Email already verified");
 
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var verificationLink = $"https://autoria.com/verify-email?token={Uri.EscapeDataString(token)}&email={user.Email}";
@@ -38,7 +34,7 @@ namespace Autoria.features.auth.Commands.ResendVerificationEmail
                 to: user.Email!,
                 subject: "Verify Your Autoria Email",
                 body: EmailTemplates.VerifyEmail(user.FullName, verificationLink)
-            );
+            ); 
         }
     }
 }

@@ -34,6 +34,8 @@ namespace Autoria.shared.Middlewares
             var (statusCode, response) = ex switch
             {
                 BadRequestException e => (400, ApiResponse<string>.Fail(e.Message, e.Errors)),
+               
+
                 NotFoundException e => (404, ApiResponse<string>.Fail(e.Message)),
                 UnauthorizedException e => (401, ApiResponse<string>.Fail(e.Message)),
                 ForbiddenException e => (403, ApiResponse<string>.Fail(e.Message)),
