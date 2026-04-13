@@ -1,4 +1,5 @@
-﻿using Autoria.features.auth.Commands.ChangePassword;
+﻿using Autoria.features.auth.Commands.AddAdmin;
+using Autoria.features.auth.Commands.ChangePassword;
 using Autoria.features.auth.Commands.forgetPassword;
 using Autoria.features.auth.Commands.Login;
 using Autoria.features.auth.Commands.logout;
@@ -93,6 +94,17 @@ namespace Autoria.features.auth
             await _mediator.Send(command);
 
             return Success("Password changed successfully.");
+        }
+
+
+        [HttpPost("AddAdmin")]
+        [Authorize(Roles = "Admin")]
+
+        public async Task<IActionResult> AddAdmin(AddAdminCommand command)
+        {
+            await _mediator.Send(command);
+
+            return Success("admin added successfully");
         }
     }
 }

@@ -39,6 +39,7 @@ namespace Autoria.shared.Middlewares
                 NotFoundException e => (404, ApiResponse<string>.Fail(e.Message)),
                 UnauthorizedException e => (401, ApiResponse<string>.Fail(e.Message)),
                 ForbiddenException e => (403, ApiResponse<string>.Fail(e.Message)),
+                ConflictException e => (409, ApiResponse<string>.Fail(e.Message)),
                 _ => (500, ApiResponse<string>.Fail("An unexpected error occurred"))
             };
 

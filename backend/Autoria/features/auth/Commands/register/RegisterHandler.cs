@@ -32,7 +32,7 @@ namespace Autoria.features.auth.Commands.register
 
             if (existingUser != null)
             {
-                throw new BadRequestException("A user with this email already exists.");
+                throw new ConflictException("A user with this email already exists.");
             }
 
 
