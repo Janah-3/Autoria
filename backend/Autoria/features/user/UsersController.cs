@@ -1,4 +1,6 @@
 ﻿using Autoria.features.user.Commands.UpdateCurrentUser;
+using Autoria.features.user.Commands.UpdateUser;
+using Autoria.features.user.Dtos;
 using Autoria.features.user.Querys.GetAllUsers;
 using Autoria.features.user.Querys.GetCurrentUser;
 using Autoria.features.user.Querys.GetUserById;
@@ -13,12 +15,8 @@ namespace Autoria.features.user
 {
     public class UsersController : BaseController
     {
-        private readonly IMediator _mediator;
 
-        public UsersController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        public UsersController(IMediator mediator) : base(mediator) { }
 
         [HttpGet("me")]
         [Authorize]
@@ -51,6 +49,24 @@ namespace Autoria.features.user
             var result = await _mediator.Send(command);
             return Success("user data is updated successfully");
         }
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{userId}")]
+
+        public async Task<IActionResult> UpdateUser([FromRoute] string userId,[FromBody] UpdateUserRequest request)
+        {
+            await _mediator.Send(new UpdateUserCommand(
+                userId,
+                request.FullName,
+                request.PhoneNumber,
+                request.Role
+            ));
+
+            return Success("User updated successfully");
+        }
+
+
 
 
     }

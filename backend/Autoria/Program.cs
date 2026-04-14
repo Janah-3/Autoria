@@ -18,6 +18,8 @@ using Autoria.shared.Middlewares;
 using Autoria.shared.Behaviors;
 using FluentValidation;
 using MediatR;
+using Autoria.Infrastructure.Persistence.Services;
+using Autoria.shared.Contracts;
 
 namespace Autoria
 {
@@ -32,7 +34,7 @@ namespace Autoria
             builder.Services.AddScoped<GlobalExceptionHandler>();
 
             // Add services to the container.
-
+            builder.Services.AddScoped<IAdminLogService, AdminLogService>();
 
             // Add DbContext 
             builder.Services.AddDbContext<AppDbContext>(options =>
@@ -50,8 +52,7 @@ namespace Autoria
 
             // Controllers & MediatR
             builder.Services.AddControllers();
-            builder.Services.AddMediatR(cfg =>
-                cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+         
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 

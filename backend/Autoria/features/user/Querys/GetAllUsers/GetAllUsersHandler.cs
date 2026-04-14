@@ -25,8 +25,8 @@ namespace Autoria.features.user.Querys.GetAllUsers
             {
                 query = query.Where(u =>
                     u.FullName.Contains(request.Search) ||
-                    u.Email.Contains(request.Search) ||
-                    u.PhoneNumber.Contains(request.Search));
+                    u.Email!.Contains(request.Search) ||
+                    u.PhoneNumber!.Contains(request.Search));
             }
 
          

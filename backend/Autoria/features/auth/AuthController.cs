@@ -18,12 +18,9 @@ namespace Autoria.features.auth
    
     public class AuthController : BaseController
     {
-        private readonly IMediator _mediator;
+        
 
-        public AuthController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
+        public AuthController(IMediator mediator) : base(mediator) { }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginCommand command)

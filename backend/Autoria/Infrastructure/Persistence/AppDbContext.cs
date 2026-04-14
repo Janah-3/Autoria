@@ -1,4 +1,5 @@
 ﻿using Autoria.Infrastructure.Identity.entities;
+using Autoria.Infrastructure.Persistence.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ namespace Autoria.Infrastructure.Persistence
         }
 
         public DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
+        public DbSet<AdminLog> AdminLogs { get; set; } = default!;
 
     }
 }

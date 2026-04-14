@@ -21,7 +21,8 @@ namespace Autoria.features.user.Commands.UpdateCurrentUser
 
         public async Task<Unit> Handle(UpdateCurrentUserCommand request, CancellationToken cancellationToken)
         {
-            var userId = _ContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)?? throw new UnauthorizedException("unautherized user");
+            var context = _ContextAccessor.HttpContext??throw new BadRequestException("no logged in user");
+            var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier)?? throw new UnauthorizedException("unautherized user");
 
             var user = await _userManager.FindByIdAsync( userId )?? throw new NotFoundException("user not found") ;
 
@@ -35,6 +36,7 @@ namespace Autoria.features.user.Commands.UpdateCurrentUser
                 var errors = result.Errors.Select(e => e.Description).ToList();
                 throw new BadRequestException("Failed to update user", errors);
             }
+
 
             return Unit.Value;
         }
