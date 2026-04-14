@@ -13,7 +13,6 @@ namespace Autoria.shared.Controllers
         protected IActionResult Success(string message = "Success")
             => Ok(ApiResponse<string>.Ok(message));
 
-        protected IActionResult Fail(string message, List<string>? errors = null)
-            => BadRequest(ApiResponse<string>.Fail(message, errors));
+    
     }
 }

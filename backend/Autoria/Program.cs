@@ -140,6 +140,10 @@ namespace Autoria
             app.MapControllers();
 
             app.Run();
+
+            
+
+
         }
     }
 }
