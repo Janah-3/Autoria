@@ -1,4 +1,5 @@
-﻿using Autoria.features.user.Querys.GetAllUsers;
+﻿using Autoria.features.user.Commands.UpdateCurrentUser;
+using Autoria.features.user.Querys.GetAllUsers;
 using Autoria.features.user.Querys.GetCurrentUser;
 using Autoria.features.user.Querys.GetUserById;
 using Autoria.shared.Controllers;
@@ -6,6 +7,7 @@ using Autoria.shared.Dtos;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Autoria.features.user
 {
@@ -40,6 +42,14 @@ namespace Autoria.features.user
         {
             var result = await _mediator.Send(new GetUserByIdQuery(id));
             return Success(result);
+        }
+
+        [HttpPut("me")]
+        [Authorize]
+        public async Task<IActionResult> UpdateCurrentUser(UpdateCurrentUserCommand  command)
+        {
+            var result = await _mediator.Send(command);
+            return Success("user data is updated successfully");
         }
 
 
