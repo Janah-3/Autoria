@@ -1,4 +1,7 @@
-﻿using Autoria.features.user.Commands.UpdateCurrentUser;
+﻿using Autoria.features.user.Commands.Ban_user;
+using Autoria.features.user.Commands.DeleteUser;
+using Autoria.features.user.Commands.UnbanUser;
+using Autoria.features.user.Commands.UpdateCurrentUser;
 using Autoria.features.user.Commands.UpdateUser;
 using Autoria.features.user.Dtos;
 using Autoria.features.user.Querys.GetAllUsers;
@@ -64,6 +67,44 @@ namespace Autoria.features.user
             ));
 
             return Success("User updated successfully");
+        }
+        
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{userId}")]
+
+        public async Task<IActionResult> DeleteUser([FromRoute] string userId)
+        {
+            await _mediator.Send(new DeleteUserCommand(
+                userId
+               
+            ));
+
+            return Success("User deleted successfully");
+        } 
+        
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{userId}/Ban")]
+
+        public async Task<IActionResult> BanUser([FromRoute] string userId ,BanUserRequest request)
+        {
+            await _mediator.Send(new BanUserCommand(
+                userId,
+                request.details 
+            ));
+
+            return Success("User Banned successfully");
+        } 
+        
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{userId}/Unban")]
+
+        public async Task<IActionResult> UnbanUser([FromRoute] string userId )
+        {
+            await _mediator.Send(new UnbanUserCommand(
+                userId  
+            ));
+
+            return Success("User unbanned successfully");
         }
 
 
