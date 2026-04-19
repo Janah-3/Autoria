@@ -1,6 +1,8 @@
 ﻿using Autoria.features.Car.Commands.AddCar;
 using Autoria.features.Cars.Commands.DeleteCar;
 using Autoria.features.Cars.Commands.UpdateCar;
+using Autoria.features.Cars.Querys.GetAllCars;
+using Autoria.features.Cars.Querys.GetCarById;
 using Autoria.features.user.Commands.UpdateUser;
 using Autoria.shared.Controllers;
 using MediatR;
@@ -53,5 +55,29 @@ namespace Autoria.features.Car
         }
 
 
+        [Authorize]
+        [HttpGet("{CarId}")]
+
+        public async Task<IActionResult> GetCarById([FromRoute]Guid CarId)
+        {
+         var result =  await _mediator.Send(
+                new GetCarByIdQuery(CarId)
+            );
+
+            return Success(result);
         }
+
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> GetAllCars([FromQuery] GetAllCarsQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return Success(result);
+        }
+
+
+
+
+
+    }
 }
