@@ -1,4 +1,5 @@
 ﻿using Autoria.features.Car.Entity;
+using Autoria.features.ServiceCenter.Entities;
 using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Persistence.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -29,6 +30,14 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
         public DbSet<AdminLog> AdminLogs { get; set; } = default!;
         public DbSet<Car>  Cars { get; set; } = default!;
+        public DbSet<ServiceCenter> ServiceCenters { get; set; }
+        public DbSet<ServiceCenterDocument> ServiceCenterDocuments { get; set; }
+        public DbSet<ServiceCenterServiceType> ServiceCenterServiceTypes { get; set; }
+        public DbSet<ServiceCenterCarBrand> ServiceCenterCarBrands { get; set; }
+        public DbSet<ServiceCenterPhoto> ServiceCenterPhotos { get; set; }
+        public DbSet<OperatingHours> OperatingHours { get; set; }
+        public DbSet<ServiceType> ServiceTypes { get; set; }
+        public DbSet<CarBrand> CarBrands { get; set; }
 
     }
 }
