@@ -1,4 +1,5 @@
 ﻿using Autoria.features.Car.Commands.AddCar;
+using Autoria.features.Cars.Commands.DeleteCar;
 using Autoria.features.Cars.Commands.UpdateCar;
 using Autoria.features.user.Commands.UpdateUser;
 using Autoria.shared.Controllers;
@@ -22,8 +23,7 @@ namespace Autoria.features.Car
         }
 
 
-        //[Authorize(Roles = "User")]
-        [Authorize]
+        [Authorize(Roles = "User")]
         [HttpPut("{CarId}")]
         public async Task<IActionResult> UpdateCar ([FromBody]UpdateCarRequestDto request, [FromRoute] Guid CarId)
         {
@@ -37,9 +37,20 @@ namespace Autoria.features.Car
 
             return Success("car updated successfuly");
         }
-       
 
 
+        [Authorize]
+        [HttpDelete("{CarId}")]
+
+        public async Task<IActionResult> DeleteCar([FromRoute] Guid CarId)
+        {
+            await _mediator.Send(new DeleteCarCommand
+            (
+                CarId
+            ));
+
+            return Success("car deleted successfuly");
+        }
 
 
         }

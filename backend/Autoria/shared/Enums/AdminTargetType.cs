@@ -7,6 +7,7 @@
         ServiceCenter,
         Review,
         Booking,
-        SparePart
+        SparePart,
+        Car
     }
 }

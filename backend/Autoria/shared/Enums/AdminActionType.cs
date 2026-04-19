@@ -11,6 +11,7 @@
         RejectServiceCenter,
         DeleteServiceCenter,
         DeleteReview,
-        DeleteBooking
+        DeleteBooking,
+        deleteCar
     }
 }
