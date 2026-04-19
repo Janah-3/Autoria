@@ -20,6 +20,7 @@ using FluentValidation;
 using MediatR;
 using Autoria.Infrastructure.Persistence.Services;
 using Autoria.shared.Contracts;
+using Autoria.shared.Settings;
 
 namespace Autoria
 {
@@ -106,7 +107,9 @@ namespace Autoria
 
             builder.Services.AddScoped<IEmailService, EmailService>();
 
-
+            builder.Services.Configure<CloudinarySettings>(
+            builder.Configuration.GetSection("Cloudinary"));
+            builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
 
             var app = builder.Build();

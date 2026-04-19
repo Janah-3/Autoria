@@ -2,7 +2,9 @@
 {
     public enum ApprovalStatus
     {
+        Draft,
         Pending,
+        UnderReview,
         Approved,
         Rejected
     }
