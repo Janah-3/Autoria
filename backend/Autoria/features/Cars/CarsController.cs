@@ -3,6 +3,7 @@ using Autoria.features.Cars.Commands.DeleteCar;
 using Autoria.features.Cars.Commands.UpdateCar;
 using Autoria.features.Cars.Querys.GetAllCars;
 using Autoria.features.Cars.Querys.GetCarById;
+using Autoria.features.Cars.Querys.GetCarsByUserId;
 using Autoria.features.user.Commands.UpdateUser;
 using Autoria.shared.Controllers;
 using MediatR;
@@ -76,7 +77,15 @@ namespace Autoria.features.Car
         }
 
 
+        [Authorize]
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetCarsByUserId( Guid userId, [FromQuery] GetCarsByUserIdQuery query)
+        {
+            var updatedQuery = query with { UserId = userId };
 
+            var result = await _mediator.Send(updatedQuery);
+            return Ok(result);
+        }
 
 
     }
