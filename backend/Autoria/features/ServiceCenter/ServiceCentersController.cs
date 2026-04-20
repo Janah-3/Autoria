@@ -5,6 +5,7 @@ using Autoria.shared.Controllers;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Autoria.features.ServiceCenter.Commands.UploadDocuments;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -43,5 +44,23 @@ namespace Autoria.features.ServiceCenter
 
             return Success(new { serviceCenterId });
         }
+
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
+        [Authorize]
+        [HttpPost("my/documents")]
+        public async Task<IActionResult> UploadDocuments([FromForm] UploadDocumentsRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            await _mediator.Send(new UploadDocumentsCommand(
+                userId,
+                request.CommercialRegFile,
+                request.TaxCardFile,
+                request.OwnerNationalIdFile
+            ));
+
+            return Success("Documents uploaded successfully");
+        }
+
     }
 }
