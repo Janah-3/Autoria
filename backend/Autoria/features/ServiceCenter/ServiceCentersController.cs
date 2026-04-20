@@ -15,6 +15,9 @@ using Autoria.features.ServiceCenter.Commands.ApproveServiceCenter;
 using Autoria.features.ServiceCenter.Commands.RejectServiceCenter;
 using Autoria.features.ServiceCenter.Querys.GetPendingServiceCenters;
 using Autoria.features.ServiceCenter.Querys.GetMyServiceCenter;
+using Autoria.features.ServiceCenter.Querys.GetServiceCenterById;
+using Autoria.features.ServiceCenter.Querys.GetAllServiceCenters;
+using Autoria.features.ServiceCenter.Commands.UpdateMyServiceCenter;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -179,5 +182,40 @@ namespace Autoria.features.ServiceCenter
             return Success(result);
         }
 
+        [AllowAnonymous]
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetServiceCenterById(Guid id)
+        {
+            var result = await _mediator.Send(new GetServiceCenterByIdQuery(id));
+            return Success(result);
+        }
+
+
+
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> GetAllServiceCenters([FromQuery] GetAllServiceCentersQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return Success(result);
+        }
+
+
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
+        [Authorize]
+        [HttpPut("my")]
+        public async Task<IActionResult> UpdateMyServiceCenter([FromBody] UpdateMyServiceCenterCommand command)
+        {
+            await _mediator.Send(command);
+            return Success("Service center updated successfully");
+        }
+
+        //[Authorize(Roles = Roles.Admin)]
+        //[HttpDelete("{id}")]
+        //public async Task<IActionResult> DeleteServiceCenter(Guid id)
+        //{
+        //    await Mediator.Send(new DeleteServiceCenterCommand(id));
+        //    return Success("Service center deleted successfully");
+        //}
     }
 }
