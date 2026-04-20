@@ -29,6 +29,7 @@ namespace Autoria.features.ServiceCenter.Entities
         public DateTime SubmittedAt { get; set; }
         public DateTime? ApprovedAt { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? RejectionReason { get; set; }
 
         public double Latitude { get; set; }
         public double Longitude { get; set; }

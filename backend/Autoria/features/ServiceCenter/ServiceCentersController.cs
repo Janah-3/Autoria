@@ -11,6 +11,9 @@ using Autoria.features.ServiceCenter.Commands.UpdateCarBrands;
 using Autoria.features.ServiceCenter.Commands.UpdateOperatingHours;
 using Autoria.features.ServiceCenter.Commands.UploadPhotos;
 using Autoria.features.ServiceCenter.Commands.SubmitServiceCenter;
+using Autoria.features.ServiceCenter.Commands.ApproveServiceCenter;
+using Autoria.features.ServiceCenter.Commands.RejectServiceCenter;
+using Autoria.features.ServiceCenter.Querys.GetPendingServiceCenters;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -137,6 +140,33 @@ namespace Autoria.features.ServiceCenter
             await _mediator.Send(new SubmitServiceCenterCommand(userId));
 
             return Success("Service center submitted successfully");
+        }
+
+
+        [Authorize(Roles = Roles.Admin)]
+        [HttpGet("pending")]
+        public async Task<IActionResult> GetPendingServiceCenters([FromQuery] GetPendingServiceCentersQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return Success(result);
+        }
+
+        [Authorize(Roles = Roles.Admin)]
+        [HttpPut("{id}/approve")]
+        public async Task<IActionResult> ApproveServiceCenter(Guid id)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _mediator.Send(new ApproveServiceCenterCommand(adminId, id));
+            return Success("Service center approved successfully");
+        }
+
+        [Authorize(Roles = Roles.Admin)]
+        [HttpPut("{id}/reject")]
+        public async Task<IActionResult> RejectServiceCenter(Guid id, [FromBody] RejectServiceCenterRequest request)
+        {
+            var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _mediator.Send(new RejectServiceCenterCommand(adminId, id, request.RejectionReason));
+            return Success("Service center rejected successfully");
         }
 
     }
