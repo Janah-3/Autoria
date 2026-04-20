@@ -9,6 +9,8 @@ using Autoria.features.ServiceCenter.Commands.UploadDocuments;
 using Autoria.features.ServiceCenter.Commands.UpdateServiceTypes;
 using Autoria.features.ServiceCenter.Commands.UpdateCarBrands;
 using Autoria.features.ServiceCenter.Commands.UpdateOperatingHours;
+using Autoria.features.ServiceCenter.Commands.UploadPhotos;
+using Autoria.features.ServiceCenter.Commands.SubmitServiceCenter;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -106,6 +108,35 @@ namespace Autoria.features.ServiceCenter
             ));
 
             return Success("Operating hours updated successfully");
+        }
+
+
+
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
+        [Authorize]
+        [HttpPost("my/photos")]
+        public async Task<IActionResult> UploadPhotos([FromForm] UploadPhotosRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            await _mediator.Send(new UploadPhotosCommand(
+                userId,
+                request.Photos
+            ));
+
+            return Success("Photos uploaded successfully");
+        }
+
+
+        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        [HttpPost("my/submit")]
+        public async Task<IActionResult> SubmitServiceCenter()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            await _mediator.Send(new SubmitServiceCenterCommand(userId));
+
+            return Success("Service center submitted successfully");
         }
 
     }
