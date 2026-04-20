@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Autoria.features.ServiceCenter.Commands.UploadDocuments;
 using Autoria.features.ServiceCenter.Commands.UpdateServiceTypes;
+using Autoria.features.ServiceCenter.Commands.UpdateCarBrands;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -78,7 +79,19 @@ namespace Autoria.features.ServiceCenter
 
 
 
+        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        [HttpPut("my/car-brands")]
+        public async Task<IActionResult> UpdateCarBrands([FromBody] UpdateCarBrandsRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+            await _mediator.Send(new UpdateCarBrandsCommand(
+                userId,
+                request.CarBrandIds
+            ));
+
+            return Success("Car brands updated successfully");
+        }
 
     }
 }
