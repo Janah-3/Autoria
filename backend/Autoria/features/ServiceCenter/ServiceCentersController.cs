@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Autoria.features.ServiceCenter.Commands.UploadDocuments;
 using Autoria.features.ServiceCenter.Commands.UpdateServiceTypes;
 using Autoria.features.ServiceCenter.Commands.UpdateCarBrands;
+using Autoria.features.ServiceCenter.Commands.UpdateOperatingHours;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -91,6 +92,20 @@ namespace Autoria.features.ServiceCenter
             ));
 
             return Success("Car brands updated successfully");
+        }
+
+        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        [HttpPut("my/operating-hours")]
+        public async Task<IActionResult> UpdateOperatingHours([FromBody] UpdateOperatingHoursRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            await _mediator.Send(new UpdateOperatingHoursCommand(
+                userId,
+                request.OperatingHours
+            ));
+
+            return Success("Operating hours updated successfully");
         }
 
     }
