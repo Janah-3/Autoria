@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Autoria.features.ServiceCenter.Commands.UploadDocuments;
+using Autoria.features.ServiceCenter.Commands.UpdateServiceTypes;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -45,8 +46,7 @@ namespace Autoria.features.ServiceCenter
             return Success(new { serviceCenterId });
         }
 
-        //[Authorize(Roles = Roles.ServiceCenterOwner)]
-        [Authorize]
+        [Authorize(Roles = Roles.ServiceCenterOwner)]
         [HttpPost("my/documents")]
         public async Task<IActionResult> UploadDocuments([FromForm] UploadDocumentsRequest request)
         {
@@ -61,6 +61,24 @@ namespace Autoria.features.ServiceCenter
 
             return Success("Documents uploaded successfully");
         }
+
+        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        [HttpPut("my/service-types")]
+        public async Task<IActionResult> UpdateServiceTypes([FromBody] UpdateServiceTypesRequest request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+            await _mediator.Send(new UpdateServiceTypesCommand(
+                userId,
+                request.ServiceTypeIds
+            ));
+
+            return Success("Service types updated successfully");
+        }
+
+
+
+
 
     }
 }
