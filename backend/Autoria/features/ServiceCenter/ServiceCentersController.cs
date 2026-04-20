@@ -14,6 +14,7 @@ using Autoria.features.ServiceCenter.Commands.SubmitServiceCenter;
 using Autoria.features.ServiceCenter.Commands.ApproveServiceCenter;
 using Autoria.features.ServiceCenter.Commands.RejectServiceCenter;
 using Autoria.features.ServiceCenter.Querys.GetPendingServiceCenters;
+using Autoria.features.ServiceCenter.Querys.GetMyServiceCenter;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -167,6 +168,15 @@ namespace Autoria.features.ServiceCenter
             var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
             await _mediator.Send(new RejectServiceCenterCommand(adminId, id, request.RejectionReason));
             return Success("Service center rejected successfully");
+        }
+
+
+        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyServiceCenter()
+        {
+            var result = await _mediator.Send(new GetMyServiceCenterQuery());
+            return Success(result);
         }
 
     }
