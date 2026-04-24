@@ -3,6 +3,7 @@ using Autoria.Infrastructure.Persistence;
 using Autoria.shared.Contracts;
 using Autoria.shared.Enums;
 using Autoria.shared.Exceptions;
+using Autoria.shared.Helpers;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,7 +33,7 @@ namespace Autoria.features.ServiceCenter.Commands.UploadPhotos
             
             foreach (var existingPhoto in serviceCenter.Photos)
             {
-                var publicId = ExtractPublicId(existingPhoto.PhotoUrl);
+                var publicId = CloudinaryHelper.ExtractPublicId(existingPhoto.PhotoUrl);
                 await _cloudinaryService.DeleteImageAsync(publicId);
             }
 
@@ -57,15 +58,6 @@ namespace Autoria.features.ServiceCenter.Commands.UploadPhotos
             return Unit.Value;
         }
 
-        private string ExtractPublicId(string url)
-        {
-            // Cloudinary URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{folder}/{publicId}.{ext}
-            var uri = new Uri(url);
-            var segments = uri.AbsolutePath.Split('/');
-            var uploadIndex = Array.IndexOf(segments, "upload");
-            var relevantSegments = segments.Skip(uploadIndex + 2); // skip "upload" and version
-            var publicIdWithExt = string.Join("/", relevantSegments);
-            return Path.ChangeExtension(publicIdWithExt, null); // remove extension
-        }
+       
     }
 }
