@@ -1,4 +1,7 @@
-﻿using Autoria.features.Car.Entity;
+﻿using System.Reflection.Emit;
+using Autoria.features.Booking.Entities;
+using Autoria.features.Car.Entity;
+using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;
 using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Persistence.Entities;
@@ -24,6 +27,35 @@ namespace Autoria.Infrastructure.Persistence
             builder.Entity<User>().ToTable("users");
             builder.Entity<User>().Ignore(u => u.UserName);
             builder.Entity<RefreshToken>().ToTable("RefreshTokens");
+            builder.Entity<Booking>()
+           .HasOne(b => b.ServiceCenter)
+           .WithMany()
+           .HasForeignKey(b => b.ServiceCenterId)
+           .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Booking>()
+           .Property(b => b.TotalPrice)
+           .HasPrecision(18, 2);
+
+            builder.Entity<Booking>()
+            .HasOne(b => b.User)
+            .WithMany()
+            .HasForeignKey(b => b.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Review>()
+           .HasOne(r => r.ServiceCenter)
+           .WithMany()
+           .HasForeignKey(r => r.ServiceCenterId)
+           .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Review>()
+            .HasOne(r => r.User)
+            .WithMany()
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Restrict); 
+
+
 
         }
 
@@ -38,6 +70,13 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<OperatingHours> OperatingHours { get; set; }
         public DbSet<ServiceType> ServiceTypes { get; set; }
         public DbSet<CarBrand> CarBrands { get; set; }
+
+        public DbSet<ServiceType> serviceTypes { get; set; }
+
+        public DbSet<Booking> Bookings { get; set; } 
+        public DbSet<Review> Reviews { get; set; }
+
+        public DbSet<ReviewReply> ReviewReplies { get; set; }
 
     }
 }
