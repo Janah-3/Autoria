@@ -21,5 +21,7 @@ namespace Autoria.features.Booking.Entities
         public string? CancellationReason { get; set; }
         public DateTime? CompletedAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public Guid? TimeSlotId { get; set; }
+        public TimeSlot? TimeSlot { get; set; }
     }
 }

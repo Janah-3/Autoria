@@ -10,7 +10,7 @@ namespace Autoria.features.Reports
         public ReportsController(IMediator mediator) : base(mediator) { }
 
 
-        public async Task<IActionResult> AddReport(AddReportCommand command)
+        public async Task<IActionResult> AddReport(Commands.AddReport.AddReportCommand command)
         {
             
             await _mediator.Send(command);

@@ -53,7 +53,13 @@ namespace Autoria.Infrastructure.Persistence
             .HasOne(r => r.User)
             .WithMany()
             .HasForeignKey(r => r.UserId)
-            .OnDelete(DeleteBehavior.Restrict); 
+            .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Booking>()
+            .HasOne(b => b.TimeSlot)
+            .WithOne(ts => ts.Booking)
+            .HasForeignKey<Booking>(b => b.TimeSlotId)
+            .OnDelete(DeleteBehavior.SetNull);
 
 
 
@@ -77,6 +83,7 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<Review> Reviews { get; set; }
 
         public DbSet<ReviewReply> ReviewReplies { get; set; }
+        public DbSet<TimeSlot> TimeSlots { get; set; }
 
     }
 }
