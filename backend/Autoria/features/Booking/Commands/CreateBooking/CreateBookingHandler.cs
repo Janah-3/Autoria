@@ -1,4 +1,6 @@
 ﻿using System.Security.Claims;
+using Autoria.features.Notifications.Enums;
+using Autoria.features.Notifications.Services;
 using Autoria.Infrastructure.Persistence;
 using Autoria.shared.Exceptions;
 using MediatR;
@@ -10,11 +12,13 @@ namespace Autoria.features.Booking.Commands.CreateBooking
     {
         private readonly AppDbContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
-        public CreateBookingHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor)
+        public CreateBookingHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor, INotificationService notificationService)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
 
         public async Task<Guid> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
@@ -22,10 +26,9 @@ namespace Autoria.features.Booking.Commands.CreateBooking
             var userId = _httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? throw new UnauthorizedException("User not authenticated.");
 
-            var carExists = await _db.Cars
-                .AnyAsync(c => c.CarId == request.CarId && c.UserId == userId, cancellationToken);
-            if (!carExists)
-                throw new NotFoundException("Car not found or does not belong to the current user.");
+            var car = await _db.Cars
+                .FirstOrDefaultAsync(c => c.CarId == request.CarId && c.UserId == userId, cancellationToken)
+                ?? throw new NotFoundException("Car not found or does not belong to the current user.");
 
             var serviceTypeExists = await _db.ServiceTypes
                 .AnyAsync(st => st.Id == request.ServiceTypeId, cancellationToken);
@@ -57,6 +60,14 @@ namespace Autoria.features.Booking.Commands.CreateBooking
 
             _db.Bookings.Add(booking);
             await _db.SaveChangesAsync(cancellationToken);
+
+            var user = await _db.Users.FindAsync([userId], cancellationToken);
+            await _notificationService.SendAsync(
+                userId: userId,
+                userEmail: user!.Email!,
+                type: NotificationType.BookingPending,
+                channel: NotificationChannel.Both,
+                content: $"Your booking on {booking.Appointment:dd MMM yyyy HH:mm} has been submitted and is awaiting confirmation.");
 
             return booking.Id;
         }

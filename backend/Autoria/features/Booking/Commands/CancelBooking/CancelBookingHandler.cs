@@ -1,4 +1,6 @@
 ﻿using System.Security.Claims;
+using Autoria.features.Notifications.Enums;
+using Autoria.features.Notifications.Services;
 using Autoria.Infrastructure.Persistence;
 using Autoria.shared.Contracts;
 using Autoria.shared.Enums;
@@ -13,12 +15,14 @@ namespace Autoria.features.Booking.Commands.CancelBooking
         private readonly AppDbContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IAdminLogService _adminLog;
+        private readonly INotificationService _notificationService;
 
-        public CancelBookingHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor, IAdminLogService adminLog)
+        public CancelBookingHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor, IAdminLogService adminLog, INotificationService notificationService)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
             _adminLog = adminLog;
+            _notificationService = notificationService;
         }
 
         public async Task Handle(CancelBookingCommand request, CancellationToken cancellationToken)
@@ -26,7 +30,10 @@ namespace Autoria.features.Booking.Commands.CancelBooking
             var userId = _httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? throw new UnauthorizedException("User not authenticated.");
 
-            var query = _db.Bookings.Where(b => b.Id == request.BookingId);
+            var query = _db.Bookings
+                .Include(b => b.User)
+                .Include(b => b.ServiceCenter)
+                .Where(b => b.Id == request.BookingId);
 
             if (!request.BypassOwnerCheck)
                 query = query.Where(b => b.UserId == userId);
@@ -43,10 +50,12 @@ namespace Autoria.features.Booking.Commands.CancelBooking
             if (booking.Status == BookingStatus.Cancelled)
                 throw new BadRequestException("Booking is already cancelled.");
 
-            booking.Status = BookingStatus.Cancelled;
-            booking.CancellationReason = request.BypassOwnerCheck
+            var reason = request.BypassOwnerCheck
                 ? (request.CancellationReason ?? "Cancelled by admin.")
                 : request.CancellationReason;
+
+            booking.Status = BookingStatus.Cancelled;
+            booking.CancellationReason = reason;
 
             // Release the time slot
             if (booking.TimeSlotId.HasValue)
@@ -58,13 +67,20 @@ namespace Autoria.features.Booking.Commands.CancelBooking
 
             await _db.SaveChangesAsync(cancellationToken);
 
+            await _notificationService.SendAsync(
+                userId: booking.UserId,
+                userEmail: booking.User.Email!,
+                type: NotificationType.BookingCancelled,
+                channel: NotificationChannel.Both,
+                content: $"Your booking at {booking.ServiceCenter.Name} on {booking.Appointment:dd MMM yyyy HH:mm} has been cancelled. Reason: {reason}");
+
             if (request.BypassOwnerCheck)
                 await _adminLog.LogAsync(
                     adminId: userId,
                     action: AdminActionType.DeleteBooking,
                     targetType: AdminTargetType.Booking,
                     targetId: booking.Id.ToString(),
-                    details: request.CancellationReason ?? "Cancelled by admin.");
+                    details: reason);
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Reflection.Emit;
 using Autoria.features.Booking.Entities;
 using Autoria.features.Car.Entity;
+using Autoria.features.Notifications.Entities;
 using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;
 using Autoria.Infrastructure.Identity.entities;
@@ -84,6 +85,8 @@ namespace Autoria.Infrastructure.Persistence
 
         public DbSet<ReviewReply> ReviewReplies { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
+
+        public DbSet<Notification> Notifications { get; set; }
 
     }
 }

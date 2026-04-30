@@ -1,4 +1,6 @@
 ﻿using System.Security.Claims;
+using Autoria.features.Notifications.Enums;
+using Autoria.features.Notifications.Services;
 using Autoria.Infrastructure.Persistence;
 using Autoria.shared.Exceptions;
 using MediatR;
@@ -10,11 +12,13 @@ namespace Autoria.features.Booking.Commands.RescheduleBooking
     {
         private readonly AppDbContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly INotificationService _notificationService;
 
-        public RescheduleBookingHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor)
+        public RescheduleBookingHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor, INotificationService notificationService)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
+            _notificationService = notificationService;
         }
 
         public async Task Handle(RescheduleBookingCommand request, CancellationToken cancellationToken)
@@ -23,6 +27,8 @@ namespace Autoria.features.Booking.Commands.RescheduleBooking
                 ?? throw new UnauthorizedException("User not authenticated.");
 
             var booking = await _db.Bookings
+                .Include(b => b.User)
+                .Include(b => b.ServiceCenter)
                 .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken)
                 ?? throw new NotFoundException("Booking not found.");
 
@@ -50,12 +56,18 @@ namespace Autoria.features.Booking.Commands.RescheduleBooking
 
             // Lock new slot
             newSlot.IsBooked = true;
-
             booking.TimeSlotId = newSlot.Id;
             booking.Appointment = newSlot.Date.ToDateTime(newSlot.StartTime);
             booking.Status = BookingStatus.Pending;
 
             await _db.SaveChangesAsync(cancellationToken);
+
+            await _notificationService.SendAsync(
+                userId: booking.UserId,
+                userEmail: booking.User.Email!,
+                type: NotificationType.BookingRescheduled,
+                channel: NotificationChannel.Both,
+                content: $"Your booking at {booking.ServiceCenter.Name} has been rescheduled to {booking.Appointment:dd MMM yyyy HH:mm}.");
         }
     }
 }
