@@ -1,0 +1,12 @@
+[33m65cdc2d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mauth[m[33m, [m[1;31morigin/auth[m[33m)[m HEAD@{0}: commit: fix auth api
+[33mf0e7904[m HEAD@{1}: commit: auth module only (login, signup, api)
+[33m58a8aa7[m[33m ([m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{2}: reset: moving to HEAD~1
+[33m84aad36[m HEAD@{3}: commit: auth module: login, signup, api only
+[33m58a8aa7[m[33m ([m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{4}: checkout: moving from dev to auth
+[33m58a8aa7[m[33m ([m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mdev[m[33m)[m HEAD@{5}: pull origin dev: Fast-forward
+[33mccab15a[m HEAD@{6}: checkout: moving from auth to dev
+[33m9e32f1d[m HEAD@{7}: reset: moving to origin/auth
+[33m9e32f1d[m HEAD@{8}: reset: moving to HEAD
+[33m9e32f1d[m HEAD@{9}: commit: add auth pages (login & signup)
+[33m6a9fba2[m HEAD@{10}: checkout: moving from dev to auth
+[33mccab15a[m HEAD@{11}: clone: from https://github.com/Janah-3/Autoria.git

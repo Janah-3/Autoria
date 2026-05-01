@@ -1,64 +1,71 @@
-// const BASE_URL = "https://your-api.com/api/cars"; // 👈 غيري ده
+import { BASE_URL } from "./allApi";
 
-// export async function getCars() {
-//   const res = await fetch(BASE_URL);
-//   return res.json();
-// }
-
-// export async function addCar(data) {
-//   const res = await fetch(BASE_URL, {
-//     method: "POST",
-//     headers: {
-//       "Content-Type": "application/json",
-//       // Authorization: `Bearer ${localStorage.getItem("token")}` 👈 لو في توكن
-//     },
-//     body: JSON.stringify(data),
-//   });
-
-//   return res.json();
-// }
-
-// export async function deleteCar(id) {
-//   await fetch(`${BASE_URL}/${id}`, {
-//     method: "DELETE",
-//   });
-// }
-// FAKE DATA بدل API مؤقتًا
-
-let cars = [
-  {
-    id: 1,
-    brand: "BMW",
-    model: "X5",
-    year: 2020,
-    plate: "ABC 123",
-  },
-  {
-    id: 2,
-    brand: "Toyota",
-    model: "Corolla",
-    year: 2022,
-    plate: "XYZ 789",
-  },
-];
-
-// GET
-export async function getCars() {
-  return cars;
-}
-
-// ADD
-export async function addCar(newCar) {
-  const car = {
-    ...newCar,
-    id: Date.now(),
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    "Authorization": token ? `Bearer ${token}` : ""
   };
+};
 
-  cars.push(car);
-  return car;
-}
+export const getAllCars = async () => {
+  const res = await fetch(`${BASE_URL}/`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || "Failed to fetch cars");
+  }
+  return data;
+};
 
-// DELETE
-export async function deleteCar(id) {
-  cars = cars.filter((car) => car.id !== id);
-}
+export const getCarById = async (id) => {
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || "Failed to fetch car");
+  }
+  return data;
+};
+
+export const addCar = async (carData) => {
+  const res = await fetch(`${BASE_URL}/`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(carData)
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || "Failed to add car");
+  }
+  return data;
+};
+
+export const updateCar = async (id, carData) => {
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(carData)
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || "Failed to update car");
+  }
+  return data;
+};
+
+export const deleteCar = async (id) => {
+  const res = await fetch(`${BASE_URL}/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || "Failed to delete car");
+  }
+  return data;
+};
