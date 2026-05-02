@@ -97,3 +97,34 @@ export const changePassword = async (oldPassword, newPassword, confirmPassword) 
   
   return data;
 };
+
+export const logout = async () => {
+  const refreshToken = typeof window !== 'undefined' ? localStorage.getItem("refreshToken") : null;
+
+  const res = await fetch(`${BASE_URL}/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      RefreshToken: refreshToken
+    }),
+  });
+
+  
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("email");
+  }
+
+  let data;
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    data = await res.json();
+  } else {
+    data = await res.text();
+  }
+
+  return data;
+};

@@ -17,7 +17,7 @@ export default function LogoutPage() {
     try {
       await logout();
     } catch (error) {
-      // Even if the API call fails, we still clear local storage and redirect
+
       console.error("Logout API error:", error);
     } finally {
       setIsDone(true);
