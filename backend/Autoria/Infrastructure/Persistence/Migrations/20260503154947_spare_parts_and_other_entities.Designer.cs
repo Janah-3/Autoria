@@ -4,6 +4,7 @@ using Autoria.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Autoria.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503154947_spare_parts_and_other_entities")]
+    partial class spare_parts_and_other_entities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,10 +112,6 @@ namespace Autoria.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
 
                     b.HasKey("Id");
 
@@ -837,8 +836,6 @@ namespace Autoria.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookingId");
-
                     b.HasIndex("ClientId");
 
                     b.HasIndex("ServiceCenterId");
@@ -1063,7 +1060,7 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -1091,7 +1088,7 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
                         .WithMany()
                         .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceType", "ServiceType")
@@ -1108,7 +1105,7 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Car");
@@ -1138,7 +1135,7 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
                         .WithMany("Cars")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -1149,13 +1146,13 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
                         .WithMany()
                         .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Autoria.features.SpareParts.Entities.SparePart", "SparePart")
                         .WithMany("Inventories")
                         .HasForeignKey("SparePartId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("ServiceCenter");
@@ -1221,13 +1218,13 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
                         .WithMany()
                         .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Booking");
@@ -1275,7 +1272,7 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -1343,27 +1340,22 @@ namespace Autoria.Migrations
 
             modelBuilder.Entity("Autoria.features.SpareParts.Entities.PartReservation", b =>
                 {
-                    b.HasOne("Autoria.features.Booking.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "Client")
                         .WithMany()
                         .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
                         .WithMany()
                         .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Autoria.features.SpareParts.Entities.SparePart", "SparePart")
                         .WithMany()
                         .HasForeignKey("SparePartId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Client");
@@ -1378,7 +1370,7 @@ namespace Autoria.Migrations
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "CreatedBy")
                         .WithMany()
                         .HasForeignKey("CreatedById")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("CreatedBy");

@@ -1,6 +1,7 @@
 ﻿using Autoria.features.Reports.Commands.AddReport;
 using Autoria.shared.Controllers;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Autoria.features.Reports
@@ -11,13 +12,13 @@ namespace Autoria.features.Reports
         public ReportsController(IMediator mediator) : base(mediator) { }
 
 
-        public async Task<IActionResult> AddReport(Commands.AddReport.AddReportCommand command)
+        [Authorize]
+        [HttpPost]
+        public async Task<IActionResult> AddReport([FromBody] AddReportCommand command)
         {
-            
             await _mediator.Send(command);
-
-            return Success("report added successfully");
+            return Success("Report submitted successfully");
         }
-       
+
     }
 }

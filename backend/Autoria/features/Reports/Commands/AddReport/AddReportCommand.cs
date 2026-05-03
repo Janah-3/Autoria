@@ -6,14 +6,10 @@ using MediatR;
 namespace Autoria.features.Reports.Commands.AddReport
 {
     public record AddReportCommand(
+     ReportTaregetType TargetType,
+     Guid TargetId,
+     ReportReason Reason,
+     string? Details
+ ) : IRequest<Unit>;
 
-     AdminTargetType TargetType ,  
-     string TargetId,
-     string Reason ,
-     ReportStatus Status,
-     Guid? ReviewedBy ,
-     DateTime CreatedAt,
-     DateTime? ReviewedAt 
-        ):IRequest<Unit>;
-    
 }

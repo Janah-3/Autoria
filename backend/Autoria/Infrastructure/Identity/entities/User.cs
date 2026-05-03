@@ -6,11 +6,7 @@ namespace Autoria.Infrastructure.Identity.entities
 {
     public class User : IdentityUser
     {
-        public override string UserName
-        {
-            get => Email;
-            set { }
-        }
+     
         public string FullName { get; set; } = default!;
         public bool IsBanned { get; set; }
         public DateTime Created_At { get; set; }

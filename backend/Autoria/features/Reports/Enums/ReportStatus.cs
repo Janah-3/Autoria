@@ -2,7 +2,7 @@
 {
     public enum ReportStatus
     {
-
+        Pending,
         reviewed,
         uderreview
     }
