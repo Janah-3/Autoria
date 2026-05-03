@@ -40,6 +40,7 @@ namespace Autoria.features.auth.Commands.register
             {
                 FullName = request.FullName,
                 Email = request.Email,
+                UserName = request.Email,
                 PhoneNumber = request.PhoneNumber,
                 Created_At = DateTime.UtcNow,
                 IsBanned = false,
