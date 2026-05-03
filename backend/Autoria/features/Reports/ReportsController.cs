@@ -1,4 +1,5 @@
-﻿using Autoria.shared.Controllers;
+﻿using Autoria.features.Reports.Commands.AddReport;
+using Autoria.shared.Controllers;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

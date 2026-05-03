@@ -1,29 +1,43 @@
-﻿using Autoria.Infrastructure.Persistence;
+﻿using System.Security.Claims;
+using Autoria.features.Reports.Entity;
+using Autoria.Infrastructure.Persistence;
+using Autoria.shared.Contracts;
+using Autoria.shared.Exceptions;
 using MediatR;
 
 namespace Autoria.features.Reports.Commands.AddReport
 {
     public class AddReportHandler : IRequestHandler<AddReportCommand, Unit>
     {
-        private readonly IHttpContextAccessor _httpContext;
+        private readonly ICurrentUserService _currentUserService;
         private readonly AppDbContext _dbContext;
 
-        public AddReportHandler(IHttpContextAccessor httpContext, AppDbContext dbContext )
+        public AddReportHandler(ICurrentUserService currentUserService, AppDbContext dbContext  )
         {
-            _httpContext = httpContext;
+            _currentUserService = currentUserService;
             _dbContext = dbContext;
             
         }
-        public Task<Unit> Handle(AddReportCommand request, CancellationToken cancellationToken)
+        public async Task<Unit> Handle(AddReportCommand request, CancellationToken cancellationToken)
         {
 
-            var context = _httpContext.HttpContext;
+            _currentUserService.IsAuthenticated();
+           var userId = _currentUserService.GetUserId();
 
-            if (context)
+            var report = new Report
             {
+                CreatedAt = DateTime.UtcNow,
+                Reason = request.Reason,
+                ReporterId = userId,
+
+               
+            };
+
+            _dbContext.Reports.AddAsync()
 
 
-            }
+            return Unit.Value;
+
 
 
         }

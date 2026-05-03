@@ -1,6 +1,7 @@
 ﻿using System.Reflection.Emit;
 using Autoria.features.Booking.Entities;
 using Autoria.features.Car.Entity;
+using Autoria.features.Reports.Entity;
 using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;
 using Autoria.Infrastructure.Identity.entities;
@@ -77,6 +78,8 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<Review> Reviews { get; set; }
 
         public DbSet<ReviewReply> ReviewReplies { get; set; }
+        public DbSet<Report> Reports { get; set; }
+
 
     }
 }

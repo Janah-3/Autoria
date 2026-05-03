@@ -37,6 +37,7 @@ namespace Autoria
 
             // Add services to the container.
             builder.Services.AddScoped<IAdminLogService, AdminLogService>();
+            builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
             // Add DbContext 
             builder.Services.AddDbContext<AppDbContext>(options =>
