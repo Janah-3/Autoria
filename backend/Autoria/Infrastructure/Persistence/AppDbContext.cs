@@ -1,9 +1,11 @@
 ﻿using System.Reflection.Emit;
 using Autoria.features.Booking.Entities;
 using Autoria.features.Car.Entity;
-using Autoria.features.Reports.Entity;
+using Autoria.features.Inventory.Entities;
+using Autoria.features.Notifications.Entities;
 using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;
+using Autoria.features.SpareParts.Entities;
 using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Persistence.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -54,7 +56,13 @@ namespace Autoria.Infrastructure.Persistence
             .HasOne(r => r.User)
             .WithMany()
             .HasForeignKey(r => r.UserId)
-            .OnDelete(DeleteBehavior.Restrict); 
+            .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Booking>()
+            .HasOne(b => b.TimeSlot)
+            .WithOne(ts => ts.Booking)
+            .HasForeignKey<Booking>(b => b.TimeSlotId)
+            .OnDelete(DeleteBehavior.SetNull);
 
 
 
@@ -78,8 +86,14 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<Review> Reviews { get; set; }
 
         public DbSet<ReviewReply> ReviewReplies { get; set; }
-        public DbSet<Report> Reports { get; set; }
+        public DbSet<TimeSlot> TimeSlots { get; set; }
 
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<SparePart> SpareParts { get; set; }
+        public DbSet<Inventory> Inventories { get; set; }
+        public DbSet<PartReservation> PartReservations { get; set; }
+        public DbSet<SparePartImage> SparePartImages { get; set; }
+        public DbSet<InventoryHistory> InventoryHistories { get; set; }
 
     }
 }

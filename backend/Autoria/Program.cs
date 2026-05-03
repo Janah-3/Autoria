@@ -1,27 +1,28 @@
-using Microsoft.EntityFrameworkCore;
-using Autoria.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Identity;
-using Autoria.Infrastructure.Persistence.Seeding.Seeds;
-using Autoria.Infrastructure.Persistence.Seeding;
-using Autoria.Infrastructure.Identity.Contracts;
-using Autoria.Infrastructure.Identity;
 using System.Reflection;
-using Autoria.Infrastructure.Identity.Services;
-using Autoria.Infrastructure.Identity.entities;
-using Autoria.Infrastructure.Email.Models;
-using Autoria.Infrastructure.Email.Contracts;
-using Autoria.Infrastructure.Email.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
-using Autoria.shared.Middlewares;
+using Autoria.features.Notifications.Services;
+using Autoria.Infrastructure.Email.Contracts;
+using Autoria.Infrastructure.Email.Models;
+using Autoria.Infrastructure.Email.Services;
+using Autoria.Infrastructure.Identity;
+using Autoria.Infrastructure.Identity.Contracts;
+using Autoria.Infrastructure.Identity.entities;
+using Autoria.Infrastructure.Identity.Services;
+using Autoria.Infrastructure.Persistence;
+using Autoria.Infrastructure.Persistence.Seeding;
+using Autoria.Infrastructure.Persistence.Seeding.Seeds;
+using Autoria.Infrastructure.Persistence.Services;
 using Autoria.shared.Behaviors;
+using Autoria.shared.Contracts;
+using Autoria.shared.Converters;
+using Autoria.shared.Middlewares;
+using Autoria.shared.Settings;
 using FluentValidation;
 using MediatR;
-using Autoria.Infrastructure.Persistence.Services;
-using Autoria.shared.Contracts;
-using Autoria.shared.Settings;
-using Autoria.shared.Converters;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Autoria
 {
@@ -118,6 +119,7 @@ namespace Autoria
             builder.Configuration.GetSection("MailSettings"));
 
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
 
             builder.Services.Configure<CloudinarySettings>(
             builder.Configuration.GetSection("Cloudinary"));
