@@ -1,6 +1,6 @@
 ﻿using MediatR;
 
-namespace Autoria.features.SpareParts.Commands.ReservePart
+namespace Autoria.features.PartReservations.Commands.ReservePart
 {
     public record ReservePartCommand(
         Guid ServiceCenterId,

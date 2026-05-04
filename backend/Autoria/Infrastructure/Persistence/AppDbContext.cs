@@ -4,6 +4,7 @@ using Autoria.features.Booking.Entities;
 using Autoria.features.Car.Entity;
 using Autoria.features.Inventory.Entities;
 using Autoria.features.Notifications.Entities;
+using Autoria.features.PartReservations.Entities;
 using Autoria.features.Reports.Entity;
 using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;

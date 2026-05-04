@@ -1,6 +1,7 @@
-﻿using Autoria.Infrastructure.Identity.entities;
+﻿using Autoria.features.SpareParts.Entities;
+using Autoria.Infrastructure.Identity.entities;
 
-namespace Autoria.features.SpareParts.Entities
+namespace Autoria.features.PartReservations.Entities
 {
     public class PartReservation
     {
@@ -14,10 +15,11 @@ namespace Autoria.features.SpareParts.Entities
         public Guid? BookingId { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
-        public decimal TotalPrice => Quantity * UnitPrice;
         public Enums.ReservationStatus Status { get; set; } = Enums.ReservationStatus.Pending;
         public DateTime ReservedAt { get; set; } = DateTime.UtcNow;
         public DateTime ExpiresAt { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public DateTime? PickedUpAt { get; set; }
         public string? CancellationReason { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using Autoria.features.auth.Commands.ChangePassword;
 using Autoria.features.auth.Commands.forgetPassword;
 using Autoria.features.auth.Commands.Login;
 using Autoria.features.auth.Commands.logout;
+using Autoria.features.auth.Commands.RefreshToken;
 using Autoria.features.auth.Commands.register;
 using Autoria.features.auth.Commands.ResendVerificationEmail;
 using Autoria.features.auth.Commands.ResetPassword;
@@ -102,6 +103,14 @@ namespace Autoria.features.auth
             await _mediator.Send(command);
 
             return Success("admin added successfully");
+        }
+
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Success(result);
         }
     }
 }

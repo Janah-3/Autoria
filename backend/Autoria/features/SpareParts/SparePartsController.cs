@@ -1,15 +1,12 @@
-﻿using Autoria.features.SpareParts.Commands.CancelReservation;
-using Autoria.features.SpareParts.Commands.CreateSparePart;
+﻿using Autoria.features.SpareParts.Commands.CreateSparePart;
 using Autoria.features.SpareParts.Commands.DeleteSparePart;
-using Autoria.features.SpareParts.Commands.ReservePart;
 using Autoria.features.SpareParts.Commands.UpdateSparePart;
 using Autoria.features.SpareParts.Dtos;
-using Autoria.features.SpareParts.Enums;
 using Autoria.features.SpareParts.Queries.GetAllSpareParts;
 using Autoria.features.SpareParts.Queries.GetCategories;
 using Autoria.features.SpareParts.Queries.GetSparePartById;
 using Autoria.features.SpareParts.Queries.GetSparePartsCatalog;
-using Autoria.features.SpareParts.Queries.GetUserReservations;
+
 using Autoria.shared.Dtos;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -54,38 +51,8 @@ namespace Autoria.features.SpareParts
             return Ok(ApiResponse<List<string>>.Ok(result));
         }
 
-        // ── Reservations (authenticated users) ────────────────────────────────
 
-        /// <summary>Reserve a spare part online</summary>
-        [HttpPost("reserve")]
-        [Authorize]
-        public async Task<IActionResult> ReservePart([FromBody] ReservePartCommand command)
-        {
-            var reservationId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetMyReservations), new { },
-                ApiResponse<Guid>.Ok(reservationId, "Part reserved successfully. Expires in 24 hours."));
-        }
-
-        /// <summary>View current user's reservations</summary>
-        [HttpGet("reservations")]
-        [Authorize]
-        public async Task<IActionResult> GetMyReservations(
-            [FromQuery] ReservationStatus? status,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10)
-        {
-            var result = await _mediator.Send(new GetUserReservationsQuery(status, page, pageSize));
-            return Ok(ApiResponse<PagedResponse<ReservationDto>>.Ok(result));
-        }
-
-        /// <summary>Cancel a reservation — restores stock</summary>
-        [HttpPatch("reservations/{id:guid}/cancel")]
-        [Authorize]
-        public async Task<IActionResult> CancelReservation(Guid id, [FromBody] CancelReservationRequest request)
-        {
-            await _mediator.Send(new CancelReservationCommand(id, request.Reason));
-            return Ok(ApiResponse<object>.Ok(null!, "Reservation cancelled successfully."));
-        }
+     
 
         // ── Admin — Catalog Management ─────────────────────────────────────────
 

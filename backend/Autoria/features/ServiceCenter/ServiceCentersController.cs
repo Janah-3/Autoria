@@ -29,7 +29,7 @@ namespace Autoria.features.ServiceCenter
 
 
 
-        [Authorize(Roles = Roles.User)]
+        //[Authorize(Roles = Roles.User)]
         [HttpPost]
         public async Task<IActionResult> CreateServiceCenter([FromBody] CreateServiceCenterRequest request)
         {

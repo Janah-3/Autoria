@@ -1,6 +1,7 @@
 ﻿namespace Autoria.Infrastructure.Persistence.Configurations
 {
     using global::Autoria.features.Booking.Entities;
+    using global::Autoria.features.PartReservations.Entities;
     using global::Autoria.features.SpareParts.Entities;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -20,7 +21,7 @@
                 builder.Property(pr => pr.Quantity)
                     .IsRequired();
 
-                builder.Ignore(pr => pr.TotalPrice);
+              
 
                 builder.Property(pr => pr.Status)
                     .HasConversion<string>()
