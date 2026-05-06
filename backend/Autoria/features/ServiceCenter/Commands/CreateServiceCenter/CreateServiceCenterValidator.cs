@@ -7,9 +7,6 @@ namespace Autoria.features.ServiceCenter.Commands.CreateServiceCenter
         public CreateServiceCenterValidator()
         {
             RuleFor(x => x.Name).NotEmpty().MaximumLength(100);
-            RuleFor(x => x.Governorate).NotEmpty();
-            RuleFor(x => x.District).NotEmpty();
-            RuleFor(x => x.StreetAddress).NotEmpty().MaximumLength(200);
             RuleFor(x => x.Phone).NotEmpty().Matches(@"^01[0125][0-9]{8}$")
                 .WithMessage("Invalid Egyptian phone number");
             RuleFor(x => x.BusinessEmail).NotEmpty().EmailAddress();
@@ -26,8 +23,6 @@ namespace Autoria.features.ServiceCenter.Commands.CreateServiceCenter
             RuleFor(x => x.OwnerFullName).NotEmpty().MaximumLength(100);
             RuleFor(x => x.NumServiceBays).GreaterThan(0);
             RuleFor(x => x.Type).IsInEnum();
-            RuleFor(x => x.Latitude).InclusiveBetween(-90, 90);
-            RuleFor(x => x.Longitude).InclusiveBetween(-180, 180);
         }
     }
 }

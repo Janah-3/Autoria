@@ -1,4 +1,5 @@
-﻿using Autoria.Infrastructure.Identity.entities;
+﻿using NetTopologySuite.Geometries;
+using Autoria.Infrastructure.Identity.entities;
 using Autoria.shared.Enums;
 
 namespace Autoria.features.ServiceCenter.Entities
@@ -10,9 +11,7 @@ namespace Autoria.features.ServiceCenter.Entities
         public User User { get; set; } = default!;
 
         public string Name { get; set; } = default!;
-        public string Governorate { get; set; } = default!;
-        public string District { get; set; } = default!;
-        public string StreetAddress { get; set; } = default!;
+      
         public string Phone { get; set; } = default!;
         public string BusinessEmail { get; set; } = default!;
         public int YearEstablished { get; set; }
@@ -30,9 +29,10 @@ namespace Autoria.features.ServiceCenter.Entities
         public DateTime? ApprovedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? RejectionReason { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
+        public Point? Location { get; set; }
+        public string? Address { get; set; }
 
         // Navigation properties
         public ICollection<OperatingHours> OperatingHours { get; set; } = new List<OperatingHours>();

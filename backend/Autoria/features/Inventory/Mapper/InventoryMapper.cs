@@ -10,8 +10,6 @@ namespace Autoria.features.Inventory.Mapper
             InventoryId = inv.Id,
             ServiceCenterId = inv.ServiceCenterId,
             ServiceCenterName = inv.ServiceCenter.Name,
-            Governorate = inv.ServiceCenter.Governorate,
-            District = inv.ServiceCenter.District,
             Quantity = inv.Quantity,
             IsAvailable = inv.IsAvailable && inv.Quantity > 0,
             Price = inv.Price
@@ -39,7 +37,6 @@ namespace Autoria.features.Inventory.Mapper
             Category = inv.SparePart.Category,
             ServiceCenterId = inv.ServiceCenterId,
             ServiceCenterName = inv.ServiceCenter.Name,
-            Governorate = inv.ServiceCenter.Governorate,
             Quantity = inv.Quantity,
             IsAvailable = inv.IsAvailable,
             Price = inv.Price,

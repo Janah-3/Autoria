@@ -35,8 +35,6 @@ namespace Autoria.features.ServiceCenter.Querys.GetPendingServiceCenters
                     OwnerFullName = sc.OwnerFullName,
                     BusinessEmail = sc.BusinessEmail,
                     Phone = sc.Phone,
-                    Governorate = sc.Governorate,
-                    District = sc.District,
                     Type = sc.Type,
                     ApprovalStatus = sc.ApprovalStatus,
                     SubmittedAt = sc.SubmittedAt

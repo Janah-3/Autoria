@@ -7,6 +7,7 @@ using Autoria.features.user.Dtos;
 using Autoria.features.user.Querys.GetAllUsers;
 using Autoria.features.user.Querys.GetCurrentUser;
 using Autoria.features.user.Querys.GetUserById;
+using Autoria.features.Users.Commands.UpdateUserLocation;
 using Autoria.shared.Controllers;
 using Autoria.shared.Dtos;
 using MediatR;
@@ -105,6 +106,15 @@ namespace Autoria.features.user
             ));
 
             return Success("User unbanned successfully");
+        }
+
+
+        [HttpPut("my/location")]
+        [Authorize]
+        public async Task<IActionResult> UpdateLocation([FromBody] UpdateUserLocationCommand command)
+        {
+            await _mediator.Send(command);
+            return Success("Location updated successfully");
         }
 
 

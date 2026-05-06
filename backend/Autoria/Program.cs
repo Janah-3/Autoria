@@ -10,7 +10,6 @@ using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Identity.Services;
 using Autoria.Infrastructure.Persistence;
 using Autoria.Infrastructure.Persistence.Seeding;
-using Autoria.Infrastructure.Persistence.Seeding.Seeds;
 using Autoria.Infrastructure.Persistence.Services;
 using Autoria.shared.Behaviors;
 using Autoria.shared.Contracts;
@@ -23,6 +22,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 
 namespace Autoria
 {
@@ -45,6 +45,7 @@ namespace Autoria
             {
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection")
+                    , o => o.UseNetTopologySuite()
                 );
             });
 
