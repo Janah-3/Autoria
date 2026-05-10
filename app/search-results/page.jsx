@@ -8,7 +8,7 @@ import Navbar from "@/components/Navbar";
 
 
 
-// --- Design System ---
+
 const COLORS = {
   primary: "#E8272A",
   primaryDark: "#B81C1F",
@@ -29,7 +29,6 @@ const SHADOWS = {
 
 const TRANSITION = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
-// --- Components ---
 
 
 
