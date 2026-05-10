@@ -23,6 +23,7 @@ using Autoria.features.ServiceCenter.Dtos;
 using Autoria.shared.Dtos;
 using Autoria.shared.Enums;
 using Autoria.features.ServiceCenter.Commands.UpdateServiceCenterLocation;
+using Autoria.Features.ServiceCenters.MatchServiceCenters;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -236,5 +237,17 @@ namespace Autoria.features.ServiceCenter
             await _mediator.Send(new UpdateServiceCenterLocationCommand(id, request.Latitude, request.Longitude, request.Address));
             return Success("Location updated successfully");
         }
+
+
+        [Authorize]
+     
+
+            [HttpPost("match")]
+            public async Task<IActionResult> Match([FromBody] MatchServiceCentersCommand command)
+            {
+                var result = await _mediator.Send(command);
+                return Success( result,"success");
+            }
+        
     }
 }

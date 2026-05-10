@@ -8,7 +8,6 @@ namespace Autoria.features.ServiceCenter.Entities
     {
         public Guid Id { get; set; }
         public string UserId { get; set; } = default!;
-        public User User { get; set; } = default!;
 
         public string Name { get; set; } = default!;
       
@@ -34,7 +33,11 @@ namespace Autoria.features.ServiceCenter.Entities
         public Point? Location { get; set; }
         public string? Address { get; set; }
 
+        public double Rating { get; set; }
+
+
         // Navigation properties
+        public User User { get; set; } = default!;
         public ICollection<OperatingHours> OperatingHours { get; set; } = new List<OperatingHours>();
         public ICollection<ServiceCenterServiceType> ServiceTypes { get; set; } = new List<ServiceCenterServiceType>();
         public ICollection<ServiceCenterCarBrand> CarBrands { get; set; } = new List<ServiceCenterCarBrand>();

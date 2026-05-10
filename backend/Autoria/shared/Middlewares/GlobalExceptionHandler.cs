@@ -40,7 +40,7 @@ namespace Autoria.shared.Middlewares
                 UnauthorizedException e => (401, ApiResponse<string>.Fail(e.Message)),
                 ForbiddenException e => (403, ApiResponse<string>.Fail(e.Message)),
                 ConflictException e => (409, ApiResponse<string>.Fail(e.Message)),
-                _ => (500, ApiResponse<string>.Fail("An unexpected error occurred"))
+                _ => (500, ApiResponse<string>.Fail(ex.Message))
             };
 
             context.Response.StatusCode = statusCode;

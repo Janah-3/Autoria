@@ -23,6 +23,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
+using Autoria.Infrastructure.AI.Contracts;
+using Autoria.Infrastructure.AI;
 
 namespace Autoria
 {
@@ -75,6 +77,12 @@ namespace Autoria
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.Configure<JwtSettings>(
                 builder.Configuration.GetSection("JwtSettings"));
+
+            //Gemini service
+            builder.Services.AddHttpClient<IGeminiService,GeminiService>();
+            builder.Services.Configure<GeminiSettings>(
+                 builder.Configuration.GetSection("GeminiSettings")
+                );
 
             builder.Services.AddAuthentication(options =>
             {
