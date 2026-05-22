@@ -2,7 +2,9 @@
 using System.Reflection.Emit;
 using Autoria.features.Booking.Entities;
 using Autoria.features.Car.Entity;
+using Autoria.features.ContactUs.Entity;
 using Autoria.features.Inventory.Entities;
+using Autoria.features.MileageTracking.Entities;
 using Autoria.features.Notifications.Entities;
 using Autoria.features.Reports.Entity;
 using Autoria.features.Reviews.Entity;
@@ -166,6 +168,9 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<PartReservation> PartReservations { get; set; }
         public DbSet<SparePartImage> SparePartImages { get; set; }
         public DbSet<InventoryHistory> InventoryHistories { get; set; }
+        public DbSet<ContactMessage> ContactMessages { get; set; }
+        public DbSet<MileageEntry> MileageEntries { get; set; }
+        public DbSet<MaintenanceReminder> MaintenanceReminders { get; set; }
 
     }
 }
