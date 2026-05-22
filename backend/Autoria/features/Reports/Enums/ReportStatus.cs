@@ -3,7 +3,8 @@
     public enum ReportStatus
     {
         Pending,
-        reviewed,
-        uderreview
+        UnderReview,
+        Resolved,
+        Dismissed
     }
 }

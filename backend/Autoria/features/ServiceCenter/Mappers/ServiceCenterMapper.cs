@@ -8,9 +8,6 @@ namespace Autoria.features.ServiceCenter.Mappers
         {
             Id = sc.Id,
             Name = sc.Name,
-            Governorate = sc.Governorate,
-            District = sc.District,
-            StreetAddress = sc.StreetAddress,
             Phone = sc.Phone,
             BusinessEmail = sc.BusinessEmail,
             YearEstablished = sc.YearEstablished,
@@ -23,8 +20,6 @@ namespace Autoria.features.ServiceCenter.Mappers
             Type = sc.Type,
             ApprovalStatus = sc.ApprovalStatus,
             RejectionReason = sc.RejectionReason,
-            Latitude = sc.Latitude,
-            Longitude = sc.Longitude,
             SubmittedAt = sc.SubmittedAt,
             ApprovedAt = sc.ApprovedAt,
             CreatedAt = sc.CreatedAt,

@@ -6,9 +6,6 @@ namespace Autoria.features.ServiceCenter.Commands.CreateServiceCenter
     public record CreateServiceCenterCommand(
      string UserId,
      string Name,
-     string Governorate,
-     string District,
-     string StreetAddress,
      string Phone,
      string BusinessEmail,
      int YearEstablished,
@@ -18,8 +15,6 @@ namespace Autoria.features.ServiceCenter.Commands.CreateServiceCenter
      string OwnerNationalId,
      string OwnerFullName,
      int NumServiceBays,
-     ServiceCenterType Type,
-     double Latitude,
-     double Longitude
+     ServiceCenterType Type
  ) : IRequest<Guid>;
 }

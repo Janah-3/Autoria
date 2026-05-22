@@ -19,6 +19,11 @@ using Autoria.features.ServiceCenter.Querys.GetServiceCenterById;
 using Autoria.features.ServiceCenter.Querys.GetAllServiceCenters;
 using Autoria.features.ServiceCenter.Commands.UpdateMyServiceCenter;
 using Autoria.features.ServiceCenter.Commands.DeleteServiceCenter;
+using Autoria.features.ServiceCenter.Dtos;
+using Autoria.shared.Dtos;
+using Autoria.shared.Enums;
+using Autoria.features.ServiceCenter.Commands.UpdateServiceCenterLocation;
+using Autoria.Features.ServiceCenters.MatchServiceCenters;
 
 namespace Autoria.features.ServiceCenter
 {
@@ -29,7 +34,7 @@ namespace Autoria.features.ServiceCenter
 
 
 
-        [Authorize(Roles = Roles.User)]
+        //[Authorize(Roles = Roles.User)]
         [HttpPost]
         public async Task<IActionResult> CreateServiceCenter([FromBody] CreateServiceCenterRequest request)
         {
@@ -38,9 +43,6 @@ namespace Autoria.features.ServiceCenter
             var serviceCenterId = await _mediator.Send(new CreateServiceCenterCommand(
                 userId,
                 request.Name,
-                request.Governorate,
-                request.District,
-                request.StreetAddress,
                 request.Phone,
                 request.BusinessEmail,
                 request.YearEstablished,
@@ -50,9 +52,7 @@ namespace Autoria.features.ServiceCenter
                 request.OwnerNationalId,
                 request.OwnerFullName,
                 request.NumServiceBays,
-                request.Type,
-                request.Latitude,
-                request.Longitude
+                request.Type
             ));
 
             return Success(new { serviceCenterId });
@@ -195,9 +195,19 @@ namespace Autoria.features.ServiceCenter
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<IActionResult> GetAllServiceCenters([FromQuery] GetAllServiceCentersQuery query)
+        public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? search = null,
+        [FromQuery] ServiceCenterType? type = null,
+        [FromQuery] Guid? serviceTypeId = null,
+        [FromQuery] Guid? carBrandId = null,
+        [FromQuery] double? latitude = null,
+        [FromQuery] double? longitude = null)
         {
-            var result = await _mediator.Send(query);
+            var result = await _mediator.Send(new GetAllServiceCentersQuery(
+                page, pageSize, search, type, serviceTypeId, carBrandId, latitude, longitude));
+
             return Success(result);
         }
 
@@ -217,5 +227,27 @@ namespace Autoria.features.ServiceCenter
             await _mediator.Send(new DeleteServiceCenterCommand(id));
             return Success("Service center deleted successfully");
         }
+
+
+
+        [HttpPut("my/location")]
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
+        public async Task<IActionResult> UpdateLocation(Guid id, [FromBody] UpdateServiceCenterLocationRequest request)
+        {
+            await _mediator.Send(new UpdateServiceCenterLocationCommand(id, request.Latitude, request.Longitude, request.Address));
+            return Success("Location updated successfully");
+        }
+
+
+        [Authorize]
+     
+
+            [HttpPost("match")]
+            public async Task<IActionResult> Match([FromBody] MatchServiceCentersCommand command)
+            {
+                var result = await _mediator.Send(command);
+                return Success( result,"success");
+            }
+        
     }
 }

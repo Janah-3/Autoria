@@ -6,6 +6,7 @@ using Autoria.features.ContactUs.Entity;
 using Autoria.features.Inventory.Entities;
 using Autoria.features.MileageTracking.Entities;
 using Autoria.features.Notifications.Entities;
+using Autoria.features.PartReservations.Entities;
 using Autoria.features.Reports.Entity;
 using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;

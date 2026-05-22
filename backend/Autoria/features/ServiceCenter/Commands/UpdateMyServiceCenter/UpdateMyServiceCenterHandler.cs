@@ -31,17 +31,12 @@ namespace Autoria.features.ServiceCenter.Commands.UpdateMyServiceCenter
                 throw new BadRequestException("Only approved service centers can be updated");
 
             serviceCenter.Name = request.Name ?? serviceCenter.Name;
-            serviceCenter.Governorate = request.Governorate ?? serviceCenter.Governorate;
-            serviceCenter.District = request.District ?? serviceCenter.District;
-            serviceCenter.StreetAddress = request.StreetAddress ?? serviceCenter.StreetAddress;
             serviceCenter.Phone = request.Phone ?? serviceCenter.Phone;
             serviceCenter.BusinessEmail = request.BusinessEmail ?? serviceCenter.BusinessEmail;
             serviceCenter.YearEstablished = request.YearEstablished ?? serviceCenter.YearEstablished;
             serviceCenter.Description = request.Description ?? serviceCenter.Description;
             serviceCenter.NumServiceBays = request.NumServiceBays ?? serviceCenter.NumServiceBays;
             serviceCenter.Type = request.Type ?? serviceCenter.Type;
-            serviceCenter.Latitude = request.Latitude ?? serviceCenter.Latitude;
-            serviceCenter.Longitude = request.Longitude ?? serviceCenter.Longitude;
 
             await _context.SaveChangesAsync(cancellationToken);
 

@@ -1,5 +1,7 @@
 ﻿using Autoria.features.Inventory.Dtos;
 using Autoria.features.Inventory.Mapper;
+using Autoria.features.PartReservations.Dtos;
+using Autoria.features.PartReservations.Entities;
 using Autoria.features.SpareParts.Dtos;
 using Autoria.features.SpareParts.Entities;
 
@@ -42,13 +44,11 @@ namespace Autoria.features.SpareParts.Mapper
         public static ReservationDto ToReservationDto(PartReservation r) => new()
         {
             Id = r.Id,
-            PartName = r.SparePart.Name,
-            PartNumber = r.SparePart.PartNumber,
+            SparePartName = r.SparePart.Name,
             ServiceCenterName = r.ServiceCenter.Name,
             BookingId = r.BookingId,
             Quantity = r.Quantity,
             UnitPrice = r.UnitPrice,
-            TotalPrice = r.TotalPrice,
             Status = r.Status,
             ReservedAt = r.ReservedAt,
             ExpiresAt = r.ExpiresAt,

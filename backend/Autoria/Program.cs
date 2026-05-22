@@ -10,7 +10,6 @@ using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Identity.Services;
 using Autoria.Infrastructure.Persistence;
 using Autoria.Infrastructure.Persistence.Seeding;
-using Autoria.Infrastructure.Persistence.Seeding.Seeds;
 using Autoria.Infrastructure.Persistence.Services;
 using Autoria.shared.Behaviors;
 using Autoria.shared.Contracts;
@@ -23,6 +22,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
+using Autoria.Infrastructure.AI.Contracts;
+using Autoria.Infrastructure.AI;
 
 namespace Autoria
 {
@@ -45,6 +47,7 @@ namespace Autoria
             {
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection")
+                    , o => o.UseNetTopologySuite()
                 );
             });
 
@@ -74,6 +77,12 @@ namespace Autoria
             builder.Services.AddScoped<IJwtService, JwtService>();
             builder.Services.Configure<JwtSettings>(
                 builder.Configuration.GetSection("JwtSettings"));
+
+            //Gemini service
+            builder.Services.AddHttpClient<IGeminiService,GeminiService>();
+            builder.Services.Configure<GeminiSettings>(
+                 builder.Configuration.GetSection("GeminiSettings")
+                );
 
             builder.Services.AddAuthentication(options =>
             {

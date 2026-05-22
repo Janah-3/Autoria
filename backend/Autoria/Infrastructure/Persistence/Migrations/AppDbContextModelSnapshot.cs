@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using NetTopologySuite.Geometries;
 
 #nullable disable
 
@@ -80,6 +81,9 @@ namespace Autoria.Migrations
 
                     b.Property<bool>("IsBanned")
                         .HasColumnType("bit");
+
+                    b.Property<Point>("Location")
+                        .HasColumnType("geography");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -261,6 +265,9 @@ namespace Autoria.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("BrandId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Color")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -304,6 +311,8 @@ namespace Autoria.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("CarId");
+
+                    b.HasIndex("BrandId");
 
                     b.HasIndex("UserId");
 
@@ -423,6 +432,62 @@ namespace Autoria.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Autoria.features.PartReservations.Entities.PartReservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PickedUpAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReservedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ServiceCenterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SparePartId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("ServiceCenterId");
+
+                    b.HasIndex("SparePartId");
+
+                    b.ToTable("PartReservations");
                 });
 
             modelBuilder.Entity("Autoria.features.Reports.Entity.Report", b =>
@@ -607,6 +672,9 @@ namespace Autoria.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("ApprovalStatus")
                         .HasColumnType("int");
 
@@ -628,19 +696,11 @@ namespace Autoria.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("District")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
-                    b.Property<string>("Governorate")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double>("Latitude")
-                        .HasColumnType("float");
-
-                    b.Property<double>("Longitude")
-                        .HasColumnType("float");
+                    b.Property<Point>("Location")
+                        .HasColumnType("geography");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -661,11 +721,10 @@ namespace Autoria.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<double>("Rating")
+                        .HasColumnType("float");
 
-                    b.Property<string>("StreetAddress")
-                        .IsRequired()
+                    b.Property<string>("RejectionReason")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("SubmittedAt")
@@ -796,56 +855,6 @@ namespace Autoria.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ServiceType");
-                });
-
-            modelBuilder.Entity("Autoria.features.SpareParts.Entities.PartReservation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BookingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CancellationReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ClientId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ReservedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ServiceCenterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SparePartId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingId");
-
-                    b.HasIndex("ClientId");
-
-                    b.HasIndex("ServiceCenterId");
-
-                    b.HasIndex("SparePartId");
-
-                    b.ToTable("PartReservations");
                 });
 
             modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePart", b =>
@@ -1135,11 +1144,17 @@ namespace Autoria.Migrations
 
             modelBuilder.Entity("Autoria.features.Car.Entity.Car", b =>
                 {
+                    b.HasOne("Autoria.features.ServiceCenter.Entities.CarBrand", "Brand")
+                        .WithMany()
+                        .HasForeignKey("BrandId");
+
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
                         .WithMany("Cars")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.Navigation("Brand");
 
                     b.Navigation("User");
                 });
@@ -1191,6 +1206,38 @@ namespace Autoria.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Autoria.features.PartReservations.Entities.PartReservation", b =>
+                {
+                    b.HasOne("Autoria.features.Booking.Entities.Booking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "Client")
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
+                        .WithMany()
+                        .HasForeignKey("ServiceCenterId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Autoria.features.SpareParts.Entities.SparePart", "SparePart")
+                        .WithMany()
+                        .HasForeignKey("SparePartId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Client");
+
+                    b.Navigation("ServiceCenter");
+
+                    b.Navigation("SparePart");
                 });
 
             modelBuilder.Entity("Autoria.features.Reports.Entity.Report", b =>
@@ -1339,38 +1386,6 @@ namespace Autoria.Migrations
                     b.Navigation("ServiceCenter");
 
                     b.Navigation("ServiceType");
-                });
-
-            modelBuilder.Entity("Autoria.features.SpareParts.Entities.PartReservation", b =>
-                {
-                    b.HasOne("Autoria.features.Booking.Entities.Booking", null)
-                        .WithMany()
-                        .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "Client")
-                        .WithMany()
-                        .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
-                        .WithMany()
-                        .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.features.SpareParts.Entities.SparePart", "SparePart")
-                        .WithMany()
-                        .HasForeignKey("SparePartId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Client");
-
-                    b.Navigation("ServiceCenter");
-
-                    b.Navigation("SparePart");
                 });
 
             modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePart", b =>

@@ -1,6 +1,7 @@
 ﻿using System;
 using Autoria.features.Car.Entity;
 using Microsoft.AspNetCore.Identity;
+using NetTopologySuite.Geometries;
 
 namespace Autoria.Infrastructure.Identity.entities
 {
@@ -10,6 +11,8 @@ namespace Autoria.Infrastructure.Identity.entities
         public string FullName { get; set; } = default!;
         public bool IsBanned { get; set; }
         public DateTime Created_At { get; set; }
+        public Point? Location { get; set; }
+
 
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
         public ICollection<Car> Cars { get; set; } = new List<Car>();
