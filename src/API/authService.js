@@ -9,43 +9,84 @@ const getAuthHeaders = () => {
 };
 
 export const signup = async (userData) => {
-  const res = await fetch(`${BASE_URL}/api/Auth/register`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      FullName: userData.name,          
-      Email: userData.email,
-      Password: userData.password,
-    })
-  });
+  try {
+    const res = await fetch(`${BASE_URL}/api/Auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        FullName: userData.name,          
+        Email: userData.email,
+        Password: userData.password,
+        ConfirmPassword: userData.confirmPassword,
+        PhoneNumber: userData.phone,
+      })
+    });
 
-  const data = await res.json();
-  if (!res.ok || data.success === false) {
-    throw new Error(data.message || "Registration failed");
+    let data;
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      throw new Error(text || "Server returned an error");
+    }
+
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || "Registration failed");
+    }
+    return data;
+  } catch (error) {
+    console.error("Signup error:", error);
+    if (error.message === "Failed to fetch") {
+      throw new Error("Unable to connect to the server. Please ensure the backend is running at " + BASE_URL);
+    }
+    throw error;
   }
-  return data;
 };
 
 export const login = async (userData) => {
-  const res = await fetch(`${BASE_URL}/api/Auth/login`, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json" 
-    },
-    body: JSON.stringify({
-      email: userData.email,
-      password: userData.password
-    }),
-  });
+  try {
+    const res = await fetch(`${BASE_URL}/api/Auth/login`, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json" 
+      },
+      body: JSON.stringify({
+        Email: userData.email,
+        Password: userData.password
+      }),
+    });
 
-  const data = await res.json();
+    let data;
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      data = await res.json();
+    } else {
+      const text = await res.text();
+      throw new Error(text || "Server returned an error");
+    }
 
-  if (!res.ok || data.success === false) {
-    throw new Error(data.message || "Login failed");
+    if (!res.ok || data.success === false) {
+      throw new Error(data.message || "Login failed");
+    }
+
+    // Save token and basic user info
+    if (typeof window !== 'undefined' && data.data) {
+      localStorage.setItem("token", data.data.accessToken);
+      localStorage.setItem("refreshToken", data.data.refreshToken);
+      localStorage.setItem("userRole", data.data.role);
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Login error:", error);
+    if (error.message === "Failed to fetch") {
+      throw new Error("Unable to connect to the server. Please ensure the backend is running at " + BASE_URL);
+    }
+    throw error;
   }
-  return data; 
 };
 
 export const verifyEmail = async (token, email) => {

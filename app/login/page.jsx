@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+
 import { login } from "../../src/API/authService";
 import Signup from "../signup/page";
 import ForgotPassword from "../forgot-password/page";
@@ -37,10 +39,14 @@ function LoginView({ setPage }) {
     try {
       const result = await login(formData);
 
-      if (result.success) {
-        localStorage.setItem("token", result.data.accessToken);
-        alert("Welcome Back to Autoria!");
-        window.location.href = "/dashboard"; 
+        const role = result.data.role;
+        if (role === "Admin") {
+          window.location.href = "/admin-dashboard";
+        } else if (role === "ServiceCenter" || role === "Center") {
+          window.location.href = "/booking-requests";
+        } else {
+          window.location.href = "/user-dashboard";
+        }
       }
     } catch (err) {
       setError(err.message);
@@ -246,8 +252,12 @@ function LoginView({ setPage }) {
               {loading ? "Checking..." : "Login Now"}
             </button>
 
-            <div className="link" onClick={() => setPage("forgot")}>Forgot Password?</div>
-            <div className="link" onClick={() => setPage("signup")}>Don't have an account? Signup</div>
+            <Link href="/forgot-password" style={{ color: "#d42b2b", textAlign: "center", marginTop: "10px", display: "block", fontSize: "14px", fontWeight: "600", textDecoration: "none" }}>
+              Forgot Password?
+            </Link>
+            <Link href="/signup" style={{ color: "#d42b2b", textAlign: "center", marginTop: "10px", display: "block", fontSize: "14px", fontWeight: "600", textDecoration: "none" }}>
+              Don't have an account? Signup
+            </Link>
           </form>
         </div>
       </div>
