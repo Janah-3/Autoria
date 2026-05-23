@@ -18,15 +18,12 @@ namespace Autoria.shared.Middlewares
             try
             {
                 await next(context);
-
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Exception: {Message}", ex.Message);
                 await HandleExceptionAsync(context, ex);
             }
-
-
         }
 
         private static async Task HandleExceptionAsync(HttpContext context, Exception ex)
@@ -34,15 +31,12 @@ namespace Autoria.shared.Middlewares
             var (statusCode, response) = ex switch
             {
                 BadRequestException e => (400, ApiResponse<string>.Fail(e.Message, e.Errors)),
-               
-
                 NotFoundException e => (404, ApiResponse<string>.Fail(e.Message)),
                 UnauthorizedException e => (401, ApiResponse<string>.Fail(e.Message)),
                 ForbiddenException e => (403, ApiResponse<string>.Fail(e.Message)),
                 ConflictException e => (409, ApiResponse<string>.Fail(e.Message)),
-                _ => (500, ApiResponse<string>.Fail(ex.Message))
+                _ => (500, ApiResponse<string>.Fail("unexpected error occured"))
             };
-
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
 

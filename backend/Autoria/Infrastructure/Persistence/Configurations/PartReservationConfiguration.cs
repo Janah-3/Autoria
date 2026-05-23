@@ -14,42 +14,26 @@
             {
                 builder.HasKey(pr => pr.Id);
 
-                builder.Property(pr => pr.UnitPrice)
-                    .HasColumnType("decimal(18,2)")
+                builder.Property(pr => pr.UnitPrice).HasColumnType("decimal(18,2)")
                     .IsRequired();
 
-                builder.Property(pr => pr.Quantity)
-                    .IsRequired();
+                builder.Property(pr => pr.Quantity).IsRequired();
+    
+                builder.Property(pr => pr.Status).HasConversion<string>().IsRequired();
 
-              
+                builder.Property(pr => pr.CancellationReason).HasMaxLength(500);
 
-                builder.Property(pr => pr.Status)
-                    .HasConversion<string>()
-                    .IsRequired();
-
-                builder.Property(pr => pr.CancellationReason)
-                    .HasMaxLength(500);
-
-                builder.HasOne(pr => pr.Client)
-                    .WithMany()
-                    .HasForeignKey(pr => pr.ClientId)
+                builder.HasOne(pr => pr.Client).WithMany().HasForeignKey(pr => pr.ClientId)
                     .OnDelete(DeleteBehavior.NoAction);
 
-                builder.HasOne(pr => pr.ServiceCenter)
-                    .WithMany()
-                    .HasForeignKey(pr => pr.ServiceCenterId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                builder.HasOne(pr => pr.ServiceCenter).WithMany()
+                    .HasForeignKey(pr => pr.ServiceCenterId).OnDelete(DeleteBehavior.NoAction);
 
-                builder.HasOne(pr => pr.SparePart)
-                    .WithMany()
-                    .HasForeignKey(pr => pr.SparePartId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                builder.HasOne(pr => pr.SparePart).WithMany()
+                    .HasForeignKey(pr => pr.SparePartId).OnDelete(DeleteBehavior.NoAction);
 
-                builder.HasOne<Booking>()
-                    .WithMany()
-                    .HasForeignKey(pr => pr.BookingId)
-                    .IsRequired(false)
-                    .OnDelete(DeleteBehavior.NoAction);
+                builder.HasOne<Booking>().WithMany().HasForeignKey(pr => pr.BookingId)
+                    .IsRequired(false).OnDelete(DeleteBehavior.NoAction);
             }
         }
     }

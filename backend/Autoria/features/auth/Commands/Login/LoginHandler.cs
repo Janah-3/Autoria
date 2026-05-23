@@ -27,7 +27,6 @@ namespace Autoria.features.auth.Commands.Login
         public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
 
-
             var user = await _userManager.FindByEmailAsync(request.Email)
             ?? throw new NotFoundException("User not found");
 
