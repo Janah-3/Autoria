@@ -52,7 +52,9 @@ namespace Autoria.features.SpareParts.Mapper
             Status = r.Status,
             ReservedAt = r.ReservedAt,
             ExpiresAt = r.ExpiresAt,
-            CancellationReason = r.CancellationReason
+            CancellationReason = r.CancellationReason,
+            TotalPrice = r.Quantity * r.UnitPrice
+
         };
     }
 }

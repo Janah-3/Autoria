@@ -117,10 +117,10 @@ namespace Autoria.Infrastructure.Persistence
 
 
             builder.Entity<PartReservation>()
-    .HasOne(pr => pr.Client)
-    .WithMany()
-    .HasForeignKey(pr => pr.ClientId)
-    .OnDelete(DeleteBehavior.NoAction);
+              .HasOne(pr => pr.Client)
+              .WithMany()
+              .HasForeignKey(pr => pr.ClientId)
+              .OnDelete(DeleteBehavior.NoAction);
 
             builder.Entity<PartReservation>()
                 .HasOne(pr => pr.ServiceCenter)
@@ -140,6 +140,11 @@ namespace Autoria.Infrastructure.Persistence
                 .HasForeignKey(pr => pr.BookingId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.NoAction);
+            builder.Entity<PartReservation>()
+                .Property(pr => pr.UnitPrice)
+                .HasPrecision(18, 2);
+            builder.Entity<PartReservation>()
+               .Ignore(pr => pr.TotalPrice);
         }
         public DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
         public DbSet<AdminLog> AdminLogs { get; set; } = default!;
