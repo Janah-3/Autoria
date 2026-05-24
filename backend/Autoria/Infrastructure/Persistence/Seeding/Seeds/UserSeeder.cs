@@ -88,7 +88,7 @@ namespace Autoria.Infrastructure.Persistence.Seeding.Seeds
                 {
                     var serviceCenterOwner = new User
                     {
-                        UserName = "jana",
+                        UserName = "jana23",
                         FullName = "Jana Ahmad",
                         Email = "jana3@gmail.com",
                         IsBanned = false,
