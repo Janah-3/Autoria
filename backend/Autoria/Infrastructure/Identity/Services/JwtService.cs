@@ -28,10 +28,9 @@ namespace Autoria.Infrastructure.Identity.Services
         public async Task<AuthResponseDto> GenerateToken(User user)
         {
             var claims = new List<Claim>()
-    {
-        new Claim(ClaimTypes.NameIdentifier, user.Id),
-        new Claim(ClaimTypes.Email, user.Email!)
-    };
+            { new Claim(ClaimTypes.NameIdentifier, user.Id),
+              new Claim(ClaimTypes.Email, user.Email!)
+             };
 
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -40,25 +39,16 @@ namespace Autoria.Infrastructure.Identity.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_settings.Secret));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
 
-            var cred = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256);
+            var cred = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
 
             var expires = DateTime.UtcNow.AddMinutes(60);
 
-            var token = new JwtSecurityToken(
-                issuer: _settings.Issuer,
-                audience: _settings.Audience,
-                claims: claims,
-                expires: expires,
-                signingCredentials: cred);
+            var token = new JwtSecurityToken(issuer: _settings.Issuer,audience: _settings.Audience,
+                claims: claims,expires: expires,signingCredentials: cred);
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
-
-
 
             var refreshToken = new RefreshToken
             {
@@ -75,11 +65,7 @@ namespace Autoria.Infrastructure.Identity.Services
 
 
 
-            return new AuthResponseDto(
-                accessToken,
-                refreshToken,
-                expires
-            );
+            return new AuthResponseDto( accessToken,refreshToken, expires);
         }
 
         public ClaimsPrincipal? ValidateToken(string token)

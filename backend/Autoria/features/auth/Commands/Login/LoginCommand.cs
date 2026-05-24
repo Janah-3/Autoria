@@ -4,6 +4,9 @@ using MediatR;
 
 namespace Autoria.features.auth.Commands.Login
 {
-    public record LoginCommand(string Email, string Password) : IRequest<AuthResponseDto>;
+    public record LoginCommand(
+        string Email,
+        string Password
+        ) : IRequest<AuthResponseDto>;
 
 }
