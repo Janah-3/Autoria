@@ -1,11 +1,58 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { getMe } from "@/lib/api/usersService";
+import { getAllCars, getCarItems } from "@/lib/api/carsService";
+import { getAllBookings } from "@/lib/api/bookingsService";
 
 export default function UserDashboardPage() {
   const [cars, setCars] = useState([]);
   const [upcomingBookings, setUpcomingBookings] = useState([]);
+  const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const me = await getMe();
+        if (me?.data?.fullName) setUserName(me.data.fullName);
+
+        const carsRes = await getAllCars();
+        setCars(
+          getCarItems(carsRes).map((car, i) => ({
+            id: car.id || i,
+            make: car.make,
+            model: car.model,
+            year: car.year,
+            license: car.licensePlate,
+            nextService: "—",
+          }))
+        );
+
+        const bookingsRes = await getAllBookings();
+        const items = bookingsRes.data || [];
+        setUpcomingBookings(
+          items
+            .filter((b) => b.status !== "Completed" && b.status !== "Cancelled")
+            .map((b, i) => ({
+              id: b.id || i,
+              center: b.serviceCenter?.name || b.serviceCenterName || "Service center",
+              service: b.service?.type || b.serviceType || "Service",
+              date: b.date || b.scheduledDate || "—",
+              time: b.timeSlot || b.time || "—",
+              status: b.status || "Pending",
+            }))
+        );
+      } catch (err) {
+        console.error("User dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
   return (
     <div className="user-dashboard-layout">
       <style>{`
@@ -305,7 +352,7 @@ export default function UserDashboardPage() {
 
         <div className="dashboard-body">
           <div className="welcome-section">
-            <h1 className="welcome-title">Welcome back, Maram</h1>
+            <h1 className="welcome-title">Welcome back{userName ? `, ${userName.split(" ")[0]}` : ""}</h1>
             <p className="welcome-subtitle">Here is what's happening with your vehicles today.</p>
           </div>
 
@@ -340,6 +387,10 @@ export default function UserDashboardPage() {
               </Link>
             </div>
           </div>
+
+          {loading && (
+            <p style={{ color: "#6B7280", marginBottom: 24 }}>Loading your dashboard…</p>
+          )}
 
           <div className="sections-grid">
 

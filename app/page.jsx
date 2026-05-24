@@ -2,25 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "@/lib/apiConfig";
+import { getMe } from "@/lib/api/usersService";
+import {
+  serviceCentersService,
+  getServiceCenterItems,
+} from "@/lib/api/serviceCentersService";
+import { sparePartsService } from "@/lib/sparePartsService";
+import { getSparePartItems } from "@/lib/api/mappers";
 import Navbar from "@/components/Navbar";
 import { SkeletonBox, SkeletonCard } from "@/components/Skeleton";
 
 const R = "#E8272A";
 const RD = "#B81C1F";
-
-const CENTERS = [
-  { bg: "#fff0f0", icon: "🏭", badge: "Top Rated", name: "ProCare Auto Center", loc: "Nasr City, Cairo", tags: ["Oil Change", "Brakes", "AC Service"], stars: 5, rating: "4.9", reviews: "312", price: "From 150 EGP" },
-  { bg: "#fefce8", icon: "🔩", badge: "Fast Service", name: "SpeedFix Workshop", loc: "Heliopolis, Cairo", tags: ["Engine Repair", "Diagnostics"], stars: 5, rating: "4.7", reviews: "198", price: "From 200 EGP" },
-  { bg: "#f0fdf4", icon: "🚗", badge: "New", name: "GreenWheel Service", loc: "6th of October, Giza", tags: ["Tires", "Alignment", "Wash"], stars: 4, rating: "4.5", reviews: "87", price: "From 80 EGP" },
-];
-
-const PARTS = [
-  { icon: "🔋", name: "Car Battery", desc: "12V / 60Ah — All brands", price: "1,200 EGP" },
-  { icon: "🛞", name: "All-Season Tires", desc: "195/65 R15 — Michelin", price: "850 EGP" },
-  { icon: "💡", name: "Headlight Bulb", desc: "H7 LED — OSRAM Pro", price: "320 EGP" },
-  { icon: "🛢️", name: "Engine Oil Filter", desc: "Universal — Bosch", price: "180 EGP" },
-];
 
 const STEPS = [
   { n: "1", title: "Search & Explore", desc: "Enter your service and location to find nearby certified centers." },
@@ -35,12 +28,6 @@ const WHY = [
   { icon: "⭐", title: "Trusted Reviews", desc: "Ratings from real verified customers only." },
   { icon: "🛒", title: "Parts Marketplace", desc: "Order genuine parts online, delivered to your door." },
   { icon: "📱", title: "Track Everything", desc: "All bookings and orders in one dashboard." },
-];
-
-const REVIEWS = [
-  { init: "AM", name: "Ahmed Mostafa", car: "Toyota Corolla · Cairo", stars: 5, text: "Booked an oil change in under 2 minutes. Price was exactly as listed. Will use again!" },
-  { init: "SK", name: "Sara Khaled", car: "Hyundai Tucson · Giza", stars: 5, text: "The comparison feature saved me 300 EGP. AUTORIA is a game changer for car owners." },
-  { init: "MH", name: "Mohamed Hassan", car: "Kia Sportage · Alexandria", stars: 4, text: "Ordered brake pads — arrived next day. Booking was smooth. Really impressed." },
 ];
 
 // ── shared inline style shortcuts ──────────────────────────────────────────
@@ -83,14 +70,7 @@ function Hero({ setCenters }) {
     ["50+", "Parts Brands"]
   ]);
 
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/auth/me`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.length) setStats(data);
-      })
-      .catch(() => { });
-  }, []);
+  // Stats are static placeholders until a public metrics endpoint exists
 
   return (
     <section style={{ background: `linear-gradient(135deg,#111 0%,#2d1010 52%,${RD} 100%)`, padding: "72px 5% 64px", textAlign: "center" }}>
@@ -150,10 +130,15 @@ function Hero({ setCenters }) {
 }
 
 // ── Service Centers ────────────────────────────────────────────────────────
-function ServiceCenters({ centers }) {
+function ServiceCenters({ centers, loading }) {
   return (
     <section style={{ padding: "72px 5%", background: "#f7f7f8" }}>
       <SH tag="Service Centers" h2="Top-Rated Centers" em="Near You" sub="Browse certified centers, compare prices and ratings, then book in seconds." />
+      {loading ? (
+        <p style={{ textAlign: "center", color: "#6b7280" }}>Loading service centers…</p>
+      ) : centers.length === 0 ? (
+        <p style={{ textAlign: "center", color: "#6b7280" }}>No service centers available yet. Check back soon.</p>
+      ) : (
       <div style={grid(3, 18)}>
         {centers.map(c => (
           <a key={c.id || c.name} href={`/service-center-profile/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
@@ -178,10 +163,9 @@ function ServiceCenters({ centers }) {
                   {c.tags.map(t => <span key={t} style={{ background: "#f3f4f6", color: "#374151", fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>{t}</span>)}
                 </div>
                 <div style={{ ...row(0), justifyContent: "space-between", borderTop: "1px solid #f3f4f6", paddingTop: 10 }}>
-                  <span>
-                    <span style={{ color: "#f59e0b", fontSize: 11 }}>{"★".repeat(c.stars || 5)}{"☆".repeat(5 - (c.stars || 5))}</span>
-                    <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 3 }}>{c.rating} ({c.reviews})</span>
-                  </span>
+                  {c.rating != null && (
+                    <span style={{ fontSize: 11, color: "#9ca3af" }}>★ {c.rating} {c.reviews ? `(${c.reviews} reviews)` : ""}</span>
+                  )}
                   <span style={{ fontSize: 13, fontWeight: 900, color: R }}>{c.price}</span>
                 </div>
               </div>
@@ -189,28 +173,37 @@ function ServiceCenters({ centers }) {
           </a>
         ))}
       </div>
+      )}
       <div style={{ textAlign: "center", marginTop: 28 }}>
-        <button className="btn-hover" style={{ background: "transparent", border: `1.5px solid ${R}`, color: R, padding: "10px 26px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>View All Centers →</button>
+        <a href="/service-centers" className="btn-hover" style={{ display: "inline-block", background: "transparent", border: `1.5px solid ${R}`, color: R, padding: "10px 26px", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>View All Centers →</a>
       </div>
     </section>
   );
 }
 
 // ── Spare Parts ────────────────────────────────────────────────────────────
-function SpareParts({ parts }) {
+function SpareParts({ parts, loading }) {
   return (
     <section style={{ padding: "72px 5%" }}>
       <SH tag="Spare Parts" h2="Browse the" em="Marketplace" sub="Genuine parts from trusted suppliers — delivered to your door." />
+      {loading ? (
+        <p style={{ textAlign: "center", color: "#6b7280" }}>Loading spare parts…</p>
+      ) : parts.length === 0 ? (
+        <p style={{ textAlign: "center", color: "#6b7280" }}>No spare parts listed yet.</p>
+      ) : (
       <div style={grid(4, 16)}>
         {parts.map(p => (
-          <div key={p.name} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18, textAlign: "center", cursor: "pointer" }}>
-            <span style={{ fontSize: 32, marginBottom: 10, display: "block" }}>{p.icon}</span>
+          <a key={p.id || p.name} href={p.id ? `/spare-parts-details/${p.id}` : "/spare-parts-search"} style={{ textDecoration: "none", color: "inherit" }}>
+          <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18, textAlign: "center", cursor: "pointer" }}>
             <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 3 }}>{p.name}</div>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 9 }}>{p.desc}</div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: R }}>{p.price}</div>
+            {p.car && <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 9 }}>{p.car}</div>}
+            <div style={{ fontSize: 15, fontWeight: 900, color: R }}>{p.price != null ? `${p.price} EGP` : "—"}</div>
+            {p.availability && <div style={{ fontSize: 10, color: "#15803d", marginTop: 6 }}>{p.availability}</div>}
           </div>
+          </a>
         ))}
       </div>
+      )}
       <div style={{ textAlign: "center", marginTop: 28 }}>
         <button className="btn-hover" style={{ background: "transparent", border: `1.5px solid ${R}`, color: R, padding: "10px 26px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Shop All Parts →</button>
       </div>
@@ -256,6 +249,7 @@ function WhyAutoria() {
 
 // ── Reviews ────────────────────────────────────────────────────────────────
 function Reviews({ reviews }) {
+  if (!reviews?.length) return null;
   return (
     <section style={{ padding: "72px 5%", background: "#f7f7f8" }}>
       <SH tag="Customer Reviews" h2="Trusted by" em="Thousands" sub="Real experiences from real car owners across Egypt." />
@@ -332,50 +326,31 @@ function Footer() {
 
 // ── Main export
 export default function AutoriaHomePage() {
-  const [centers, setCenters] = useState(CENTERS);
-  const [parts, setParts] = useState(PARTS);
-  const [reviews, setReviews] = useState(REVIEWS);
+  const [centers, setCenters] = useState([]);
+  const [parts, setParts] = useState([]);
+  const [reviews] = useState([]);
   const [user, setUser] = useState(null);
+  const [loadingCenters, setLoadingCenters] = useState(true);
+  const [loadingParts, setLoadingParts] = useState(true);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/auth/me`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.name) setUser(data);
+    getMe()
+      .then((res) => {
+        if (res?.data?.fullName) setUser({ name: res.data.fullName });
       })
       .catch(() => setUser(null));
 
-    // Service Centers (Local API)
-    fetch(`${API_BASE_URL}/ServiceCenters`)
-      .then(res => res.json())
-      .then(res => {
-        if (res.success && res.data?.items) {
-          const mapped = res.data.items.map(item => ({
-            id: item.id,
-            name: item.name,
-            loc: `${item.district}, ${item.governorate}`,
-            tags: item.serviceTypes,
-            stars: 5,
-            rating: 4.8,
-            reviews: 120,
-            price: "Contact",
-            badge: item.type,
-            bg: "#f3f4f6",
-            cover: item.coverPhoto,
-          }));
-          setCenters(mapped);
-        }
-      })
-      .catch(err => {
-        console.error("❌ Home Page API Error:", err);
-      });
+    serviceCentersService
+      .getAll()
+      .then((res) => setCenters(getServiceCenterItems(res)))
+      .catch((err) => console.error("Home page — service centers:", err))
+      .finally(() => setLoadingCenters(false));
 
-    fetch("https://your-api.com/api/spare-parts")
-      .then(res => res.json())
-      .then(data => {
-        if (data.length) setParts(data);
-      })
-      .catch(() => { });
+    sparePartsService
+      .getSpareParts()
+      .then((data) => setParts(Array.isArray(data) ? data : []))
+      .catch(() => setParts([]))
+      .finally(() => setLoadingParts(false));
   }, []);
 
   return (
@@ -387,8 +362,8 @@ export default function AutoriaHomePage() {
     `}</style>
       <Navbar user={user} />
       <Hero setCenters={setCenters} />
-      <ServiceCenters centers={centers} />
-      <SpareParts parts={parts} />
+      <ServiceCenters centers={centers} loading={loadingCenters} />
+      <SpareParts parts={parts} loading={loadingParts} />
       <HowItWorks />
       <WhyAutoria />
       <Reviews reviews={reviews} />

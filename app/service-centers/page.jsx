@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { API_BASE_URL } from "@/lib/apiConfig";
+import { getMe } from "@/lib/api/usersService";
+import {
+  serviceCentersService,
+  getServiceCenterItems,
+} from "@/lib/api/serviceCentersService";
 import Navbar from "@/components/Navbar";
 
 
@@ -15,107 +19,6 @@ const row  = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 const flex = (extra = {}) => ({ display: "flex", ...extra });
 
 
-const SEED = [
-  {
-    id: 1,
-    icon: "🏭",
-    badge: "Top Rated",
-    bg: "#fff0f0",
-    name: "ProCare Auto Center",
-    loc: "Nasr City, Cairo",
-    city: "Cairo",
-    desc: "Full-service auto care with certified mechanics. Oil, brakes, AC & more.",
-    tags: ["Oil Change", "Brakes", "AC Service", "Diagnostics"],
-    stars: 5,
-    rating: 4.9,
-    reviews: 312,
-    price: "From 150 EGP",
-    open: true,
-  },
-  {
-    id: 2,
-    icon: "🔩",
-    badge: "Fast Service",
-    bg: "#fefce8",
-    name: "SpeedFix Workshop",
-    loc: "Heliopolis, Cairo",
-    city: "Cairo",
-    desc: "Lightning-fast engine repair and computer diagnostics since 2010.",
-    tags: ["Engine Repair", "Diagnostics", "Electrical"],
-    stars: 5,
-    rating: 4.7,
-    reviews: 198,
-    price: "From 200 EGP",
-    open: true,
-  },
-  {
-    id: 3,
-    icon: "🚗",
-    badge: "New",
-    bg: "#f0fdf4",
-    name: "GreenWheel Service",
-    loc: "6th of October, Giza",
-    city: "Giza",
-    desc: "Eco-friendly service center specialising in tires, alignment and wash.",
-    tags: ["Tires", "Alignment", "Wash"],
-    stars: 4,
-    rating: 4.5,
-    reviews: 87,
-    price: "From 80 EGP",
-    open: false,
-  },
-  {
-    id: 4,
-    icon: "⚙️",
-    badge: "Certified",
-    bg: "#f0f4ff",
-    name: "TechDrive Service Hub",
-    loc: "Maadi, Cairo",
-    city: "Cairo",
-    desc: "State-of-the-art diagnostics lab with factory-trained technicians.",
-    tags: ["Diagnostics", "Electrical", "Gearbox"],
-    stars: 5,
-    rating: 4.8,
-    reviews: 241,
-    price: "From 180 EGP",
-    open: true,
-  },
-  {
-    id: 5,
-    icon: "🛞",
-    badge: "Best Price",
-    bg: "#fdf4ff",
-    name: "QuickTire Alexandria",
-    loc: "Smouha, Alexandria",
-    city: "Alexandria",
-    desc: "Egypt's largest tire specialist — all brands at unbeatable prices.",
-    tags: ["Tires", "Alignment", "Brakes"],
-    stars: 4,
-    rating: 4.3,
-    reviews: 155,
-    price: "From 90 EGP",
-    open: true,
-  },
-  {
-    id: 6,
-    icon: "🔋",
-    badge: "24 / 7",
-    bg: "#f0fffe",
-    name: "PowerUp Auto",
-    loc: "Dokki, Giza",
-    city: "Giza",
-    desc: "Round-the-clock battery & electrical specialists. Emergency callout available.",
-    tags: ["Battery", "Electrical", "Diagnostics"],
-    stars: 4,
-    rating: 4.4,
-    reviews: 120,
-    price: "From 120 EGP",
-    open: true,
-  },
-];
-
-const ALL_CITIES   = ["All Cities", ...Array.from(new Set(SEED.map(c => c.city)))];
-const ALL_SERVICES = ["All Services", ...Array.from(new Set(SEED.flatMap(c => c.tags))).sort()];
 
 
 
@@ -166,7 +69,7 @@ function SearchBanner({ query, setQuery, location, setLocation, onSearch }) {
 }
 
 
-function Sidebar({ city, setCity, minRating, setMinRating, serviceFilter, setServiceFilter, onlyOpen, setOnlyOpen, total, showing }) {
+function Sidebar({ city, setCity, minRating, setMinRating, serviceFilter, setServiceFilter, onlyOpen, setOnlyOpen, total, showing, allCities, allServices }) {
   const ratingOptions = [0, 4, 4.5, 4.8];
 
   return (
@@ -181,7 +84,7 @@ function Sidebar({ city, setCity, minRating, setMinRating, serviceFilter, setSer
 
       <FilterBox title="City">
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {ALL_CITIES.map(c => (
+          {allCities.map(c => (
             <label key={c} style={{ ...row(8), cursor: "pointer", fontSize: 13, color: city === c ? R : "#374151", fontWeight: city === c ? 700 : 400 }}>
               <input
                 type="radio"
@@ -215,7 +118,7 @@ function Sidebar({ city, setCity, minRating, setMinRating, serviceFilter, setSer
 
       <FilterBox title="Service Type">
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {ALL_SERVICES.map(s => (
+          {allServices.map(s => (
             <label key={s} style={{ ...row(8), cursor: "pointer", fontSize: 13, color: serviceFilter === s ? R : "#374151", fontWeight: serviceFilter === s ? 700 : 400 }}>
               <input
                 type="radio"
@@ -393,7 +296,8 @@ function SortBar({ sort, setSort, count }) {
 
 
 export default function ServiceCentersPage() {
-  const [centers, setCenters]           = useState(SEED);
+  const [centers, setCenters]           = useState([]);
+  const [loading, setLoading]           = useState(true);
   const [user, setUser]                 = useState(null);
   const [query, setQuery]               = useState("");
   const [locationQ, setLocationQ]       = useState("");
@@ -407,41 +311,27 @@ export default function ServiceCentersPage() {
 
 
   useEffect(() => {
-    fetch("https://your-api.com/api/auth/me")
-      .then(r => r.json())
-      .then(d => { if (d?.name) setUser(d); })
+    getMe()
+      .then((res) => {
+        if (res?.data?.fullName) setUser({ name: res.data.fullName });
+      })
       .catch(() => {});
 
-
-    fetch(`${API_BASE_URL}/ServiceCenters`)
-
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.data?.items) {
-
-          const mapped = res.data.items.map(item => ({
-            id: item.id,
-            name: item.name,
-            loc: `${item.district}, ${item.governorate}`,
-            city: item.governorate,
-            desc: `${item.type} service center specializing in ${item.serviceTypes.join(", ")}.`,
-            tags: item.serviceTypes,
-            rating: 4.8,
-            reviews: 120,
-            price: "Contact for price",
-            badge: item.type,
-            bg: "#f3f4f6",
-            cover: item.coverPhoto,
-            open: true,
-          }));
-          setCenters(mapped);
-
-        }
-      })
-      .catch(err => {
-
-      });
+    serviceCentersService
+      .getAll()
+      .then((res) => setCenters(getServiceCenterItems(res)))
+      .catch((err) => console.error("Service centers:", err))
+      .finally(() => setLoading(false));
   }, []);
+
+  const ALL_CITIES = useMemo(
+    () => ["All Cities", ...Array.from(new Set(centers.map((c) => c.city).filter(Boolean)))],
+    [centers]
+  );
+  const ALL_SERVICES = useMemo(
+    () => ["All Services", ...Array.from(new Set(centers.flatMap((c) => c.tags))).sort()],
+    [centers]
+  );
 
   const handleSearch = () => {
     setActiveQuery(query.trim().toLowerCase());
@@ -471,14 +361,13 @@ export default function ServiceCentersPage() {
 
 
     if (city !== "All Cities")       list = list.filter(c => c.city === city);
-    if (minRating > 0)               list = list.filter(c => c.rating >= minRating);
+    if (minRating > 0)               list = list.filter(c => (c.rating ?? 0) >= minRating);
     if (serviceFilter !== "All Services") list = list.filter(c => c.tags.includes(serviceFilter));
     if (onlyOpen)                    list = list.filter(c => c.open);
 
 
-    if (sort === "rating")  list.sort((a, b) => b.rating - a.rating);
-    if (sort === "reviews") list.sort((a, b) => b.reviews - a.reviews);
-    if (sort === "price")   list.sort((a, b) => parseInt(a.price) - parseInt(b.price));
+    if (sort === "rating")  list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    if (sort === "reviews") list.sort((a, b) => (b.reviews ?? 0) - (a.reviews ?? 0));
 
     return list;
   }, [centers, activeQuery, activeLocation, city, minRating, serviceFilter, onlyOpen, sort]);
@@ -519,6 +408,8 @@ export default function ServiceCentersPage() {
             onlyOpen={onlyOpen} setOnlyOpen={setOnlyOpen}
             total={centers.length}
             showing={filtered.length}
+            allCities={ALL_CITIES}
+            allServices={ALL_SERVICES}
           />
         </div>
 
@@ -526,7 +417,9 @@ export default function ServiceCentersPage() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <SortBar sort={sort} setSort={setSort} count={filtered.length} />
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <p style={{ textAlign: "center", padding: 48, color: "#6b7280" }}>Loading service centers…</p>
+          ) : filtered.length === 0 ? (
             <EmptyState onReset={resetFilters} />
           ) : (
             <div

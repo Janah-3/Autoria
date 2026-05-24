@@ -3,35 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 
-const MY_REVIEWS = [
-  {
-    id: 1,
-    center: "TopGear Workshop",
-    date: "14 Mar 2026",
-    rating: 5,
-    text: "This place is absolutely amazing, best service I've ever had in my entire life. Every single mechanic was incredibly professional.",
-    status: "Published",
-    reply: "Thank you so much Karim for your kind words! We look forward to seeing you again."
-  },
-  {
-    id: 2,
-    center: "Precision Auto Works",
-    date: "10 Mar 2026",
-    rating: 4,
-    text: "Very professional team, they know what they're doing. A bit pricey but worth it for the peace of mind. The waiting area was also very comfortable.",
-    status: "Published",
-    reply: null
-  },
-  {
-    id: 3,
-    center: "Cairo Motors Center",
-    date: "05 Feb 2026",
-    rating: 2,
-    text: "Service was slow and they didn't fix the issue completely the first time. I had to return the next day.",
-    status: "Under Review",
-    reply: null
-  }
-];
+const MY_REVIEWS = [];
 
 const StarRating = ({ rating }) => {
   const stars = [];

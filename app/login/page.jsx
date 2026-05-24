@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 
-import { login } from "../../src/API/authService";
+import { login } from "@/lib/api/authService";
 import Signup from "../signup/page";
 import ForgotPassword from "../forgot-password/page";
 
@@ -38,15 +38,16 @@ function LoginView({ setPage }) {
     setLoading(true);
     try {
       const result = await login(formData);
+      const role =
+        result.data?.role ||
+        (typeof window !== "undefined" ? localStorage.getItem("userRole") : null);
 
-        const role = result.data.role;
-        if (role === "Admin") {
-          window.location.href = "/admin-dashboard";
-        } else if (role === "ServiceCenter" || role === "Center") {
-          window.location.href = "/booking-requests";
-        } else {
-          window.location.href = "/user-dashboard";
-        }
+      if (role === "Admin") {
+        window.location.href = "/admin-dashboard";
+      } else if (role === "ServiceCenter" || role === "Center") {
+        window.location.href = "/booking-requests";
+      } else {
+        window.location.href = "/user-dashboard";
       }
     } catch (err) {
       setError(err.message);

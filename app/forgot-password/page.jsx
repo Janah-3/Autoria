@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { API_BASE_URL } from "@/lib/apiConfig";
+import { forgotPassword } from "@/lib/api/authService";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -16,21 +16,10 @@ export default function ForgotPassword() {
     setError("");
 
     try {
-      const res = await fetch(`${API_BASE_URL}/Auth/forgetPass`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Email: email }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setSent(true);
-      } else {
-        setError(data.message || "Something went wrong");
-      }
+      await forgotPassword(email);
+      setSent(true);
     } catch (err) {
-      setError("Server error");
+      setError(err.message || "Something went wrong");
     }
 
     setLoading(false);

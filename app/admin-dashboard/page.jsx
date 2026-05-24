@@ -1,75 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { adminService } from "@/lib/api/adminService";
 
-// Mock Data
-const MOCK_REVIEWS = [
-  { 
-    id: 1, 
-    user: "Karim Adel", 
-    center: "TopGear Workshop",
-    centerType: "Center AC repair - Heliopolis, Cairo",
-    car: "Toyota Corolla 2021",
-    bookingDate: "14 Mar 2026",
-    timeAgo: "2 hrs ago", 
-    status: "Pending reply", 
-    statusColor: "#F59E0B",
-    rating: 5.0,
-    ratingText: "Excellent",
-    snippet: "This place is absolutely amazing, best service...",
-    fullText: "This place is absolutely amazing, best service I've ever had in my entire life. Every single mechanic was incredibly professional and the prices were unbelievably cheap. The AC was fixed perfectly and they even cleaned the car before returning it. 100% recommend to everyone in Cairo looking for trustworthy service.",
-    subRatings: { quality: 5, value: 5, waitTime: 5, staff: 5 }
-  },
-  { 
-    id: 2, 
-    user: "Sara Mahmoud", 
-    center: "El Masry Auto Center",
-    centerType: "General Maintenance - Nasr City, Cairo",
-    car: "Hyundai Tucson 2020",
-    bookingDate: "13 Mar 2026",
-    timeAgo: "5 hrs ago", 
-    status: "Pending reply", 
-    statusColor: "#F59E0B",
-    rating: 3.0,
-    ratingText: "Average",
-    snippet: "Service was okay, but the wait was too long...",
-    fullText: "Service was okay, but the wait was too long despite having a reservation. The waiting area could be cleaner.",
-    subRatings: { quality: 4, value: 3, waitTime: 1, staff: 4 }
-  },
-  { 
-    id: 3, 
-    user: "Nour Salah", 
-    center: "Cairo Motors Center",
-    centerType: "Body Shop - Maadi, Cairo",
-    car: "Kia Sportage 2022",
-    bookingDate: "12 Mar 2026",
-    timeAgo: "Yesterday", 
-    status: "Flagged", 
-    statusColor: "#EF4444",
-    rating: 1.0,
-    ratingText: "Terrible",
-    snippet: "Worst service, unprofessional team. Will never...",
-    fullText: "Worst service, unprofessional team. Will never return. They scratched my car and refused to take responsibility.",
-    subRatings: { quality: 1, value: 1, waitTime: 2, staff: 1 }
-  },
-  { 
-    id: 4, 
-    user: "Tarek Fouad", 
-    center: "Precision Auto Works",
-    centerType: "Engine Repair - 6th of October, Giza",
-    car: "BMW 320i 2019",
-    bookingDate: "10 Mar 2026",
-    timeAgo: "2 days ago", 
-    status: "Replied", 
-    statusColor: "#10B981",
-    rating: 4.5,
-    ratingText: "Very Good",
-    snippet: "Very professional team, they know what they're...",
-    fullText: "Very professional team, they know what they're doing. A bit pricey but worth it for the peace of mind.",
-    subRatings: { quality: 5, value: 3, waitTime: 4, staff: 5 }
-  },
-];
+const mapReportToReview = (r) => ({
+  id: r.reportId,
+  user: r.reportedBy,
+  center: r.targetName,
+  centerType: `${r.targetType} — ${r.reason}`,
+  car: "—",
+  bookingDate: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—",
+  timeAgo: r.createdAt ? new Date(r.createdAt).toLocaleDateString() : "—",
+  status: r.status,
+  statusColor: r.isUrgent ? "#EF4444" : "#F59E0B",
+  rating: 0,
+  ratingText: r.reason,
+  snippet: `${r.reason} report on ${r.targetName}`,
+  fullText: `Reported by ${r.reportedBy}. Status: ${r.status}. Target: ${r.targetType}.`,
+  subRatings: { quality: 0, value: 0, waitTime: 0, staff: 0 },
+});
 
 const StarRating = ({ rating, size = "small" }) => {
   const stars = [];
@@ -90,11 +40,25 @@ const StarRating = ({ rating, size = "small" }) => {
 };
 
 export default function ReviewsInboxPage() {
-  const [selectedReview, setSelectedReview] = useState(MOCK_REVIEWS[0]);
-  const [activeFilter, setActiveFilter] = useState("All (24)");
+  const [reviews, setReviews] = useState([]);
+  const [selectedReview, setSelectedReview] = useState(null);
+  const [activeFilter, setActiveFilter] = useState("All");
   const [adminNote, setAdminNote] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const filters = ["All (24)", "Pending", "Replied"];
+  useEffect(() => {
+    adminService
+      .getDashboard()
+      .then((res) => {
+        const mapped = (res?.data?.recentReports || []).map(mapReportToReview);
+        setReviews(mapped);
+        if (mapped.length) setSelectedReview(mapped[0]);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filters = [`All (${reviews.length})`, "Pending", "UnderReview"];
 
   return (
     <div className="admin-layout">
@@ -263,7 +227,11 @@ export default function ReviewsInboxPage() {
             </div>
             
             <div className="reviews-scroll">
-              {MOCK_REVIEWS.map(review => (
+              {loading ? (
+                <p style={{ padding: 20, color: '#6B7280' }}>Loading reports…</p>
+              ) : reviews.length === 0 ? (
+                <p style={{ padding: 20, color: '#6B7280' }}>No open reports.</p>
+              ) : reviews.map(review => (
                 <div 
                   key={review.id} 
                   className={`review-item ${selectedReview.id === review.id ? 'selected' : ''}`}
@@ -294,6 +262,9 @@ export default function ReviewsInboxPage() {
 
           {/* RIGHT COLUMN: DETAIL */}
           <div className="review-detail-col">
+            {!selectedReview ? (
+              <p style={{ padding: 24, color: '#6B7280' }}>Select a report to view details.</p>
+            ) : (
             <div className="detail-card">
               <div className="detail-header">
                 <div className="reviewer-info">
@@ -373,6 +344,7 @@ export default function ReviewsInboxPage() {
               </div>
 
             </div>
+            )}
           </div>
         </div>
       </div>

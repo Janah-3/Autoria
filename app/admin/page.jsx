@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import { adminService } from "@/lib/api/adminService";
+import {
+  serviceCentersService,
+  getServiceCenterItems,
+} from "@/lib/api/serviceCentersService";
 
 
 const COLORS = {
@@ -19,40 +24,78 @@ const COLORS = {
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
+  const [metrics, setMetrics] = useState(null);
+  const [verificationQueue, setVerificationQueue] = useState([]);
+  const [flaggedReviews, setFlaggedReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for the platform management
-  const [verificationQueue, setVerificationQueue] = useState([
-    { id: 1, name: "Al Faris Auto", city: "Cairo", type: "Full Service", phone: "01012345678", date: "12 Mar 2026" },
-    { id: 2, name: "QuickFix Heliopolis", city: "Cairo", type: "Tires & Oil", phone: "01198765432", date: "12 Mar 2026" },
-    { id: 3, name: "Nile Motors Alex", city: "Alexandria", type: "Engine Repair", phone: "01200000000", date: "11 Mar 2026" },
-  ]);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [dash, pending] = await Promise.all([
+        adminService.getDashboard(),
+        serviceCentersService.getPending(),
+      ]);
 
-  const [flaggedReviews, setFlaggedReviews] = useState([
-    { id: 1, user: "Ahmed M.", rating: 1, target: "AutoFix Cairo", text: "They overcharged me and the parts were not original!", reason: "Spam" },
-    { id: 2, user: "Sara K.", rating: 5, target: "SpeedFix Maadi", text: "Best ever!!!!!", reason: "Potential Bot" },
-  ]);
+      if (dash?.data?.metrics) setMetrics(dash.data.metrics);
 
-  const [complaints, setComplaints] = useState([
-    { id: 101, type: "Overcharging", from: "Youssef Z.", target: "Gulf Auto", date: "14 Mar", status: "High Priority" },
-    { id: 102, type: "Bad Behavior", from: "Mona A.", target: "TechMotors", date: "13 Mar", status: "Medium" },
-  ]);
+      setFlaggedReviews(
+        (dash?.data?.recentReports || []).map((r) => ({
+          id: r.reportId,
+          user: r.reportedBy,
+          target: r.targetName,
+          text: `${r.reason} — ${r.targetType}`,
+          reason: r.status,
+          isUrgent: r.isUrgent,
+        }))
+      );
 
-  const [featured, setFeatured] = useState([
-    { id: 1, name: "AutoCare Nasr City", city: "Cairo", expires: "31 Mar" },
-    { id: 2, name: "Gulf Auto Alex", city: "Alexandria", expires: "15 Apr" },
-  ]);
-
-  // Action handlers
-  const handleAction = (id, type) => {
-    if (type === 'center') {
-      setVerificationQueue(verificationQueue.filter(c => c.id !== id));
-    } else if (type === 'review') {
-      setFlaggedReviews(flaggedReviews.filter(r => r.id !== id));
-    } else if (type === 'report') {
-      setComplaints(complaints.filter(c => c.id !== id));
-    } else if (type === 'removeFeatured') {
-      setFeatured(featured.filter(f => f.id !== id));
+      const pendingItems = getServiceCenterItems(pending);
+      setVerificationQueue(
+        pendingItems.map((c) => ({
+          id: c.id,
+          name: c.name,
+          city: c.governorate || c.city,
+          type: c.type,
+          phone: c.phone,
+          date: c.submittedAt
+            ? new Date(c.submittedAt).toLocaleDateString()
+            : "—",
+        }))
+      );
+    } catch (err) {
+      console.error("Admin load:", err);
+    } finally {
+      setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleApprove = async (id) => {
+    try {
+      await serviceCentersService.approve(id);
+      await loadData();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleReject = async (id) => {
+    const reason = prompt("Rejection reason:");
+    if (!reason) return;
+    try {
+      await serviceCentersService.reject(id, reason);
+      await loadData();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleDismissReport = (id) => {
+    setFlaggedReviews((prev) => prev.filter((r) => r.id !== id));
   };
 
   return (
@@ -65,8 +108,8 @@ export default function AdminDashboard() {
         badges={{
           verification: verificationQueue.length,
           reviews: flaggedReviews.length,
-          reports: complaints.length,
-          featured: featured.length
+          reports: flaggedReviews.filter((r) => r.isUrgent).length,
+          featured: 0,
         }}
         colors={COLORS}
       />
@@ -79,21 +122,25 @@ export default function AdminDashboard() {
           <Link href="/" style={{ color: COLORS.primary, textDecoration: "none", fontWeight: "bold", fontSize: "14px" }}>← Back to Website</Link>
         </header>
 
+        {loading && (
+          <p style={{ color: COLORS.textLight, marginBottom: 20 }}>Loading admin data…</p>
+        )}
+
         {activeTab === "Dashboard" && (
           <div>
-            <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
-              <div style={{ background: "#fff", padding: "20px", borderRadius: "15px", border: `1px solid ${COLORS.border}`, flex: 1 }}>
-                <div style={{ color: COLORS.textLight, fontSize: "12px", marginBottom: "5px" }}>TOTAL USERS</div>
-                <div style={{ fontSize: "24px", fontWeight: "bold" }}>12,480</div>
+            <div style={{ display: "flex", gap: "20px", marginBottom: "30px", flexWrap: "wrap" }}>
+              {[
+                ["TOTAL USERS", metrics?.totalUsers],
+                ["BOOKINGS THIS MONTH", metrics?.bookingsThisMonth],
+                ["ACTIVE CENTERS", metrics?.activeCenters],
+                ["PENDING CENTERS", metrics?.pendingCenterRequests],
+                ["URGENT REPORTS", metrics?.urgentReports],
+              ].map(([label, value]) => (
+              <div key={label} style={{ background: "#fff", padding: "20px", borderRadius: "15px", border: `1px solid ${COLORS.border}`, flex: "1 1 180px" }}>
+                <div style={{ color: COLORS.textLight, fontSize: "12px", marginBottom: "5px" }}>{label}</div>
+                <div style={{ fontSize: "24px", fontWeight: "bold" }}>{value ?? "—"}</div>
               </div>
-              <div style={{ background: "#fff", padding: "20px", borderRadius: "15px", border: `1px solid ${COLORS.border}`, flex: 1 }}>
-                <div style={{ color: COLORS.textLight, fontSize: "12px", marginBottom: "5px" }}>TOTAL BOOKINGS</div>
-                <div style={{ fontSize: "24px", fontWeight: "bold" }}>3,241</div>
-              </div>
-              <div style={{ background: "#fff", padding: "20px", borderRadius: "15px", border: `1px solid ${COLORS.border}`, flex: 1 }}>
-                <div style={{ color: COLORS.textLight, fontSize: "12px", marginBottom: "5px" }}>ACTIVE CENTERS</div>
-                <div style={{ fontSize: "24px", fontWeight: "bold" }}>184</div>
-              </div>
+              ))}
             </div>
 
             <div style={{ background: "#fff", padding: "25px", borderRadius: "15px", border: `1px solid ${COLORS.border}` }}>
@@ -115,13 +162,15 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {verificationQueue.map(c => (
+                {verificationQueue.length === 0 ? (
+                  <tr><td colSpan={3} style={{ padding: 20, color: COLORS.textLight }}>No pending registrations.</td></tr>
+                ) : verificationQueue.map(c => (
                   <tr key={c.id} style={{ borderBottom: `1px solid ${COLORS.bg}` }}>
                     <td style={{ padding: "15px 10px", fontWeight: "bold" }}>{c.name}</td>
                     <td style={{ padding: "15px 10px" }}>{c.city}</td>
                     <td style={{ padding: "15px 10px" }}>
-                      <button onClick={() => handleAction(c.id, 'center')} style={{ background: COLORS.success, color: "#fff", border: "none", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", marginRight: "5px" }}>Approve</button>
-                      <button onClick={() => handleAction(c.id, 'center')} style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "5px 10px", borderRadius: "5px", cursor: "pointer" }}>Reject</button>
+                      <button onClick={() => handleApprove(c.id)} style={{ background: COLORS.success, color: "#fff", border: "none", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", marginRight: "5px" }}>Approve</button>
+                      <button onClick={() => handleReject(c.id)} style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "5px 10px", borderRadius: "5px", cursor: "pointer" }}>Reject</button>
                     </td>
                   </tr>
                 ))}
@@ -132,14 +181,15 @@ export default function AdminDashboard() {
 
         {activeTab === "Review moderation" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
-            {flaggedReviews.map(r => (
+            {flaggedReviews.length === 0 ? (
+              <p style={{ color: COLORS.textLight }}>No open reports.</p>
+            ) : flaggedReviews.map(r => (
               <div key={r.id} style={{ background: "#fff", padding: "20px", borderRadius: "15px", border: `1px solid ${COLORS.border}` }}>
                 <div style={{ fontWeight: "bold", marginBottom: "5px" }}>{r.user}</div>
-                <div style={{ color: COLORS.primary, fontSize: "12px", marginBottom: "10px" }}>Target: {r.target}</div>
+                <div style={{ color: COLORS.primary, fontSize: "12px", marginBottom: "10px" }}>Target: {r.target} {r.isUrgent ? "• Urgent" : ""}</div>
                 <p style={{ fontSize: "14px", fontStyle: "italic", marginBottom: "15px" }}>"{r.text}"</p>
                 <div style={{ display: "flex", gap: "10px" }}>
-                  <button onClick={() => handleAction(r.id, 'review')} style={{ flex: 1, padding: "8px", borderRadius: "5px", border: `1px solid ${COLORS.border}`, background: "#fff", cursor: "pointer" }}>Keep</button>
-                  <button onClick={() => handleAction(r.id, 'review')} style={{ flex: 1, padding: "8px", borderRadius: "5px", border: "none", background: COLORS.primary, color: "#fff", cursor: "pointer" }}>Remove</button>
+                  <button onClick={() => handleDismissReport(r.id)} style={{ flex: 1, padding: "8px", borderRadius: "5px", border: `1px solid ${COLORS.border}`, background: "#fff", cursor: "pointer" }}>Dismiss</button>
                 </div>
               </div>
             ))}
@@ -148,41 +198,13 @@ export default function AdminDashboard() {
 
         {activeTab === "User reports" && (
           <div style={{ background: "#fff", padding: "25px", borderRadius: "15px", border: `1px solid ${COLORS.border}` }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ textAlign: "left", borderBottom: `2px solid ${COLORS.bg}` }}>
-                  <th style={{ padding: "10px", fontSize: "12px", color: COLORS.textLight }}>TYPE</th>
-                  <th style={{ padding: "10px", fontSize: "12px", color: COLORS.textLight }}>AGAINST</th>
-                  <th style={{ padding: "10px", fontSize: "12px", color: COLORS.textLight }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {complaints.map(c => (
-                  <tr key={c.id} style={{ borderBottom: `1px solid ${COLORS.bg}` }}>
-                    <td style={{ padding: "15px 10px", fontWeight: "bold" }}>{c.type}</td>
-                    <td style={{ padding: "15px 10px", color: COLORS.primary }}>{c.target}</td>
-                    <td style={{ padding: "15px 10px" }}>
-                      <button onClick={() => handleAction(c.id, 'report')} style={{ background: COLORS.success, color: "#fff", border: "none", padding: "5px 10px", borderRadius: "5px", cursor: "pointer" }}>Resolve</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <p style={{ color: COLORS.textLight }}>Reports are shown under Review moderation from the admin dashboard API.</p>
           </div>
         )}
 
         {activeTab === "Featured listings" && (
           <div style={{ background: "#fff", padding: "25px", borderRadius: "15px", border: `1px solid ${COLORS.border}` }}>
-            <h3 style={{ marginBottom: "20px" }}>Featured Centers</h3>
-            {featured.map(f => (
-              <div key={f.id} style={{ display: "flex", justifyContent: "space-between", padding: "15px", borderBottom: `1px solid ${COLORS.bg}` }}>
-                <div>
-                  <div style={{ fontWeight: "bold" }}>{f.name}</div>
-                  <div style={{ fontSize: "12px", color: COLORS.textLight }}>Expires: {f.expires}</div>
-                </div>
-                <button onClick={() => handleAction(f.id, 'removeFeatured')} style={{ color: COLORS.primary, background: "none", border: "none", fontWeight: "bold", cursor: "pointer" }}>Remove</button>
-              </div>
-            ))}
+            <p style={{ color: COLORS.textLight }}>Featured listings API is not available yet.</p>
           </div>
         )}
 

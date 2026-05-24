@@ -74,7 +74,7 @@ function ResultsContent() {
           model: searchParams.get("model") || ""
         };
         const data = await sparePartsService.getSpareParts(query);
-        setParts(data);
+        setParts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Failed to fetch spare parts:", error);
       } finally {

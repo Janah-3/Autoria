@@ -1,0 +1,520 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Users",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/me": {
+      "get": {
+        "summary": "get current user",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "6514ab2e-fcc2-4693-a545-8b3029cbf31c",
+                    "fullName": "Jana Ahmad",
+                    "email": "jana.ayoub.004@gmail.com",
+                    "phoneNumber": "01060338557",
+                    "role": "Admin"
+                  },
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "update current user data",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "fullName": "string",
+                "phoneNumber": "01579898"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "user data is updated successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "gat all users",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Role",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "IsBanned",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": [
+                    {
+                      "id": "144584f1-896f-4e24-b77c-e1ab774e3c60",
+                      "fullName": "joy",
+                      "email": "joy@gmail.com",
+                      "role": "Admin",
+                      "is_Banned": false
+                    },
+                    {
+                      "id": "3a79490b-50d5-409c-a7c6-b5fb70844ab7",
+                      "fullName": "rana medhat",
+                      "email": "rana@gmail.com",
+                      "role": "ServiceCenterOwner",
+                      "is_Banned": false
+                    },
+                    {
+                      "id": "45239eb3-0fa5-4113-b024-d6a8ab361133",
+                      "fullName": "John Doe",
+                      "email": "john2.doe@example.com",
+                      "role": "User",
+                      "is_Banned": false
+                    },
+                    {
+                      "id": "46a26aaa-bba4-4bc9-b583-7989e4c8f437",
+                      "fullName": "jenna",
+                      "email": "jana.ahmad.presentation@gmail.com",
+                      "role": "User",
+                      "is_Banned": false
+                    },
+                    {
+                      "id": "6514ab2e-fcc2-4693-a545-8b3029cbf31c",
+                      "fullName": "Jana Ahmad",
+                      "email": "jana.ayoub.004@gmail.com",
+                      "role": "Admin",
+                      "is_Banned": false
+                    },
+                    {
+                      "id": "dce0811d-430d-444e-9d64-90ee12d19cfd",
+                      "fullName": "maram ihab",
+                      "email": "maram@gmail.com",
+                      "role": "Admin",
+                      "is_Banned": false
+                    },
+                    {
+                      "id": "f2ae2c1b-eafd-47db-aa16-22829a2e03ef",
+                      "fullName": "John Doe",
+                      "email": "john.doe@example.com",
+                      "role": null,
+                      "is_Banned": false
+                    }
+                  ],
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/89": {
+      "get": {
+        "summary": "get user by id",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "examples": {
+                  "1": {
+                    "summary": "Not Found",
+                    "value": {
+                      "success": false,
+                      "message": "User not found",
+                      "data": null,
+                      "errors": null
+                    }
+                  },
+                  "2": {
+                    "summary": "Not Found",
+                    "value": {
+                      "success": false,
+                      "message": "User not found",
+                      "data": null,
+                      "errors": null
+                    }
+                  },
+                  "3": {
+                    "summary": "Not Found",
+                    "value": {
+                      "success": false,
+                      "message": "User not found",
+                      "data": null,
+                      "errors": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/14837cb8-454a-40d3-97b8-5546c5497304": {
+      "put": {
+        "summary": "update user ",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "fullName": "janjona",
+                "phoneNumber": "string",
+                "role": ""
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                  "title": "One or more validation errors occurred.",
+                  "status": 400,
+                  "errors": {
+                    "UserId": [
+                      "The UserId field is required."
+                    ]
+                  },
+                  "traceId": "00-9f9cab11cfe0319228f3e467ac0ba490-900c16331fda6eda-00"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/45239eb3-0fa5-4113-b024-d6a8ab361133": {
+      "delete": {
+        "summary": "delete user",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "User deleted successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/3a79490b-50d5-409c-a7c6-b5fb70844ab7/Ban": {
+      "patch": {
+        "summary": "Ban user",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": false,
+                  "message": "user is already banned",
+                  "data": null,
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/3a79490b-50d5-409c-a7c6-b5fb70844ab7/Unban": {
+      "patch": {
+        "summary": "unban user",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": false,
+                  "message": "user is already banned",
+                  "data": null,
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my/location": {
+      "put": {
+        "summary": "set user location",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "latitude": 30.0626,
+                "longitude": 31.3397
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Location updated successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "responses": {},
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [],
+  "security": []
+}
