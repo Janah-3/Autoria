@@ -24,7 +24,10 @@
                 builder.Property(pr => pr.CancellationReason).HasMaxLength(500);
 
                 builder.HasOne(pr => pr.Client).WithMany().HasForeignKey(pr => pr.ClientId)
-                    .OnDelete(DeleteBehavior.NoAction);
+                                    .OnDelete(DeleteBehavior.NoAction);
+                builder.Ignore(pr => pr.TotalPrice);
+
+
 
                 builder.HasOne(pr => pr.ServiceCenter).WithMany()
                     .HasForeignKey(pr => pr.ServiceCenterId).OnDelete(DeleteBehavior.NoAction);
