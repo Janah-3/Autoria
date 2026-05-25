@@ -23,13 +23,13 @@ const Sidebar = ({ active }) => (
     <div style={{ padding: "0 25px", marginBottom: "40px" }}>
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
-        { id: "Dashboard", icon: "📊", path: "/dashboard" },
+        { id: "Dashboard", icon: "📊", path: "/booking-requests" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
-        { id: "Services & pricing", icon: "🏷️", path: "/services" },
-        { id: "Spare parts", icon: "⚙️", path: "/spare-parts" },
-        { id: "Reviews", icon: "⭐", path: "/reviews" },
-        { id: "Business profile", icon: "🏢", path: "/business-profile" }
+        { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
+        { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
+        { id: "Reviews", icon: "⭐", path: "#" },
+        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{

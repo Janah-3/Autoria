@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { sparePartsService } from "@/lib/api/sparePartsService";
+import { mapSparePartItem } from "@/lib/api/mappers";
 
 const COLORS = {
   primary: "#E8272A",
@@ -19,27 +21,74 @@ const COLORS = {
 export default function SparePartDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const [part, setPart] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const part = {
-    id: 1,
-    name: "Toyota OEM Rear Brake Pads",
-    sku: "04466-02040",
-    brand: "Toyota",
-    price: "1,650",
-    availability: "In Stock",
-    condition: "New — Genuine OEM",
-    description: "Genuine Toyota rear brake pads designed specifically for your Corolla. Provides maximum safety and longevity.",
-    seller: {
-      name: "ProCare Auto Center",
-      location: "Nasr City, Cairo",
-      rating: 4.9
-    },
-    specs: [
-      { label: "Brand", value: "Toyota" },
-      { label: "Material", value: "Semi-Metallic" },
-      { label: "Warranty", value: "6 months" }
-    ]
-  };
+  useEffect(() => {
+    if (!params.id) return;
+    setLoading(true);
+    sparePartsService.getSparePartById(params.id)
+      .then(res => {
+        const item = res.data ?? res;
+        if (item && item.id) {
+          const mapped = mapSparePartItem(item);
+          setPart({
+            id: mapped.id,
+            name: mapped.name,
+            sku: mapped.sku || `SKU-${mapped.id}`,
+            brand: mapped.brand || "—",
+            price: mapped.price ? String(mapped.price) : "Contact Seller",
+            availability: mapped.availability || "In Stock",
+            condition: mapped.type || "New",
+            description: mapped.description || "",
+            seller: {
+              name: mapped.centerName || mapped.sellerName || "—",
+              location: mapped.location || "—",
+              rating: mapped.rating || 0
+            },
+            specs: [
+              { label: "Brand", value: mapped.brand || "—" },
+              { label: "Condition", value: mapped.type || "New" },
+              { label: "SKU", value: mapped.sku || `SKU-${mapped.id}` }
+            ]
+          });
+        } else {
+          setPart(null);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch spare part:", err.message);
+        setPart(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, fontFamily: "sans-serif" }}>
+        <Navbar />
+        <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ fontSize: "18px", fontWeight: "bold", color: COLORS.primary }}>Loading part details...</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!part) {
+    return (
+      <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, fontFamily: "sans-serif" }}>
+        <Navbar />
+        <div style={{ height: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+          <h2 style={{ marginBottom: "12px" }}>Part not found</h2>
+          <button onClick={() => router.push("/spare-parts-search")} style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer" }}>Back to Search</button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, fontFamily: "sans-serif" }}>
@@ -48,7 +97,7 @@ export default function SparePartDetailsPage() {
       <div style={{ background: COLORS.white, borderBottom: `1px solid ${COLORS.border}`, padding: "40px 6%" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
           <div style={{ fontSize: "12px", color: COLORS.textLight, marginBottom: "15px" }}>
-            Spare Parts / Brakes / {part.name}
+            Spare Parts / {part.brand} / {part.name}
           </div>
           <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "10px" }}>{part.name}</h1>
           <p style={{ color: COLORS.textLight, fontSize: "14px" }}>SKU: {part.sku} • {part.brand}</p>
@@ -99,7 +148,9 @@ export default function SparePartDetailsPage() {
             <div style={{ fontSize: "12px", color: COLORS.textLight, marginBottom: "10px" }}>SOLD BY</div>
             <div style={{ fontWeight: "bold", fontSize: "16px", marginBottom: "5px" }}>{part.seller.name}</div>
             <div style={{ fontSize: "13px", color: COLORS.textLight }}>📍 {part.seller.location}</div>
-            <div style={{ marginTop: "15px", color: "#F59E0B" }}>★ {part.seller.rating} Rating</div>
+            {part.seller.rating > 0 && (
+              <div style={{ marginTop: "15px", color: "#F59E0B" }}>★ {part.seller.rating} Rating</div>
+            )}
           </div>
         </aside>
 

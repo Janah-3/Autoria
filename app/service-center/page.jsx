@@ -1,9 +1,74 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { serviceCentersService } from "@/lib/api/serviceCentersService";
+import { getMe } from "@/lib/api/usersService";
 
 export default function ServiceCenterProfile() {
+  const [center, setCenter] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("AK");
+
+  useEffect(() => {
+    // Fetch logged-in user info
+    getMe()
+      .then((res) => {
+        if (res?.data?.fullName) {
+          setUserName(res.data.fullName);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch own service center profile
+    serviceCentersService
+      .getMy()
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (d && d.name) {
+          setCenter(d);
+        } else {
+          setCenter(null);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch logged-in service center profile:", err);
+        setCenter(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F7F6" }}>
+        <div style={{ color: "#10B981", fontSize: "18px", fontWeight: "bold" }}>Loading profile...</div>
+      </div>
+    );
+  }
+
+  if (!center) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#F4F7F6", padding: "20px", fontFamily: "sans-serif" }}>
+        <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#111827", marginBottom: "12px" }}>No Business Profile Found</h2>
+        <p style={{ color: "#6B7280", marginBottom: "24px", textAlign: "center", maxWidth: "400px" }}>
+          You don't have an active service center profile yet, or you are not logged in as a Service Center partner.
+        </p>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <Link href="/service-center-registration">
+            <button style={{ background: "#10B981", color: "white", border: "none", padding: "12px 24px", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>
+              Register Business
+            </button>
+          </Link>
+          <Link href="/login">
+            <button style={{ background: "transparent", color: "#374151", border: "1px solid #D1D5DB", padding: "12px 24px", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>
+              Partner Login
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="sc-profile-layout">
       <style>{`
@@ -12,7 +77,7 @@ export default function ServiceCenterProfile() {
           min-height: 100vh;
           background: #F4F7F6;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-          padding-bottom: 100px; /* space for sticky footer */
+          padding-bottom: 100px;
         }
         
         .top-nav {
@@ -31,7 +96,7 @@ export default function ServiceCenterProfile() {
         .logo { font-size: 24px; font-weight: 900; color: #E8192C; text-decoration: none; }
         .nav-right { display: flex; align-items: center; gap: 16px; }
         .back-btn { font-size: 14px; font-weight: 600; color: #4B5563; text-decoration: none; border: 1px solid #D1D5DB; padding: 8px 16px; border-radius: 6px; }
-        .user-badge { width: 36px; height: 36px; background: #10B981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+        .user-badge { width: 36px; height: 36px; background: #10B981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; text-transform: uppercase; }
 
         .container {
           max-width: 1200px;
@@ -115,30 +180,6 @@ export default function ServiceCenterProfile() {
         .part-price { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 4px; }
         .btn-reserve { background: #10B981; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
 
-        /* Reviews */
-        .rating-summary { display: flex; gap: 32px; margin-bottom: 24px; align-items: center; }
-        .rating-big { text-align: center; }
-        .rating-big h2 { font-size: 48px; font-weight: 800; color: #10B981; line-height: 1; }
-        .rating-bars { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-        .bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #6B7280; }
-        .bar-bg { flex: 1; height: 6px; background: #F3F4F6; border-radius: 3px; overflow: hidden; }
-        .bar-fill { height: 100%; background: #F59E0B; border-radius: 3px; }
-
-        .review-item { border-top: 1px solid #F3F4F6; padding: 16px 0; }
-        .review-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-        .reviewer-name { font-weight: 600; font-size: 14px; color: #111827; }
-        .review-date { font-size: 12px; color: #9CA3AF; }
-        .review-text { font-size: 14px; color: #4B5563; line-height: 1.5; margin-bottom: 12px; }
-        .review-photos { display: flex; gap: 8px; margin-bottom: 12px; }
-        .r-photo { width: 40px; height: 40px; background: #F3F4F6; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #9CA3AF; font-size: 18px; }
-        .review-reply { background: #F9FAFB; padding: 12px; border-radius: 8px; border-left: 3px solid #10B981; font-size: 13px; color: #4B5563; }
-        
-        .btn-load { width: 100%; padding: 10px; background: white; border: 1px solid #D1D5DB; border-radius: 8px; font-weight: 600; color: #374151; cursor: pointer; }
-
-        .write-review-box { background: #F0FDF4; border: 1px dashed #6EE7B7; border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
-        .write-review-box p { font-size: 14px; color: #047857; font-weight: 500; }
-        .btn-write { background: #10B981; color: white; padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; }
-
         /* Sticky Footer */
         .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #E5E7EB; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -4px 6px rgba(0,0,0,0.02); z-index: 40; }
         .footer-info h4 { font-size: 16px; font-weight: 700; color: #111827; }
@@ -155,8 +196,8 @@ export default function ServiceCenterProfile() {
       <nav className="top-nav">
         <Link href="/user-dashboard" className="logo" style={{color: '#111827'}}>Autoria</Link>
         <div className="nav-right">
-          <Link href="/user-dashboard" className="back-btn"><i className="fa-solid fa-arrow-left"></i> Back to results</Link>
-          <div className="user-badge">AK</div>
+          <Link href="/booking-requests" className="back-btn">📋 Partner Dashboard</Link>
+          <div className="user-badge">{userName.split(" ").map(n => n[0]).join("") || "MH"}</div>
         </div>
       </nav>
 
@@ -167,37 +208,34 @@ export default function ServiceCenterProfile() {
           <div className="hero-left">
             <div className="sc-logo-box"><i className="fa-solid fa-wrench"></i></div>
             <div>
-              <h1 className="sc-name">AutoCare Nasr City</h1>
+              <h1 className="sc-name">{center.name}</h1>
               <div className="sc-meta">
-                <i className="fa-solid fa-location-dot"></i> Nasr City, Cairo • Open today 09:00-18:00
+                <i className="fa-solid fa-location-dot"></i> {center.district}, {center.governorate}
               </div>
               <div className="sc-tags">
                 <span className="tag-verified"><i className="fa-solid fa-check"></i> Verified</span>
-                <span className="tag-verified">Toyota Authorized</span>
+                <span className="tag-verified">{center.type || "Service Center"}</span>
               </div>
               <div className="hero-stats">
                 <div className="stat-item">
                   <h3>4.8</h3>
-                  <p><i className="fa-solid fa-star" style={{fontSize: '10px'}}></i> Rating</p>
+                  <p>★ Rating</p>
                 </div>
                 <div className="stat-item">
-                  <h3>138</h3>
+                  <h3>—</h3>
                   <p>Reviews</p>
                 </div>
                 <div className="stat-item">
-                  <h3>6</h3>
-                  <p>Service Bays</p>
-                </div>
-                <div className="stat-item">
-                  <h3>2015</h3>
-                  <p>Est.</p>
+                  <h3>{center.district ? "Yes" : "No"}</h3>
+                  <p>Active profile</p>
                 </div>
               </div>
             </div>
           </div>
           <div className="hero-actions">
-            <button className="btn-save"><i className="fa-regular fa-bookmark"></i> Save</button>
-            <button className="btn-book-top">Book Now</button>
+            <Link href="/service-center/edit">
+              <button className="btn-save"><i className="fa-regular fa-pen-to-square"></i> Edit Profile</button>
+            </Link>
           </div>
         </div>
 
@@ -214,34 +252,16 @@ export default function ServiceCenterProfile() {
                   <div className="contact-icon"><i className="fa-solid fa-phone"></i></div>
                   <div className="contact-text">
                     <h4>Phone</h4>
-                    <p>+20 1012 345 678</p>
-                  </div>
-                </div>
-                <div className="contact-item">
-                  <div className="contact-icon"><i className="fa-brands fa-whatsapp"></i></div>
-                  <div className="contact-text">
-                    <h4>WhatsApp</h4>
-                    <p>+20 1012 345 678</p>
+                    <p>{center.phone || "Not provided"}</p>
                   </div>
                 </div>
                 <div className="contact-item">
                   <div className="contact-icon"><i className="fa-solid fa-location-dot"></i></div>
                   <div className="contact-text">
                     <h4>Address</h4>
-                    <p>14 Omar Ibn El-Khattab St, Nasr City</p>
+                    <p>{center.district}, {center.governorate}</p>
                   </div>
                 </div>
-                <div className="contact-item">
-                  <div className="contact-icon"><i className="fa-regular fa-clock"></i></div>
-                  <div className="contact-text">
-                    <h4>Working Hours</h4>
-                    <p>Sun-Thu 09:00-18:00 • Sat 10:00-15:00</p>
-                    <p style={{color: '#EF4444', fontSize: '13px', marginTop: '4px'}}>Friday: Closed</p>
-                  </div>
-                </div>
-              </div>
-              <div className="map-placeholder">
-                <i className="fa-solid fa-map-location-dot" style={{marginRight: '8px'}}></i> Map — Nasr City, Cairo
               </div>
             </div>
 
@@ -249,73 +269,24 @@ export default function ServiceCenterProfile() {
             <div className="card">
               <h2 className="card-title" style={{marginBottom: '16px'}}>Services Offered</h2>
               <div className="tags-wrapper">
-                <span className="service-tag">Oil change</span>
-                <span className="service-tag">Brake service</span>
-                <span className="service-tag">AC repair</span>
-                <span className="service-tag">Electrical</span>
-                <span className="service-tag">Engine repair</span>
-                <span className="service-tag">Full inspection</span>
-                <span className="service-tag">Diagnostics</span>
+                {center.serviceTypes && center.serviceTypes.length > 0 ? (
+                  center.serviceTypes.map(s => (
+                    <span className="service-tag" key={s}>{s}</span>
+                  ))
+                ) : (
+                  <span style={{ color: '#6B7280', fontSize: '13px', fontStyle: 'italic' }}>No service types configured</span>
+                )}
               </div>
               
               <h2 className="card-title" style={{marginTop: '32px', marginBottom: '16px'}}>Car Brands Serviced</h2>
               <div className="tags-wrapper">
-                <span className="brand-tag">Toyota</span>
-                <span className="brand-tag">BMW</span>
-                <span className="brand-tag">Mercedes</span>
-                <span className="brand-tag">Kia</span>
-                <span className="brand-tag">Hyundai</span>
-                <span className="brand-tag">Honda</span>
-              </div>
-
-              <div className="price-range">
-                <div className="price-info">
-                  <h4>Price range (per service)</h4>
-                  <p>EGP 150 - 3,500</p>
-                </div>
-                <div className="price-info" style={{textAlign: 'right'}}>
-                  <h4>Spare parts sold?</h4>
-                  <p className="spare-parts-toggle">Yes <i className="fa-solid fa-check"></i></p>
-                </div>
-              </div>
-            </div>
-
-            {/* Spare Parts */}
-            <div className="card">
-              <div className="card-header">
-                <h2 className="card-title">Available Spare Parts</h2>
-                <Link href="#" className="card-link">View all →</Link>
-              </div>
-              
-              <div className="part-item">
-                <div className="part-info">
-                  <h4>Air filter</h4>
-                  <p>AF-1042 • Toyota, Kia • In stock: 24</p>
-                </div>
-                <div className="part-action">
-                  <div className="part-price">EGP 350</div>
-                  <button className="btn-reserve">Reserve</button>
-                </div>
-              </div>
-              <div className="part-item">
-                <div className="part-info">
-                  <h4>Brake pads (front)</h4>
-                  <p>BP-2231 • BMW, Mercedes • Low stock: 3</p>
-                </div>
-                <div className="part-action">
-                  <div className="part-price">EGP 1,200</div>
-                  <button className="btn-reserve">Reserve</button>
-                </div>
-              </div>
-              <div className="part-item">
-                <div className="part-info">
-                  <h4>AC compressor belt</h4>
-                  <p>AC-0093 • Hyundai, Kia • In stock: 11</p>
-                </div>
-                <div className="part-action">
-                  <div className="part-price">EGP 480</div>
-                  <button className="btn-reserve">Reserve</button>
-                </div>
+                {center.carBrands && center.carBrands.length > 0 ? (
+                  center.carBrands.map(b => (
+                    <span className="brand-tag" key={b}>{b}</span>
+                  ))
+                ) : (
+                  <span style={{ color: '#6B7280', fontSize: '13px', fontStyle: 'italic' }}>No brands configured</span>
+                )}
               </div>
             </div>
 
@@ -326,11 +297,8 @@ export default function ServiceCenterProfile() {
             
             {/* Photos */}
             <div className="card">
-              <div className="card-header">
-                <h2 className="card-title">Workshop Photos</h2>
-                <Link href="#" className="card-link">See all 12 →</Link>
-              </div>
-              <div className="photos-grid">
+              <h2 className="card-title">Workshop Photos</h2>
+              <div className="photos-grid" style={{ marginTop: '16px' }}>
                 <div className="photo-box c1"><i className="fa-solid fa-car-side"></i></div>
                 <div className="photo-box c2"><i className="fa-solid fa-screwdriver"></i></div>
                 <div className="photo-box c3"><i className="fa-solid fa-building"></i></div>
@@ -338,88 +306,8 @@ export default function ServiceCenterProfile() {
               </div>
             </div>
 
-            {/* Reviews */}
-            <div className="card">
-              <div className="card-header">
-                <h2 className="card-title">Reviews & Ratings</h2>
-                <span style={{fontSize: '13px', color: '#6B7280'}}>138 reviews</span>
-              </div>
-              
-              <div className="rating-summary">
-                <div className="rating-big">
-                  <h2>4.8</h2>
-                  <div style={{color: '#F59E0B', fontSize: '14px'}}>
-                    <i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i>
-                  </div>
-                  <p style={{fontSize: '12px', color: '#6B7280', marginTop: '4px'}}>Overall</p>
-                </div>
-                <div className="rating-bars">
-                  {[
-                    { stars: 5, width: '85%', count: 99 },
-                    { stars: 4, width: '20%', count: 28 },
-                    { stars: 3, width: '10%', count: 7 },
-                    { stars: 2, width: '5%', count: 3 },
-                    { stars: 1, width: '2%', count: 1 }
-                  ].map(bar => (
-                    <div className="bar-row" key={bar.stars}>
-                      <span style={{width: '12px'}}>{bar.stars}</span>
-                      <div className="bar-bg"><div className="bar-fill" style={{width: bar.width}}></div></div>
-                      <span style={{width: '24px', textAlign: 'right'}}>{bar.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Review 1 */}
-              <div className="review-item">
-                <div className="review-header">
-                  <div className="reviewer-name">Sara M.</div>
-                  <div className="review-date">2 days ago</div>
-                </div>
-                <div style={{color: '#F59E0B', fontSize: '10px', marginBottom: '8px'}}>
-                  <i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i>
-                </div>
-                <p className="review-text">Very professional team! They diagnosed the issue quickly and finished ahead of schedule. Highly recommend for Toyota owners.</p>
-                <div className="review-photos">
-                  <div className="r-photo"><i className="fa-solid fa-car"></i></div>
-                  <div className="r-photo"><i className="fa-solid fa-wrench"></i></div>
-                </div>
-                <div className="review-reply">
-                  <span style={{fontWeight: 600, color: '#111827'}}>AutoCare Nasr City:</span> Thank you Sara! We're glad we could help.
-                </div>
-              </div>
-
-              {/* Review 2 */}
-              <div className="review-item">
-                <div className="review-header">
-                  <div className="reviewer-name">Khaled T.</div>
-                  <div className="review-date">1 week ago</div>
-                </div>
-                <div style={{color: '#F59E0B', fontSize: '10px', marginBottom: '8px'}}>
-                  <i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-solid fa-star"></i><i className="fa-regular fa-star"></i>
-                </div>
-                <p className="review-text">Good service overall. A bit of a wait but the AC repair was done well and the price was fair.</p>
-              </div>
-
-              <button className="btn-load">Load more reviews</button>
-
-              <div className="write-review-box">
-                <p><i className="fa-solid fa-pen-to-square"></i> Visited recently? Share your experience to help other car owners.</p>
-                <Link href="/reviews/write"><button className="btn-write">Write a review</button></Link>
-              </div>
-
-            </div>
-
           </div>
         </div>
-      </div>
-
-      <div className="sticky-footer">
-        <div className="footer-info">
-          <h4>Ready to book?</h4>
-          <p>Next available: Tomorrow, Mon 16 Mar - 09:00</p>
-        </div>
-        <button className="btn-book-bottom"><i className="fa-solid fa-calendar-check"></i> Book a service</button>
       </div>
 
     </div>

@@ -4,19 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { login } from "@/lib/api/authService";
-import Signup from "../signup/page";
-import ForgotPassword from "../forgot-password/page";
 
 export default function LoginPage() {
-  const [page, setPage] = useState("login");
-
-  if (page === "signup") return <Signup goToLogin={() => setPage("login")} />;
-  if (page === "forgot") return <ForgotPassword goToLogin={() => setPage("login")} />;
-
-  return <LoginView setPage={setPage} />;
+  return <LoginView />;
 }
 
-function LoginView({ setPage }) {
+function LoginView() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);

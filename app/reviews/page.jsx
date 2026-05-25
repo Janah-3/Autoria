@@ -3,8 +3,6 @@
 import React, { useState } from "react";
 import Link from "next/link";
 
-const MY_REVIEWS = [];
-
 const StarRating = ({ rating }) => {
   const stars = [];
   for (let i = 1; i <= 5; i++) {
@@ -20,13 +18,8 @@ const StarRating = ({ rating }) => {
 };
 
 export default function MyReviewsPage() {
-  const [reviews, setReviews] = useState(MY_REVIEWS);
-
-  const handleDelete = (id) => {
-    if(window.confirm("Are you sure you want to delete this review?")) {
-      setReviews(reviews.filter(r => r.id !== id));
-    }
-  };
+  // Reviews API not yet available — show empty state
+  const [reviews] = useState([]);
 
   return (
     <div className="page-container">
@@ -68,13 +61,6 @@ export default function MyReviewsPage() {
         .reply-header { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
         .reply-text { font-size: 14px; color: #4B5563; line-height: 1.5; }
 
-        .card-actions { display: flex; gap: 12px; border-top: 1px solid #F3F4F6; padding-top: 20px; }
-        .btn { padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-        .btn-edit { background: #fff; color: #3B82F6; border: 1px solid #3B82F6; }
-        .btn-edit:hover { background: #EFF6FF; }
-        .btn-delete { background: #fff; color: #EF4444; border: 1px solid #EF4444; }
-        .btn-delete:hover { background: #FEF2F2; }
-
         .empty-state { background: #fff; border-radius: 12px; border: 1px dashed #D1D5DB; padding: 60px 20px; text-align: center; }
         .empty-icon { font-size: 48px; color: #D1D5DB; margin-bottom: 16px; }
         .empty-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px; }
@@ -92,7 +78,7 @@ export default function MyReviewsPage() {
         <div className="page-header">
           <div>
             <h1 className="page-title">My Reviews</h1>
-            <p className="page-subtitle">Manage the feedback you've left for service centers.</p>
+            <p className="page-subtitle">Feedback you've left for service centers.</p>
           </div>
         </div>
 
@@ -133,15 +119,6 @@ export default function MyReviewsPage() {
                       </div>
                     </div>
                   )}
-
-                  <div className="card-actions">
-                    <Link href={`/reviews/edit?id=${review.id}`} className="btn btn-edit">
-                      <i className="fa-solid fa-pen-to-square"></i> Edit
-                    </Link>
-                    <button className="btn btn-delete" onClick={() => handleDelete(review.id)}>
-                      <i className="fa-solid fa-trash"></i> Delete
-                    </button>
-                  </div>
                 </div>
               </div>
             ))}

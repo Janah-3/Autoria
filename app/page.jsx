@@ -63,14 +63,9 @@ function Hero({ setCenters }) {
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [stats, setStats] = useState([
-    ["200+", "Service Centers"],
-    ["15K+", "Happy Customers"],
-    ["4.8★", "Avg Rating"],
-    ["50+", "Parts Brands"]
-  ]);
+  const [stats, setStats] = useState([]);
 
-  // Stats are static placeholders until a public metrics endpoint exists
+  // Stats will be populated when a public metrics endpoint is available
 
   return (
     <section style={{ background: `linear-gradient(135deg,#111 0%,#2d1010 52%,${RD} 100%)`, padding: "72px 5% 64px", textAlign: "center" }}>
