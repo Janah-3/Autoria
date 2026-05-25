@@ -18,7 +18,7 @@ namespace Autoria.features.Cars.Commands.AddCar
 
             RuleFor(x => x.Year)
                 .InclusiveBetween(1886, DateTime.Now.Year) // first car invented ~1886
-                .WithMessage("Invalid car year");
+                .WithMessage("Year must be between 1900 and current year");
 
             RuleFor(x => x.Vin)
                 .NotEmpty().WithMessage("VIN is required")
