@@ -903,8 +903,8 @@ export default function ServiceCenterRegistration() {
 
                   {uploadedFiles.length > 0 && (
                     <div className="uploaded-list">
-                      {uploadedFiles.map(name => (
-                        <div className="uploaded-file-item" key={name}>
+                     {uploadedFiles.map((name, index) => (
+                        <div className="uploaded-file-item" key={`${name}-${index}`}>
                           <span><i className="fa-solid fa-file-shield" style={{ marginRight: '8px' }}></i> {name}</span>
                           <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#34D399' }}><i className="fa-solid fa-circle-check"></i> Uploaded</span>
                         </div>

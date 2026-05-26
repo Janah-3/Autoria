@@ -1,37 +1,39 @@
-"use client"; 
+"use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { verifyEmail } from '../../src/API/authService';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { verifyEmail, resendVerification } from '../../src/API/authService';
 
 export default function EmailVerificationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   const [email, setEmail] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    const savedEmail = localStorage.getItem('email');
-    if (savedEmail) {
-      setEmail(savedEmail);
-    }
-  }, []);
+    const tokenFromUrl = searchParams.get('token');
+    const emailFromUrl = searchParams.get('email');
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    
-    if (!email || !verificationCode) {
-      setMessage({ type: 'error', text: 'Please enter both email and verification code.' });
-      return;
+    if (emailFromUrl) {
+      setEmail(emailFromUrl);
     }
 
-    setIsLoading(true);
-    setMessage({ type: '', text: '' });
+    if (tokenFromUrl && emailFromUrl) {
+      handleAutoVerify(tokenFromUrl, emailFromUrl);
+    } else {
+      setIsLoading(false);
+      setMessage({ 
+        type: 'error', 
+        text: 'Invalid or missing verification link.' 
+      });
+    }
+  }, [searchParams]);
 
+  const handleAutoVerify = async (token, userEmail) => {
     try {
-      await verifyEmail(verificationCode, email);
+      await verifyEmail(token, userEmail);
       
       setMessage({ type: 'success', text: 'Email Verified! Welcome to Autoria 🚗' });
       
@@ -43,10 +45,20 @@ export default function EmailVerificationPage() {
       console.error(error);
       setMessage({ 
         type: 'error', 
-        text: error.message || 'Verification failed. Please check your code and try again.' 
+        text: error.message || 'Verification failed. The link may have expired.' 
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) return;
+    try {
+      await resendVerification(email);
+      setMessage({ type: 'success', text: 'Verification link resent to your email!' });
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to resend link, please try again later.' });
     }
   };
 
@@ -63,52 +75,37 @@ export default function EmailVerificationPage() {
         </div>
 
         <h1 className="title">Verify Your Email</h1>
-        <p className="subtitle">We've sent a verification code to your email.</p>
+        
+        {isLoading ? (
+          <p className="subtitle">Verifying your account automatically...</p>
+        ) : (
+          <p className="subtitle">Email verification status for Autoria</p>
+        )}
 
-        <form onSubmit={handleVerify} className="verify-form">
-          <div className="input-group">
-            <label>Email Address</label>
-            <input
-              type="email"
-              className="form-input"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
-          </div>
-
-          <div className="input-group">
-            <label>Verification Code</label>
-            <input
-              type="text"
-              className="code-input"
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value)}
-              placeholder="••••••"
-              maxLength={64}
-              required
-            />
-          </div>
-
+        <div className="verify-form">
           {message.text && (
             <div className={`message-box ${message.type}`}>
               {message.text}
             </div>
           )}
 
-          <button 
-            type="submit" 
-            className="verify-btn" 
-            disabled={isLoading}
-          >
-            {isLoading ? 'Verifying...' : 'Verify Email'}
-          </button>
-        </form>
+          {isLoading && (
+            <div className="spinner-container">
+              <div className="loading-spinner"></div>
+            </div>
+          )}
+        </div>
 
         <div className="resend-section">
-          <p>Didn't receive the code?</p>
-          <button className="resend-btn" type="button">Resend Code</button>
+          <p>Didn't receive the email or token expired?</p>
+          <button 
+            className="resend-btn" 
+            type="button"
+            onClick={handleResend}
+            disabled={!email}
+          >
+            Resend Link
+          </button>
         </div>
       </div>
 
@@ -168,56 +165,17 @@ export default function EmailVerificationPage() {
           display: flex;
           flex-direction: column;
           gap: 20px;
-        }
-
-        .input-group {
-          text-align: left;
-        }
-
-        .input-group label {
-          display: block;
-          font-size: 13px;
-          font-weight: 700;
-          color: #424242;
-          margin-bottom: 8px;
-        }
-
-        .form-input {
-          width: 100%;
-          padding: 14px;
-          border: 1.5px solid #E0E0E0;
-          border-radius: 12px;
-          font-size: 15px;
-          outline: none;
-          transition: all 0.2s;
-        }
-
-        .form-input:focus {
-          border-color: #E8192C;
-        }
-
-        .code-input {
-          width: 100%;
-          padding: 15px;
-          border: 1.5px solid #E0E0E0;
-          border-radius: 12px;
-          text-align: center;
-          font-size: 20px;
-          letter-spacing: 4px;
-          outline: none;
-          transition: all 0.2s;
-        }
-
-        .code-input:focus { 
-          border-color: #E8192C; 
+          min-height: 60px;
+          justify-content: center;
         }
 
         .message-box {
-          padding: 12px;
-          border-radius: 8px;
+          padding: 14px;
+          border-radius: 12px;
           font-size: 14px;
           font-weight: 600;
-          text-align: left;
+          text-align: center;
+          line-height: 1.5;
         }
 
         .message-box.error {
@@ -232,30 +190,24 @@ export default function EmailVerificationPage() {
           border: 1px solid #C8E6C9;
         }
 
-        .verify-btn {
-          width: 100%;
-          padding: 16px;
-          background: #E8192C;
-          color: white;
-          border: none;
-          border-radius: 12px;
-          font-size: 16px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-          box-shadow: 0 4px 12px rgba(232, 25, 44, 0.2);
+        .spinner-container {
+          display: flex;
+          justify-content: center;
+          margin: 10px 0;
         }
 
-        .verify-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(232, 25, 44, 0.3);
+        .loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #E8192C;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
         }
 
-        .verify-btn:disabled {
-          background: #FF8A96;
-          cursor: wait;
-          transform: none;
-          box-shadow: none;
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         .resend-section {
@@ -280,6 +232,10 @@ export default function EmailVerificationPage() {
         
         .resend-btn:hover {
           text-decoration: underline;
+        }
+        .resend-btn:disabled {
+          color: #ccc;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
