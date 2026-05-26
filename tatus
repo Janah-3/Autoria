@@ -1,0 +1,88 @@
+[33mcommit 6c60e700789efbc4c37a6b42b54381fc79caf5a2[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mauth[m[33m, [m[1;31morigin/auth[m[33m)[m
+Author: maram <maramihab112@gmail.com>
+Date:   Mon May 25 04:22:22 2026 +0300
+
+    restore: bring back reviews/edit, reviews/write, and mycar pages
+
+[33mcommit 54103af574f38c3d3faf2a22b1435f42785fe40f[m
+Author: maram <maramihab112@gmail.com>
+Date:   Mon May 25 04:20:22 2026 +0300
+
+    feat: full cleanup - remove mock data, dead review pages, add services-pricing manager
+
+[33mcommit 0575bdfd35cc185c3ce33797a133ff8c67ff9dfd[m
+Author: maram <maramihab112@gmail.com>
+Date:   Mon May 25 01:30:27 2026 +0300
+
+    Integrate frontend with centralized API layer and OpenAPI docs.
+    
+    Add lib/api services, service-center registration and spare-parts inventory pages, and wire app pages to backend endpoints.
+    
+    Co-authored-by: Cursor <cursoragent@cursor.com>
+
+[33mcommit 6dcaeb73336c57507080faf9a6449c36afc0e943[m
+Merge: 241a005 321690b
+Author: maram <maramihab112@gmail.com>
+Date:   Sat May 23 00:13:02 2026 +0300
+
+    merge: merge origin/nada into auth branch and resolve conflicts
+
+[33mcommit 241a005d7dc64dbe4a67188815dffed109ddef77[m
+Author: maram <maramihab112@gmail.com>
+Date:   Sat May 23 00:10:37 2026 +0300
+
+    feat: add local offline indicator, dashboard, components, reviews, and service-center UI
+
+[33mcommit 321690bc6f6b92886a7d04fc1fac6fbe6a2a2cfa[m[33m ([m[1;31morigin/nada[m[33m)[m
+Author: Nada <nadahannyy@gmail.com>
+Date:   Sun May 10 02:03:20 2026 +0300
+
+    Full frontend integration with backend - Nada Branch
+
+[33mcommit d2d544db8a4e6102a1bd9c69ba34152b90dd1b31[m
+Author: maram <maramihab112@gmail.com>
+Date:   Sun May 3 04:01:12 2026 +0300
+
+    Add User Dashboard
+
+[33mcommit b1b749a2ca368834c4f8cc3158b676437149d143[m
+Author: maram <maramihab112@gmail.com>
+Date:   Sat May 2 03:08:57 2026 +0300
+
+    Add logout page and update authService with logout, verifyEmail, changePassword functions
+
+[33mcommit f68705e3ddc9fb44126edeb2cfa6a28a4def140f[m
+Author: maram <maramihab112@gmail.com>
+Date:   Sat May 2 03:04:11 2026 +0300
+
+    Add Logout confirmation page with API integration
+
+[33mcommit 1dd84668fed9ca40ff9bd822c17a4d9760211e8d[m
+Author: maram <maramihab112@gmail.com>
+Date:   Sat May 2 02:57:30 2026 +0300
+
+    Add Booking History, Details, and Cancellation pages (UI only)
+
+[33mcommit 9202afd4e095d1d0a98225f31adbba497bcbdda8[m
+Author: maram <maramihab112@gmail.com>
+Date:   Sat May 2 02:22:37 2026 +0300
+
+    Refactor Cars and Auth integrations with full API connectivity
+
+[33mcommit 9e32f1dec24b09afea5309f6fbe40f41a7f68c24[m
+Author: maram <maramihab112@gmail.com>
+Date:   Wed Apr 29 04:50:44 2026 +0300
+
+    add auth pages (login & signup)
+
+[33mcommit 6a9fba205983f9319974bce2ac33ea832647199b[m
+Author: Nada <nadahannyy@gmail.com>
+Date:   Wed Apr 22 03:11:14 2026 +0200
+
+    add forgot and reset password pages
+
+[33mcommit 9fc1967dcf4899af0e65973c436fe08f0e943813[m[33m ([m[1;31morigin/main[m[33m)[m
+Author: Nada <nadahannyy@gmail.com>
+Date:   Wed Apr 15 01:41:04 2026 +0200
+
+    initial project setup

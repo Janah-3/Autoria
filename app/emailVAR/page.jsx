@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyEmail, resendVerification } from '../../src/API/authService';
+
 
 function EmailVerificationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
   
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(true);
