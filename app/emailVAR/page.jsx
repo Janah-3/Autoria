@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { verifyEmail, resendVerification } from '../../src/API/authService';
 
-export default function EmailVerificationPage() {
+function EmailVerificationContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -38,9 +39,8 @@ export default function EmailVerificationPage() {
       setMessage({ type: 'success', text: 'Email Verified! Welcome to Autoria 🚗' });
       
       setTimeout(() => {
-        router.push('/login');
+        router.push("/login");
       }, 2000);
-      
     } catch (error) {
       console.error(error);
       setMessage({ 
@@ -65,10 +65,10 @@ export default function EmailVerificationPage() {
   return (
     <div className="verify-container">
       <div className="verify-card">
-        
+
         <div className="icon-wrapper">
-          <img 
-            src="https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=200&q=80" 
+          <img
+            src="https://images.unsplash.com/photo-1596526131083-e8c633c948d2?w=200&q=80"
             alt="Email verification envelope"
             className="envelope-img"
           />
@@ -115,8 +115,8 @@ export default function EmailVerificationPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #F7F8FA;
-          font-family: 'Cairo', sans-serif;
+          background: #f7f8fa;
+          font-family: "Cairo", sans-serif;
           padding: 20px;
         }
 
@@ -126,7 +126,7 @@ export default function EmailVerificationPage() {
           max-width: 440px;
           padding: 40px;
           border-radius: 24px;
-          box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
           text-align: center;
         }
 
@@ -135,7 +135,7 @@ export default function EmailVerificationPage() {
           height: 80px;
           margin: 0 auto 24px;
           border-radius: 50%;
-          background: #FFF0F1;
+          background: #fff0f1;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -179,9 +179,9 @@ export default function EmailVerificationPage() {
         }
 
         .message-box.error {
-          background: #FFF0F1;
-          color: #E8192C;
-          border: 1px solid #FFCDD0;
+          background: #fff0f1;
+          color: #e8192c;
+          border: 1px solid #ffcdd0;
         }
 
         .message-box.success {
@@ -211,7 +211,7 @@ export default function EmailVerificationPage() {
         }
 
         .resend-section {
-          margin-top: 32px;
+          margin-top: 8px;
           font-size: 14px;
           color: #757575;
           display: flex;
@@ -223,13 +223,13 @@ export default function EmailVerificationPage() {
         .resend-btn {
           background: none;
           border: none;
-          color: #E8192C;
+          color: #e8192c;
           font-weight: 700;
           cursor: pointer;
           padding: 0;
           font-size: 14px;
         }
-        
+
         .resend-btn:hover {
           text-decoration: underline;
         }
@@ -239,5 +239,14 @@ export default function EmailVerificationPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+// useSearchParams() requires a Suspense boundary in Next.js App Router
+export default function EmailVerificationPage() {
+  return (
+    <Suspense fallback={<p style={{ textAlign: "center", marginTop: "40vh" }}>Loading...</p>}>
+      <EmailVerificationContent />
+    </Suspense>
   );
 }
