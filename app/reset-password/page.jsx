@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/lib/apiConfig";
+import { resetPassword } from "@/lib/api/authService";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
@@ -11,7 +11,6 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  
   const [token, setToken] = useState("");
   const [email, setEmail] = useState("");
 
@@ -28,28 +27,18 @@ export default function ResetPassword() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API_BASE_URL}/Auth/resetPass`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          Email: email, 
-          Token: token, 
-          Password: password, 
-          ConfirmPassword: confirm 
-        }),
+      await resetPassword({
+        email,
+        token,
+        newPassword: password,
+        confirmPassword: confirm,
       });
-
-      const data = await res.json();
-      if (res.ok) {
-        setSuccess("Password reset successfully! Redirecting to login...");
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 3000);
-      } else {
-        setError(data.message || "Something went wrong");
-      }
+      setSuccess("Password reset successfully! Redirecting to login...");
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 3000);
     } catch (err) {
-      setError("Server error");
+      setError(err.message || "Something went wrong");
     }
     setLoading(false);
   };

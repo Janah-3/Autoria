@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { API_BASE_URL } from "@/lib/apiConfig";
+import {
+  serviceCentersService,
+  getServiceCenterItems,
+} from "@/lib/api/serviceCentersService";
 import Navbar from "@/components/Navbar";
 
 
@@ -222,48 +225,32 @@ function SearchResultsContent() {
   };
 
 
-  // Mock data for initial fill
-  const MOCK_DATA = [
-    { id: 1, name: "Premium Auto Care", loc: "Maadi, Cairo", tags: ["Engine", "Brakes", "AC"], rating: 4.9, reviews: 124, open: true, price: "300 EGP", badge: "Expert Choice" },
-    { id: 2, name: "FixIt Workshop", loc: "Heliopolis, Cairo", tags: ["Tires", "Oil Change", "Alignment"], rating: 4.7, reviews: 89, open: true, price: "150 EGP", badge: "Fast" },
-    { id: 3, name: "Elite Motors", loc: "Sheikh Zayed, Giza", tags: ["Diagnostics", "Electrical", "Body"], rating: 4.8, reviews: 256, open: false, price: "500 EGP", badge: "Certified" },
-    { id: 4, name: "Quick Wash & Service", loc: "New Cairo", tags: ["Wash", "Oil Change", "Interior"], rating: 4.5, reviews: 412, open: true, price: "100 EGP", badge: "Top Rated" },
-    { id: 5, name: "The Engine Room", loc: "Nasr City, Cairo", tags: ["Engine", "Gearbox", "Turbo"], rating: 4.9, reviews: 67, open: true, price: "450 EGP", badge: "Specialist" },
-    { id: 6, name: "Smart Repair Hub", loc: "Dokki, Giza", tags: ["Electrical", "Computer", "Sensor"], rating: 4.6, reviews: 153, open: true, price: "200 EGP", badge: "Tech Savvy" },
-  ];
-
   useEffect(() => {
-    // Simulate API fetch
-    const timer = setTimeout(() => {
-      setCenters(MOCK_DATA);
-      setLoading(false);
-    }, 800);
-
-/* 
-    // Real API fetch attempt
-    fetch(`${API_BASE_URL}/ServiceCenters`)
-
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.data?.items) {
-          const mapped = res.data.items.map(item => ({
-            id: item.id,
-            name: item.name,
-            loc: `${item.district}, ${item.governorate}`,
-            tags: item.serviceTypes,
-            rating: 4.8, // Default since API might lack it
-            open: true,
-            price: "Contact",
-            badge: item.type,
-            cover: item.coverPhoto
-          }));
-          setCenters(mapped);
-        }
+    setLoading(true);
+    serviceCentersService
+      .getAll()
+      .then((res) => {
+        const items = getServiceCenterItems(res);
+        setCenters(
+          items.map((c) => ({
+            id: c.id,
+            name: c.name,
+            loc: c.loc,
+            tags: c.tags,
+            rating: c.rating ?? 0,
+            reviews: c.reviews ?? 0,
+            open: c.open,
+            price: c.price,
+            badge: c.badge,
+            cover: c.cover,
+          }))
+        );
       })
-      .catch(err => console.log("Backend offline, using mocks"));
-    */
-
-    return () => clearTimeout(timer);
+      .catch((err) => {
+        console.error("Search results:", err);
+        setCenters([]);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredCenters = useMemo(() => {

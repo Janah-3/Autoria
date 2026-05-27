@@ -174,7 +174,7 @@ export default function BookingCancellationPage() {
           margin-bottom: 32px;
         }
 
-        
+        /* Booking Summary */
         .summary-card {
           background: #fff;
           border: 1.5px solid #F0F0F0;
@@ -225,7 +225,7 @@ export default function BookingCancellationPage() {
         .row-label { color: #9E9E9E; font-weight: 600; }
         .row-value { color: #424242; font-weight: 700; }
 
-        
+        /* Warning */
         .warning-box {
           background: #FFF8E1;
           border: 1.5px solid #FFE082;
@@ -242,7 +242,7 @@ export default function BookingCancellationPage() {
           margin-bottom: 4px;
         }
 
-        
+        /* Reason Selection */
         .reason-section {
           background: #fff;
           border: 1.5px solid #F0F0F0;
@@ -321,7 +321,7 @@ export default function BookingCancellationPage() {
           color: #424242;
         }
 
-        
+        /* Actions */
         .action-bar {
           display: flex;
           flex-direction: column;
@@ -410,14 +410,14 @@ export default function BookingCancellationPage() {
           </div>
         </div>
 
-        
+        {/* Warning */}
         <div className="warning-box">
           <div className="warning-title">Before you proceed</div>
           Once cancelled, this appointment slot will be released and may not be available again.
           Please make sure you no longer need this booking before confirming.
         </div>
 
-        
+        {/* Reason Selection */}
         <div className="reason-section">
           <div className="reason-title">Why are you cancelling? (Required)</div>
           <div className="reason-options">

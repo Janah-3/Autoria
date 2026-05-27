@@ -3,69 +3,73 @@
 import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { notificationsService } from "@/lib/api/notificationsService";
 
 const R = "#E8272A";
 const RD = "#B81C1F";
 
-const NOTIFICATIONS_DATA = {
-  "1": {
-    title: "Booking Confirmed",
-    fullDesc: "Great news! Your booking for an 'Oil Change & Filter Replacement' at ProCare Auto Center has been officially confirmed for tomorrow at 10:00 AM.",
-    time: "2 mins ago",
-    type: "booking",
-    icon: "✅",
-    color: "#f0fdf4",
-    details: [
-      { label: "Center", value: "ProCare Auto Center" },
-      { label: "Service", value: "Full Oil Change" },
-      { label: "Date", value: "May 4, 2026" },
-      { label: "Time", value: "10:00 AM" },
-      { label: "Price", value: "450 EGP" },
-    ],
-    actionLabel: "View Booking Details",
-    actionLink: "/book-service", // Placeholder
-  },
-  "2": {
-    title: "New Offer: 20% Off",
-    fullDesc: "Don't miss out on our summer special! Get 20% off on all AC charging and cleaning services at SpeedFix Workshop. This offer is valid until the end of the week.",
-    time: "1 hour ago",
-    type: "offer",
-    icon: "🔥",
-    color: "#fff0f0",
-    details: [
-      { label: "Discount", value: "20% OFF" },
-      { label: "Valid Until", value: "May 10, 2026" },
-      { label: "Provider", value: "SpeedFix Workshop" },
-    ],
-    actionLabel: "Claim Offer Now",
-    actionLink: "/search-results",
-  },
-  "3": {
-    title: "Part Shipped",
-    fullDesc: "Your order #ORD-7721 containing 'Bosch Engine Oil Filter' has been dispatched. Our delivery partner will contact you soon for delivery.",
-    time: "5 hours ago",
-    type: "order",
-    icon: "📦",
-    color: "#eff6ff",
-    details: [
-      { label: "Order ID", value: "#ORD-7721" },
-      { label: "Status", value: "In Transit" },
-      { label: "Est. Delivery", value: "Today, by 6:00 PM" },
-    ],
-    actionLabel: "Track Order",
-    actionLink: "#",
-  },
-};
-
 const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
-
-
 
 export default function NotificationDetailsPage({ params }) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
   const router = useRouter();
-  const notification = NOTIFICATIONS_DATA[id] || NOTIFICATIONS_DATA["1"];
+  const [notification, setNotification] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    notificationsService.getNotificationById(id)
+      .then(res => {
+        const data = res?.data ?? res;
+        if (data) {
+          setNotification({
+            title: data.title || "Notification",
+            fullDesc: data.message || data.body || data.description || "",
+            time: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—",
+            type: data.type || "general",
+            icon: data.type === "booking" ? "✅" : data.type === "offer" ? "🔥" : data.type === "order" ? "📦" : "🔔",
+            color: data.type === "booking" ? "#f0fdf4" : data.type === "offer" ? "#fff0f0" : data.type === "order" ? "#eff6ff" : "#f8f9fa",
+            details: data.details || [],
+            actionLabel: data.actionLabel || "Go Back",
+            actionLink: data.actionLink || "#",
+          });
+        }
+      })
+      .catch(err => {
+        console.error("Failed to fetch notification:", err.message);
+        setNotification(null);
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'Inter', sans-serif" }}>
+        <Navbar />
+        <div style={{ height: "60vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ fontSize: "16px", fontWeight: "bold", color: R }}>Loading notification...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!notification) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'Inter', sans-serif" }}>
+        <Navbar />
+        <main style={{ maxWidth: 650, margin: "40px auto", padding: "0 20px", textAlign: "center" }}>
+          <div style={{ fontSize: "60px", marginBottom: "20px" }}>🔔</div>
+          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>Notification not found</h2>
+          <p style={{ color: "#718096", marginBottom: 24 }}>This notification may have been removed or is no longer available.</p>
+          <button
+            onClick={() => router.push("/notifications")}
+            style={{ background: R, color: "#fff", border: "none", padding: "12px 28px", borderRadius: 10, fontWeight: 700, cursor: "pointer" }}
+          >Back to Notifications</button>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8f9fa", fontFamily: "'Inter', sans-serif" }}>
@@ -113,21 +117,21 @@ export default function NotificationDetailsPage({ params }) {
               {notification.fullDesc}
             </p>
 
-
-            <div style={{ background: "#f8f9fa", borderRadius: 16, padding: "20px 24px", marginBottom: 40 }}>
-              {notification.details.map((detail, index) => (
-                <div key={index} style={{ 
-                  ...row(0), 
-                  justifyContent: "space-between", 
-                  padding: "12px 0",
-                  borderBottom: index === notification.details.length - 1 ? "none" : "1px solid #edf2f7"
-                }}>
-                  <span style={{ fontSize: 13, color: "#718096", fontWeight: 500 }}>{detail.label}</span>
-                  <span style={{ fontSize: 14, color: "#2d3748", fontWeight: 700 }}>{detail.value}</span>
-                </div>
-              ))}
-            </div>
-
+            {notification.details.length > 0 && (
+              <div style={{ background: "#f8f9fa", borderRadius: 16, padding: "20px 24px", marginBottom: 40 }}>
+                {notification.details.map((detail, index) => (
+                  <div key={index} style={{ 
+                    ...row(0), 
+                    justifyContent: "space-between", 
+                    padding: "12px 0",
+                    borderBottom: index === notification.details.length - 1 ? "none" : "1px solid #edf2f7"
+                  }}>
+                    <span style={{ fontSize: 13, color: "#718096", fontWeight: 500 }}>{detail.label}</span>
+                    <span style={{ fontSize: 14, color: "#2d3748", fontWeight: 700 }}>{detail.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <button 

@@ -1,1 +1,1 @@
-export const BASE_URL = "http://localhost:5236"; 
+export { BASE_URL, API_BASE_URL } from "../../lib/apiConfig";

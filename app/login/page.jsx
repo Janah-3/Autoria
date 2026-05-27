@@ -2,20 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { login } from "../../src/API/authService";
-import Signup from "../signup/page";
-import ForgotPassword from "../forgot-password/page";
+
+import { login } from "@/lib/api/authService";
 
 export default function LoginPage() {
-  const [page, setPage] = useState("login");
-
-  if (page === "signup") return <Signup goToLogin={() => setPage("login")} />;
-  if (page === "forgot") return <ForgotPassword goToLogin={() => setPage("login")} />;
-
-  return <LoginView setPage={setPage} />;
+  return <LoginView />;
 }
 
-function LoginView({ setPage }) {
+function LoginView() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -37,13 +31,17 @@ function LoginView({ setPage }) {
     setLoading(true);
     try {
       const result = await login(formData);
+      const role =
+        result.data?.role ||
+        (typeof window !== "undefined" ? localStorage.getItem("userRole") : null);
 
-      if (result.success) {
-        localStorage.setItem("token", result.data.accessToken);
-        alert("Welcome Back to Autoria!");
-        window.location.href = "/booking-requests"; 
+      if (role === "Admin") {
+        window.location.href = "/admin-dashboard";
+      } else if (role === "ServiceCenter" || role === "Center") {
+        window.location.href = "/booking-requests";
+      } else {
+        window.location.href = "/user-dashboard";
       }
-
     } catch (err) {
       setError(err.message);
     } finally {

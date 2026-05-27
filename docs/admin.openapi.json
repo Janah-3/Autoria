@@ -1,0 +1,66 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Admin",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/dashboard": {
+      "get": {
+        "summary": "admin dashboard",
+        "deprecated": false,
+        "description": "# GET `/api/admin/dashboard`\n\n## Description\n\nReturns all data needed to render the admin dashboard in a single aggregated response. Includes platform-wide metrics, pending service center approval requests, and open/under-review reports.\n\n## Authentication\n\nRequired — Bearer token  \nRequired role — `Admin`\n\n---\n\n## Request\n\nNo request body or query parameters.\n\n---\n\n## Response\n\n### Fields\n\n#### `metrics`\n\n| Field | Type | Description |\n|---|---|---|\n| `totalUsers` | int | Total registered users on the platform |\n| `bookingsThisMonth` | int | Total bookings created since the 1st of the current month |\n| `activeCenters` | int | Total approved service centers |\n| `avgServiceCenterRating` | double | Average rating across all approved service centers |\n| `reportedReviews` | int | Total reports where target type is a review |\n| `urgentReports` | int | Open reports with reason `Fake`, `Offensive`, or `Inappropriate` and status `Pending` or `UnderReview` |\n| `pendingCenterRequests` | int | Total service centers awaiting approval |\n\n#### `pendingApprovals`\n\n| Field | Type | Description |\n|---|---|---|\n| `serviceCenterId` | Guid | Service center ID |\n| `name` | string | Service center name |\n| `ownerName` | string | Full name of the owner |\n| `city` | string | City where the center is located |\n| `submittedAt` | DateTime | When the center submitted for approval |\n\n#### `recentReports`\n\n| Field | Type | Description |\n|---|---|---|\n| `reportId` | Guid | Report ID |\n| `reason` | string | `Spam`, `Inappropriate`, `Fake`, `Offensive`, or `Other` |\n| `targetType` | string | `ServiceCenter`, `Review`, or `Issue` |\n| `targetName` | string | Resolved name of the reported target |\n| `reportedBy` | string | Full name of the user who submitted the report |\n| `status` | string | `Pending` or `UnderReview` |\n| `isUrgent` | bool | True if reason is `Fake`, `Offensive`, or `Inappropriate` and status is `Pending` or `UnderReview` |\n| `createdAt` | DateTime | When the report was submitted |\n\n### Example\n\n```json\n{\n  \"success\": true,\n  \"message\": null,\n  \"data\": {\n    \"metrics\": {\n      \"totalUsers\": 12480,\n      \"bookingsThisMonth\": 3241,\n      \"activeCenters\": 184,\n      \"avgServiceCenterRating\": 4.3,\n      \"reportedReviews\": 27,\n      \"urgentReports\": 5,\n      \"pendingCenterRequests\": 12\n    },\n    \"pendingApprovals\": [\n      {\n        \"serviceCenterId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n        \"name\": \"Al Faris Auto\",\n        \"ownerName\": \"Mohamed Hassan\",\n        \"city\": \"Cairo\",\n        \"submittedAt\": \"2026-03-12T00:00:00Z\"\n      }\n    ],\n    \"recentReports\": [\n      {\n        \"reportId\": \"7bc12a34-1234-5678-abcd-2c963f66afa6\",\n        \"reason\": \"Fake\",\n        \"targetType\": \"Review\",\n        \"targetName\": \"TopGear Workshop\",\n        \"reportedBy\": \"Karim Adel\",\n        \"status\": \"Pending\",\n        \"isUrgent\": true,\n        \"createdAt\": \"2026-03-16T14:00:00Z\"\n      }\n    ]\n  },\n  \"errors\": null\n}\n```\n\n---\n\n## Notes\n\n- `pendingApprovals` returns all pending centers ordered by `submittedAt` ascending (oldest first)\n- `recentReports` returns only reports with status `Pending` or `UnderReview`, ordered by `createdAt` descending\n- `targetName` is resolved server-side based on `targetType` — frontend receives the name directly\n- Frontend is responsible for slicing list lengths for display (e.g. showing only the first 3)\n- `bookingsThisMonth` resets on the 1st of each calendar month (UTC)\n- `avgServiceCenterRating` is calculated across approved centers only",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "metrics": {
+                      "totalUsers": 7,
+                      "bookingsThisMonth": 0,
+                      "activeCenters": 1,
+                      "avgServiceCenterRating": 5
+                    },
+                    "pendingApprovals": [],
+                    "recentReports": []
+                  },
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "responses": {},
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [],
+  "security": []
+}

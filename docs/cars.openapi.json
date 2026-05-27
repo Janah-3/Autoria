@@ -1,0 +1,361 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Cars",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/": {
+      "post": {
+        "summary": "Add car",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "make": "Toyota",
+                "model": "Corolla",
+                "year": 2020,
+                "vin": "1HGCM82633A123456",
+                "licensePlate": "ABC123",
+                "mileage": 45000,
+                "color": "White",
+                "transmission": 0,
+                "fuelType": 0,
+                "isPrimary": true
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "car added successfuly",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "get all cars",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Search",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "IsDescending",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "success": true,
+                    "message": "Cars retrieved successfully",
+                    "data": {
+                      "items": [
+                        {
+                          "make": "Mercedes",
+                          "model": "C200",
+                          "year": 2023,
+                          "vin": "WDDGF8AB9EA123458",
+                          "licensePlate": "MER2023",
+                          "mileage": 5000,
+                          "color": "Silver",
+                          "transmission": 1,
+                          "fuelType": 1,
+                          "isPrimary": true,
+                          "createdAt": "2026-04-19T16:23:32.4861371"
+                        }
+                      ],
+                      "totalCount": 1,
+                      "page": 1,
+                      "pageSize": 10,
+                      "totalPages": 1
+                    },
+                    "errors": null
+                  },
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/6F27AEE8-6818-436B-3814-08DE9E2FA5FE": {
+      "put": {
+        "summary": "update car",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "licensePlate": "MER2023",
+                "mileage": 10000,
+                "color": "Silver",
+                "isPrimary": false
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "car updated successfuly",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "delete car (admin and user)",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "car deleted successfuly",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/2B1AB5B5-3B48-49D6-6977-08DE9E2FFFC8": {
+      "get": {
+        "summary": "get car by id",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "make": "Mercedes",
+                    "model": "C200",
+                    "year": 2023,
+                    "vin": "WDDGF8AB9EA123458",
+                    "licensePlate": "MER2023",
+                    "mileage": 5000,
+                    "color": "Silver",
+                    "transmission": 1,
+                    "fuelType": 1,
+                    "isPrimary": true,
+                    "createdAt": "2026-04-19T16:23:32.4861371"
+                  },
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/user/6514ab2e-fcc2-4693-a545-8b3029cbf31c": {
+      "get": {
+        "summary": "get user cars",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "User cars retrieved successfully",
+                  "data": {
+                    "items": [
+                      {
+                        "make": "Mercedes",
+                        "model": "C200",
+                        "year": 2023,
+                        "vin": "WDDGF8AB9EA123458",
+                        "licensePlate": "MER2023",
+                        "mileage": 5000,
+                        "color": "Silver",
+                        "transmission": 1,
+                        "fuelType": 1,
+                        "isPrimary": true,
+                        "createdAt": "2026-04-19T16:23:32.4861371"
+                      }
+                    ],
+                    "totalCount": 1,
+                    "page": 1,
+                    "pageSize": 10,
+                    "totalPages": 1
+                  },
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "responses": {},
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [],
+  "security": []
+}

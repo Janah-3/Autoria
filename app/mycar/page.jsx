@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCars } from "../../API/carsService";
+import { getAllCars, getCarItems } from "@/lib/api/carsService";
 import CarCard from "../AddCar/page";
 import CarForm from "../EditCar/page";
 
@@ -12,8 +12,12 @@ export default function CarsPage() {
   }, []);
 
   const loadCars = async () => {
-    const data = await getCars();
-    setCars(data || []);
+    try {
+      const res = await getAllCars();
+      setCars(getCarItems(res));
+    } catch {
+      setCars([]);
+    }
   };
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BASE_URL } from "../src/API/allApi";
+import { getMe } from "@/lib/api/usersService";
 
 const R = "#E8272A";
 const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
@@ -13,18 +13,8 @@ export default function Navbar({ user: initialUser }) {
   
     const fetchUser = async () => {
       try {
-        
-        const token = localStorage.getItem("token"); 
-        
-        const res = await fetch(`${BASE_URL}/api/Users/me`, {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
-
-        if (res.ok) {
-          const result = await res.json();
-
+        const result = await getMe();
+        if (result?.data?.fullName) {
           setUser({ name: result.data.fullName });
         }
       } catch (error) {
@@ -62,9 +52,16 @@ export default function Navbar({ user: initialUser }) {
           </span>
         </a>
 
-        <div style={row(28)}>
-          {[["Home", "/"], ["Services", "/search-results"], ["Spare Parts", "/spare-parts-search"], ["About", "#"]].map(([l, h]) => (
-            <a key={l} href={h} className="nav-link" style={{ color: "#fff", fontSize: 13, fontWeight: 500, textDecoration: "none", display: "inline-block" }}>{l}</a>
+        <div style={row(20)}>
+          {[
+            ["Home", "/"], 
+            ["Services", "/search-results"], 
+            ["Spare Parts", "/spare-parts-search"],
+            ["Register Center", "/service-center-registration"],
+            ["Edit Business", "/service-center/edit"],
+            ["Inventory", "/spare-parts-inventory"]
+          ].map(([l, h]) => (
+            <a key={l} href={h} className="nav-link" style={{ color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>{l}</a>
           ))}
         </div>
 

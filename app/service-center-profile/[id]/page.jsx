@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { API_BASE_URL } from "@/lib/apiConfig";
+import { getMe } from "@/lib/api/usersService";
+import {
+  serviceCentersService,
+  getServiceCenterItems,
+} from "@/lib/api/serviceCentersService";
 import Navbar from "@/components/Navbar";
 
 
@@ -14,32 +18,6 @@ const row  = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 
 
 
-// ── Seed data for fallback ────────────────────────────────────────────────
-const SEED = [
-  {
-    id: "1",
-    name: "ProCare Auto Center",
-    governorate: "Cairo",
-    district: "Nasr City",
-    type: "Maintenance",
-    phone: "01012345678",
-    coverPhoto: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&q=80&w=1200",
-    serviceTypes: ["Oil Change", "Brakes", "AC Service", "Diagnostics"],
-    carBrands: ["Toyota", "Hyundai", "Nissan"]
-  },
-  {
-    id: "7b8829ab-2f0f-4b54-b2da-1b00236e6693",
-    name: "AutoFix Center",
-    governorate: "Cairo",
-    district: "Nasr City",
-    type: "Maintenance",
-    phone: "01012345678",
-    coverPhoto: "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690530/service-center-photos/wsal9ocwezpckrh59xtn.jpg",
-    serviceTypes: ["Oil Change", "Suspension"],
-    carBrands: ["Nissan", "Honda"]
-  }
-];
-
 // ── Main Page Component ────────────────────────────────────────────────────
 export default function CenterProfilePage() {
   const params = useParams();
@@ -48,44 +26,23 @@ export default function CenterProfilePage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    
-    fetch("https://your-api.com/api/auth/me")
-      .then(r => r.json())
-      .then(d => { if (d?.name) setUser(d); })
+    getMe()
+      .then((res) => {
+        if (res?.data?.fullName) setUser({ name: res.data.fullName });
+      })
       .catch(() => {});
 
-    // 2. Fetch specific center details
-    /* 
-    fetch(`${API_BASE_URL}/ServiceCenters/${params.id}`)
-      .then(res => res.json())
-      .then(res => {
+    serviceCentersService
+      .getById(params.id)
+      .then((res) => {
         if (res.success && res.data && !res.data.items) {
           setCenter(res.data);
         } else {
-          fetch(`${API_BASE_URL}/ServiceCenters`)
-            .then(r => r.json())
-            .then(allRes => {
-               const items = allRes.data?.items || [];
-               const found = items.find(i => i.id === params.id);
-               if (found) setCenter(found);
-               else throw new Error("Not in list");
-            })
-            .catch(() => {
-              const s = SEED.find(i => i.id === params.id) || SEED[0];
-              setCenter(s);
-            });
+          setCenter(null);
         }
       })
-      .catch(() => {
-        const s = SEED.find(i => i.id === params.id) || SEED[0];
-        setCenter(s);
-      })
+      .catch(() => setCenter(null))
       .finally(() => setLoading(false));
-    */
-    // Manual fallback
-    const s = SEED.find(i => i.id === params.id) || SEED[0];
-    setCenter(s);
-    setLoading(false);
   }, [params.id]);
 
   if (loading) return (

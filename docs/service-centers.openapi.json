@@ -1,0 +1,1044 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Service Center",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/": {
+      "post": {
+        "summary": "create service center",
+        "deprecated": false,
+        "description": "\n### 1. Create Service Center\n> **Starts the onboarding wizard.** Creates a draft service center with basic business information. Returns a `serviceCenterId` that is used to track the onboarding progress. A user can only own one service center.\n\n**`POST /service-centers`**\n🔐 **Auth:** Required — `user` role\n\n**Request Body:** `application/json`\n```json\n{\n  \"name\": \"Al Nour Auto Center\"\n  \"phone\": \"01012345678\",\n  \"businessEmail\": \"alnour@example.com\",\n  \"yearEstablished\": 2015,\n  \"description\": \"Specialized in Japanese car maintenance and spare parts.\",\n  \"commercialRegNo\": \"1234567\",\n  \"taxCardNo\": \"123456789\",\n  \"ownerNationalId\": \"12345678901234\",\n  \"ownerFullName\": \"Ahmed Mohamed Ali\",\n  \"numServiceBays\": 6,\n  \"type\": 0,\n  \"latitude\": 30.0626,\n  \"longitude\": 31.3397\n}\n```\n\n**Validation Rules:**\n| Field | Rules |\n|-------|-------|\n| phone | Must be a valid Egyptian number (01x xxxxxxxx) |\n| commercialRegNo | Must be exactly 7 digits |\n| taxCardNo | Must be exactly 9 digits |\n| ownerNationalId | Must be exactly 14 digits |\n| yearEstablished | Between 1900 and current year |\n| numServiceBays | Must be greater than 0 |\n\n**Response:** `200 OK`\n```json\n{\n  \"success\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"serviceCenterId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\"\n  }\n}\n```",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "name": "AutoFix Center",
+                "phone": "01012345678",
+                "businessEmail": "info@autofix.com",
+                "yearEstablished": 2015,
+                "description": "Professional car maintenance and repair services",
+                "commercialRegNo": "1234567",
+                "taxCardNo": "123456789",
+                "ownerNationalId": "29801011234567",
+                "ownerFullName": "Ahmed Hassan",
+                "numServiceBays": 5,
+                "type": 0
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "serviceCenterId": "7b8829ab-2f0f-4b54-b2da-1b00236e6693"
+                  },
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "get": {
+        "summary": "get all service centers",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "items": [
+                      {
+                        "id": "7b8829ab-2f0f-4b54-b2da-1b00236e6693",
+                        "name": "AutoFix Center",
+                        "governorate": "Cairo",
+                        "district": "Nasr City",
+                        "phone": "01012345678",
+                        "type": "Maintenance",
+                        "latitude": 30.0561,
+                        "longitude": 31.33,
+                        "coverPhoto": "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690530/service-center-photos/wsal9ocwezpckrh59xtn.jpg",
+                        "serviceTypes": [
+                          "Oil Change",
+                          "Suspension"
+                        ],
+                        "carBrands": [
+                          "Nissan",
+                          "Honda"
+                        ]
+                      }
+                    ],
+                    "totalCount": 1,
+                    "page": 1,
+                    "pageSize": 10,
+                    "totalPages": 1
+                  },
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/my/documents": {
+      "post": {
+        "summary": "upload documents",
+        "deprecated": false,
+        "description": "Upload Documents\n\nPOST /service-centers/my/documents\nRole: user\nContent-Type: multipart/form-data\n\n📥 Form Data\nField\tType\tRequired\ncommercialRegFile\tfile\t✔\ntaxCardFile              \tfile  ✔\nownerNationalIdFile\tfile\t✔\n📤 Response\n{\n  \"success\": true,\n  \"message\": \"Documents uploaded successfully\",\n  \"data\": null,\n  \"errors\": null\n}",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "CommercialRegFile": {
+                    "format": "binary",
+                    "type": "string",
+                    "example": "file://C:\\Users\\Dell\\Pictures\\Saved Pictures\\195171454-female-avatar-profile-picture-for-social-network-with-half-turn-fashion-and-beauty-bright-vector.jpg"
+                  },
+                  "TaxCardFile": {
+                    "format": "binary",
+                    "type": "string",
+                    "example": "file://C:\\Users\\Dell\\Pictures\\Saved Pictures\\OIP.jpeg"
+                  },
+                  "OwnerNationalIdFile": {
+                    "format": "binary",
+                    "type": "string",
+                    "example": "file://C:\\Users\\Dell\\Pictures\\Saved Pictures\\images.jpeg"
+                  }
+                }
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Documents uploaded successfully",
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my/service-types": {
+      "put": {
+        "summary": "update service center service ",
+        "deprecated": false,
+        "description": "it removes all the old services and replace them with the services in the request ",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "serviceTypeIds": [
+                  "779E6B5C-FC46-4207-940F-3C79DA96BECA",
+                  "0D78B545-DBE7-4C47-9557-61677308178D"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Service types updated successfully",
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my/car-brands": {
+      "put": {
+        "summary": "update service center car brands",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "CarBrandIds": [
+                  "2DD8709F-DDFA-452C-A23B-1BCECD6CCFAE",
+                  "3AA77C79-B11C-4455-9BC9-36B206BA5D0F"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Car brands updated successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my/operating-hours": {
+      "put": {
+        "summary": "update operating hours ",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "operatingHours": [
+                  {
+                    "day": "Monday",
+                    "openTime": "09:00",
+                    "closeTime": "17:00",
+                    "isClosed": false
+                  },
+                  {
+                    "day": "Tuesday",
+                    "openTime": "09:00",
+                    "closeTime": "17:00",
+                    "isClosed": false
+                  },
+                  {
+                    "day": "Wednesday",
+                    "openTime": "09:00",
+                    "closeTime": "17:00",
+                    "isClosed": false
+                  },
+                  {
+                    "day": "Thursday",
+                    "openTime": "09:00",
+                    "closeTime": "17:00",
+                    "isClosed": false
+                  },
+                  {
+                    "day": "Friday",
+                    "openTime": "10:00",
+                    "closeTime": "18:00",
+                    "isClosed": false
+                  },
+                  {
+                    "day": "Saturday",
+                    "openTime": "10:00",
+                    "closeTime": "14:00",
+                    "isClosed": false
+                  },
+                  {
+                    "day": "Sunday",
+                    "openTime": "00:00",
+                    "closeTime": "00:00",
+                    "isClosed": true
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Operating hours updated successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my/photos": {
+      "post": {
+        "summary": "upload photos",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Photos": {
+                    "format": "binary",
+                    "type": "string",
+                    "example": [
+                      "file://C:\\Users\\Dell\\Pictures\\Saved Pictures\\195171454-female-avatar-profile-picture-for-social-network-with-half-turn-fashion-and-beauty-bright-vector.jpg",
+                      "file://C:\\Users\\Dell\\Pictures\\Saved Pictures\\images.jpeg",
+                      "file://C:\\Users\\Dell\\Pictures\\Saved Pictures\\WhatsApp Image 2024-10-05 at 22.20.01_5ad04f7b.jpg"
+                    ]
+                  }
+                }
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Photos uploaded successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my/submit": {
+      "post": {
+        "summary": "submit services center registration ",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Service center submitted successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/pending": {
+      "get": {
+        "summary": "get pending registrations",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "items": [
+                      {
+                        "id": "7b8829ab-2f0f-4b54-b2da-1b00236e6693",
+                        "name": "AutoFix Center",
+                        "ownerFullName": "Ahmed Hassan",
+                        "businessEmail": "info@autofix.com",
+                        "phone": "01012345678",
+                        "governorate": "Cairo",
+                        "district": "Nasr City",
+                        "type": "Maintenance",
+                        "approvalStatus": "Pending",
+                        "submittedAt": "2026-04-20T13:14:37.2222869"
+                      }
+                    ],
+                    "totalCount": 1,
+                    "page": 1,
+                    "pageSize": 10,
+                    "totalPages": 1
+                  },
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/7B8829AB-2F0F-4B54-B2DA-1B00236E6693/approve": {
+      "put": {
+        "summary": "approve service center registration",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Service center approved successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/7B8829AB-2F0F-4B54-B2DA-1B00236E6693/reject": {
+      "put": {
+        "summary": "reject service center registration",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "RejectionReason": "i didn't like it"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Service center rejected successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my": {
+      "get": {
+        "summary": "get my service center details",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "7b8829ab-2f0f-4b54-b2da-1b00236e6693",
+                    "name": "AutoFix Center",
+                    "governorate": "Cairo",
+                    "district": "Nasr City",
+                    "streetAddress": "15 Abbas El Akkad St",
+                    "phone": "01012345678",
+                    "businessEmail": "info@autofix.com",
+                    "yearEstablished": 2015,
+                    "description": "Professional car maintenance and repair services",
+                    "commercialRegNo": "1234567",
+                    "taxCardNo": "123456789",
+                    "ownerNationalId": "29801011234567",
+                    "ownerFullName": "Ahmed Hassan",
+                    "numServiceBays": 5,
+                    "type": "Maintenance",
+                    "approvalStatus": "Rejected",
+                    "rejectionReason": "i didn't like it",
+                    "latitude": 30.0561,
+                    "longitude": 31.33,
+                    "submittedAt": "2026-04-20T13:14:37.2222869",
+                    "approvedAt": "2026-04-20T15:41:11.5864846",
+                    "createdAt": "2026-04-19T22:15:55.7166938",
+                    "photos": [
+                      "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690530/service-center-photos/wsal9ocwezpckrh59xtn.jpg",
+                      "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690531/service-center-photos/tzwwrii1zajuvkbv7j5e.jpg",
+                      "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690532/service-center-photos/zoucqebnjydqpniq0ep4.jpg"
+                    ],
+                    "serviceTypes": [
+                      "Oil Change",
+                      "Suspension"
+                    ],
+                    "carBrands": [
+                      "Nissan",
+                      "Honda"
+                    ],
+                    "operatingHours": [
+                      {
+                        "day": "Wednesday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Thursday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Sunday",
+                        "openTime": "00:00",
+                        "closeTime": "00:00",
+                        "isClosed": true
+                      },
+                      {
+                        "day": "Saturday",
+                        "openTime": "10:00",
+                        "closeTime": "14:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Monday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Tuesday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Friday",
+                        "openTime": "10:00",
+                        "closeTime": "18:00",
+                        "isClosed": false
+                      }
+                    ],
+                    "documents": [
+                      {
+                        "documentType": "NationalId",
+                        "fileUrl": "https://res.cloudinary.com/dugrmbep3/image/upload/v1776643129/service-center-documents/o1ydysq2g9dga3xmac9f.jpg"
+                      },
+                      {
+                        "documentType": "CommercialReg",
+                        "fileUrl": "https://res.cloudinary.com/dugrmbep3/image/upload/v1776643127/service-center-documents/nadgcy0h85id8rojv8yq.jpg"
+                      },
+                      {
+                        "documentType": "TaxCard",
+                        "fileUrl": "https://res.cloudinary.com/dugrmbep3/image/upload/v1776643128/service-center-documents/brwi9tyflwtnwlzhtfkk.jpg"
+                      }
+                    ]
+                  },
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "update my service center",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "name": "Updated Auto Center",
+                "phone": "01111111111"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Service center updated successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/7B8829AB-2F0F-4B54-B2DA-1B00236E6693": {
+      "get": {
+        "summary": "get service center details",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": {
+                    "id": "7b8829ab-2f0f-4b54-b2da-1b00236e6693",
+                    "name": "AutoFix Center",
+                    "governorate": "Cairo",
+                    "district": "Nasr City",
+                    "streetAddress": "15 Abbas El Akkad St",
+                    "phone": "01012345678",
+                    "businessEmail": "info@autofix.com",
+                    "yearEstablished": 2015,
+                    "description": "Professional car maintenance and repair services",
+                    "commercialRegNo": "1234567",
+                    "taxCardNo": "123456789",
+                    "ownerNationalId": "29801011234567",
+                    "ownerFullName": "Ahmed Hassan",
+                    "numServiceBays": 5,
+                    "type": "Maintenance",
+                    "approvalStatus": "Approved",
+                    "rejectionReason": "i didn't like it",
+                    "latitude": 30.0561,
+                    "longitude": 31.33,
+                    "submittedAt": "2026-04-20T13:14:37.2222869",
+                    "approvedAt": "2026-04-20T15:41:11.5864846",
+                    "createdAt": "2026-04-19T22:15:55.7166938",
+                    "photos": [
+                      "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690530/service-center-photos/wsal9ocwezpckrh59xtn.jpg",
+                      "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690531/service-center-photos/tzwwrii1zajuvkbv7j5e.jpg",
+                      "https://res.cloudinary.com/dugrmbep3/image/upload/v1776690532/service-center-photos/zoucqebnjydqpniq0ep4.jpg"
+                    ],
+                    "serviceTypes": [
+                      "Oil Change",
+                      "Suspension"
+                    ],
+                    "carBrands": [
+                      "Nissan",
+                      "Honda"
+                    ],
+                    "operatingHours": [
+                      {
+                        "day": "Wednesday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Thursday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Sunday",
+                        "openTime": "00:00",
+                        "closeTime": "00:00",
+                        "isClosed": true
+                      },
+                      {
+                        "day": "Saturday",
+                        "openTime": "10:00",
+                        "closeTime": "14:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Monday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Tuesday",
+                        "openTime": "09:00",
+                        "closeTime": "17:00",
+                        "isClosed": false
+                      },
+                      {
+                        "day": "Friday",
+                        "openTime": "10:00",
+                        "closeTime": "18:00",
+                        "isClosed": false
+                      }
+                    ],
+                    "documents": [
+                      {
+                        "documentType": "NationalId",
+                        "fileUrl": "https://res.cloudinary.com/dugrmbep3/image/upload/v1776643129/service-center-documents/o1ydysq2g9dga3xmac9f.jpg"
+                      },
+                      {
+                        "documentType": "CommercialReg",
+                        "fileUrl": "https://res.cloudinary.com/dugrmbep3/image/upload/v1776643127/service-center-documents/nadgcy0h85id8rojv8yq.jpg"
+                      },
+                      {
+                        "documentType": "TaxCard",
+                        "fileUrl": "https://res.cloudinary.com/dugrmbep3/image/upload/v1776643128/service-center-documents/brwi9tyflwtnwlzhtfkk.jpg"
+                      }
+                    ]
+                  },
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "delete service center",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Service center deleted successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/my/location": {
+      "put": {
+        "summary": "set the service center location",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "latitude": 30.0626,
+                "longitude": 31.3397,
+                "address": "15 Abbas El Akkad St, Nasr City, Cairo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "Success",
+                  "data": "Location updated successfully",
+                  "errors": null
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/match": {
+      "post": {
+        "summary": "ai matching feature ",
+        "deprecated": false,
+        "description": "# POST `/api/service-centers/match`\n\n## Description\n\nAI-powered service center matching. Analyzes the user's issue description using Gemini, maps it to relevant service types, scores nearby approved service centers by distance, rating, and car brand compatibility, and returns the top 5 matches with AI-generated explanations.\n\n## Authentication\n\nRequired — Bearer token\n\n---\n\n## Request\n\n### Body\n\n| Field | Type | Required | Description |\n|---|---|---|---|\n| `issue` | string | ✅ | Free text description of the car problem |\n| `latitude` | double | ✅ | User's current latitude |\n| `longitude` | double | ✅ | User's current longitude |\n| `carId` | Guid | ❌ | User's registered car ID to filter by brand |\n| `radiusKm` | double | ❌ | Search radius in km. Default: 10, Min: 2, Max: 50 |\n\n### Example\n\n```json\n{\n  \"issue\": \"my AC stopped working and there's a strange smell\",\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357,\n  \"carId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"radiusKm\": 15\n}\n```\n\n---\n\n## Response\n\n### Fields\n\n| Field | Type | Description |\n|---|---|---|\n| `matches` | array | Top 5 ranked service centers |\n| `matches[].serviceCenterId` | Guid | Service center ID |\n| `matches[].name` | string | Service center name |\n| `matches[].distanceKm` | double | Distance from user in km |\n| `matches[].rating` | double | Average rating out of 5 |\n| `matches[].serviceTypes` | string[] | Services offered |\n| `matches[].explanation` | string | AI-generated explanation in user's language |\n| `interpretedIssue` | object | What the AI understood from the issue |\n| `interpretedIssue.serviceCenterType` | string | `maintenance`, `parts_store`, or `both` |\n| `interpretedIssue.serviceType` | string? | Matched service type or null |\n| `interpretedIssue.urgency` | string | `low`, `medium`, or `high` |\n\n### Example\n\n```json\n{\n  \"success\": true,\n  \"message\": null,\n  \"data\": {\n    \"matches\": [\n      {\n        \"serviceCenterId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n        \"name\": \"Cairo Auto Care\",\n        \"distanceKm\": 2.3,\n        \"rating\": 4.7,\n        \"serviceTypes\": [\"AC\", \"Electrical\"],\n        \"explanation\": \"Specializes in AC repair and is the closest approved center supporting your car brand.\"\n      }\n    ],\n    \"interpretedIssue\": {\n      \"serviceCenterType\": \"maintenance\",\n      \"serviceType\": \"AC\",\n      \"urgency\": \"medium\"\n    }\n  },\n  \"errors\": null\n}\n```\n\n---\n\n## Scoring Formula\n\n```\nscore = (1 / distanceKm) × 0.4\n      + (rating / 5)     × 0.4\n      + brandMatch        × 0.2\n```\n\n---\n\n## Notes\n\n- Explanations are returned in the same language the user wrote the issue in (Arabic or English)\n- `serviceType` in `interpretedIssue` is `null` if Gemini couldn't confidently map the issue to a specific service type — the endpoint still returns results filtered by `serviceCenterType`\n- Results are limited to `status = Approved` service centers only\n- If fewer than 5 centers match within the radius, all matching results are returned",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "issue": "العربية مش بتدور",
+                "latitude": 30.0444,
+                "longitude": 31.2357,
+                "carId": null,
+                "radiusKm": 20
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "example": {
+                  "success": true,
+                  "message": "success",
+                  "data": {
+                    "matches": [],
+                    "interpretedIssue": {
+                      "serviceCenterType": "maintenance",
+                      "serviceType": "Engine Diagnostics",
+                      "urgency": "high"
+                    }
+                  },
+                  "errors": null
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "responses": {},
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [],
+  "security": []
+}

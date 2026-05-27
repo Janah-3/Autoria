@@ -263,7 +263,7 @@ const handleSubmit = async (e) => {
               </button>
             </div>
 
-
+            {/* شريط القوة يظهر فقط عند الكتابة */}
             {formData.password && (
               <div className="strength-meter">
                 <div 

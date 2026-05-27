@@ -7,52 +7,7 @@ import Navbar from "@/components/Navbar";
 const R = "#E8272A";
 const RD = "#B81C1F";
 
-const NOTIFICATIONS = [
-  {
-    id: 1,
-    title: "Booking Confirmed",
-    desc: "Your booking at ProCare Auto Center for Oil Change has been confirmed.",
-    time: "2 mins ago",
-    type: "booking",
-    unread: true,
-    icon: "✅",
-    color: "#f0fdf4",
-    iconColor: "#15803d",
-  },
-  {
-    id: 2,
-    title: "New Offer: 20% Off",
-    desc: "Get 20% off on all AC services this week at SpeedFix Workshop.",
-    time: "1 hour ago",
-    type: "offer",
-    unread: true,
-    icon: "🔥",
-    color: "#fff0f0",
-    iconColor: R,
-  },
-  {
-    id: 3,
-    title: "Part Shipped",
-    desc: "Your order for 'Bosch Engine Oil Filter' has been shipped and is on its way.",
-    time: "5 hours ago",
-    type: "order",
-    unread: false,
-    icon: "📦",
-    color: "#eff6ff",
-    iconColor: "#1d4ed8",
-  },
-  {
-    id: 4,
-    title: "Service Reminder",
-    desc: "It's been 6 months since your last service. Time for a check-up?",
-    time: "1 day ago",
-    type: "reminder",
-    unread: false,
-    icon: "📅",
-    color: "#fefce8",
-    iconColor: "#a16207",
-  },
-];
+const NOTIFICATIONS = [];
 
 const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 
