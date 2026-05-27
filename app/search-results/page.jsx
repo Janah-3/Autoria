@@ -7,6 +7,7 @@ import {
   getServiceCenterItems,
 } from "@/lib/api/serviceCentersService";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 
 
@@ -200,6 +201,12 @@ const CenterCard = ({ center }) => {
   );
 };
 
+const MOCK_CENTERS_LIST = [
+  { id: "1", bg: "#fff0f0", icon: "🏭", badge: "Top Rated", name: "ProCare Auto Center", loc: "Nasr City, Cairo", city: "Cairo", desc: "Top Rated center — Oil Change, Brakes, AC Service.", tags: ["Oil Change", "Brakes", "AC Service"], stars: 5, rating: 4.9, reviews: 312, price: "From 150 EGP", open: true },
+  { id: "2", bg: "#fefce8", icon: "🔩", badge: "Fast Service", name: "SpeedFix Workshop", loc: "Heliopolis, Cairo", city: "Cairo", desc: "Fast Service center — Engine Repair, Diagnostics.", tags: ["Engine Repair", "Diagnostics"], stars: 5, rating: 4.7, reviews: 198, price: "From 200 EGP", open: true },
+  { id: "3", bg: "#f0fdf4", icon: "🚗", badge: "New", name: "GreenWheel Service", loc: "6th of October, Giza", city: "Giza", desc: "New center — Tires, Alignment, Wash.", tags: ["Tires", "Alignment", "Wash"], stars: 4, rating: 4.5, reviews: 87, price: "From 80 EGP", open: true },
+];
+
 function SearchResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -232,7 +239,7 @@ function SearchResultsContent() {
       .then((res) => {
         const items = getServiceCenterItems(res);
         setCenters(
-          items.map((c) => ({
+          (items || []).map((c) => ({
             id: c.id,
             name: c.name,
             loc: c.loc,
@@ -542,27 +549,7 @@ function SearchResultsContent() {
       </div>
 
       {/* Footer */}
-      <footer style={{ background: "#111", padding: "60px 6% 30px", marginTop: "60px", color: "#888" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "40px", marginBottom: "40px" }}>
-          <div>
-            <h3 style={{ color: COLORS.white, fontSize: "20px", fontWeight: 900, marginBottom: "20px" }}>AUTORIA</h3>
-            <p style={{ fontSize: "13px", lineHeight: 1.6 }}>Egypt's leading platform for car services and spare parts. Trusted by thousands of car owners.</p>
-          </div>
-          {["Services", "Company", "Legal", "Connect"].map(title => (
-            <div key={title}>
-              <h4 style={{ color: COLORS.white, fontSize: "14px", fontWeight: 700, marginBottom: "20px" }}>{title}</h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
-                <span>Link 1</span>
-                <span>Link 2</span>
-                <span>Link 3</span>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ borderTop: "1px solid #222", paddingTop: "30px", textAlign: "center", fontSize: "12px" }}>
-          © 2026 AUTORIA. All rights reserved.
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

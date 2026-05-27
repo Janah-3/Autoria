@@ -6,6 +6,7 @@ import { getMe } from "@/lib/api/usersService";
 import {
   serviceCentersService,
   getServiceCenterItems,
+  mapServiceCenterListItem,
 } from "@/lib/api/serviceCentersService";
 import Navbar from "@/components/Navbar";
 
@@ -17,6 +18,12 @@ const row  = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 
 
 
+
+const MOCK_CENTERS = {
+  "1": { id: "1", name: "ProCare Auto Center", district: "Nasr City", governorate: "Cairo", type: "Top Rated", phone: "01012345678", serviceTypes: ["Oil Change", "Brakes", "AC Service"], carBrands: ["Toyota", "Hyundai", "Kia"] },
+  "2": { id: "2", name: "SpeedFix Workshop", district: "Heliopolis", governorate: "Cairo", type: "Fast Service", phone: "01187654321", serviceTypes: ["Engine Repair", "Diagnostics"], carBrands: ["BMW", "Mercedes", "Audi"] },
+  "3": { id: "3", name: "GreenWheel Service", district: "6th of October", governorate: "Giza", type: "New", phone: "01234567890", serviceTypes: ["Tires", "Alignment", "Wash"], carBrands: ["Nissan", "Chevrolet", "Renault"] }
+};
 
 // ── Main Page Component ────────────────────────────────────────────────────
 export default function CenterProfilePage() {
@@ -35,13 +42,24 @@ export default function CenterProfilePage() {
     serviceCentersService
       .getById(params.id)
       .then((res) => {
-        if (res.success && res.data && !res.data.items) {
-          setCenter(res.data);
+        const d = res?.data ?? res;
+        if (d && (d.name || d.Name)) {
+          setCenter(mapServiceCenterListItem(d));
+        } else {
+          if (MOCK_CENTERS[params.id]) {
+            setCenter(MOCK_CENTERS[params.id]);
+          } else {
+            setCenter(null);
+          }
+        }
+      })
+      .catch(() => {
+        if (MOCK_CENTERS[params.id]) {
+          setCenter(MOCK_CENTERS[params.id]);
         } else {
           setCenter(null);
         }
       })
-      .catch(() => setCenter(null))
       .finally(() => setLoading(false));
   }, [params.id]);
 

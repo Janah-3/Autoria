@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { bookingService } from "../../src/API/bookingService";
+import { serviceCentersService } from "@/lib/api/serviceCentersService";
+import { getMe } from "@/lib/api/usersService";
 
 
 
@@ -23,13 +25,13 @@ const Sidebar = ({ active }) => (
     <div style={{ padding: "0 25px", marginBottom: "40px" }}>
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
-        { id: "Dashboard", icon: "📊", path: "/booking-requests" },
+        { id: "Dashboard", icon: "📊", path: "/dashboard" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
-        { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
-        { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
-        { id: "Reviews", icon: "⭐", path: "#" },
-        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
+        { id: "Services & pricing", icon: "🏷️", path: "/services" },
+        { id: "Spare parts", icon: "⚙️", path: "/spare-parts" },
+        { id: "Reviews", icon: "⭐", path: "/reviews" },
+        { id: "Business profile", icon: "🏢", path: "/business-profile" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{
@@ -48,68 +50,103 @@ const Sidebar = ({ active }) => (
   </aside>
 );
 
-const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => (
-  <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: "16px", padding: "25px", marginBottom: "15px" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
-      <div style={{ display: "flex", gap: "15px" }}>
-        <div style={{ width: "45px", height: "45px", borderRadius: "50%", background: "#F1F3F5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 700, color: COLORS.textLight }}>
-          {request.customerName?.split(" ").map(n => n[0]).join("")}
-        </div>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <h4 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>{request.customerName}</h4>
-            <span style={{
-              background: request.status === "Pending" ? COLORS.activeBg : (request.status === "Confirmed" ? "#E7F5EA" : "#F1F3F5"),
-              color: request.status === "Pending" ? COLORS.primary : (request.status === "Confirmed" ? COLORS.success : COLORS.textLight),
-              fontSize: "10px", fontWeight: 800, padding: "2px 10px", borderRadius: "10px"
-            }}>{request.status}</span>
+const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => {
+  const customerName = request.customerName ?? request.CustomerName ?? "";
+  const status = request.status ?? request.Status ?? "Pending";
+  const carModel = request.carModel ?? request.CarModel ?? "";
+  const serviceType = request.serviceType ?? request.ServiceType ?? "";
+  const date = request.date ?? request.Date ?? "";
+  const time = request.time ?? request.Time ?? "";
+  const timeAgo = request.timeAgo ?? request.TimeAgo ?? "";
+  const note = request.note ?? request.Note ?? "";
+  const id = request.id ?? request.Id;
+
+  return (
+    <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: "16px", padding: "25px", marginBottom: "15px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
+        <div style={{ display: "flex", gap: "15px" }}>
+          <div style={{ width: "45px", height: "45px", borderRadius: "50%", background: "#F1F3F5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 700, color: COLORS.textLight }}>
+            {customerName?.split(" ").map(n => n[0]).join("")}
           </div>
-          <p style={{ fontSize: "13px", color: COLORS.textLight, marginTop: "4px" }}>
-            {request.carModel} • {request.serviceType} • Requested: <span style={{ color: COLORS.text, fontWeight: 600 }}>{request.date}, {request.time}</span>
-          </p>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <h4 style={{ fontSize: "16px", fontWeight: 700, margin: 0 }}>{customerName}</h4>
+              <span style={{
+                background: status === "Pending" ? COLORS.activeBg : (status === "Confirmed" ? "#E7F5EA" : "#F1F3F5"),
+                color: status === "Pending" ? COLORS.primary : (status === "Confirmed" ? COLORS.success : COLORS.textLight),
+                fontSize: "10px", fontWeight: 800, padding: "2px 10px", borderRadius: "10px"
+              }}>{status}</span>
+            </div>
+            <p style={{ fontSize: "13px", color: COLORS.textLight, marginTop: "4px" }}>
+              {carModel} • {serviceType} • Requested: <span style={{ color: COLORS.text, fontWeight: 600 }}>{date}, {time}</span>
+            </p>
+          </div>
         </div>
+        <div style={{ fontSize: "12px", color: COLORS.textLight }}>{timeAgo}</div>
       </div>
-      <div style={{ fontSize: "12px", color: COLORS.textLight }}>{request.timeAgo}</div>
-    </div>
 
-    {request.note && (
-      <div style={{ background: "#F8F9FA", padding: "12px 20px", borderRadius: "10px", fontSize: "13px", color: COLORS.textLight, marginBottom: "20px" }}>
-        Note: "{request.note}"
-      </div>
-    )}
-
-    <div style={{ display: "flex", gap: "10px" }}>
-      {request.status === "Pending" ? (
-        <>
-          <button onClick={() => onConfirm(request.id)} style={{ background: COLORS.primary, color: "#FFF", border: "none", padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Confirm</button>
-          <button onClick={() => onDecline(request.id)} style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Decline</button>
-        </>
-      ) : (
-        request.status === "Confirmed" && (
-          <button onClick={() => onCancel(request.id)} style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Cancel booking</button>
-        )
+      {note && (
+        <div style={{ background: "#F8F9FA", padding: "12px 20px", borderRadius: "10px", fontSize: "13px", color: COLORS.textLight, marginBottom: "20px" }}>
+          Note: "{note}"
+        </div>
       )}
-      <button style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>View profile</button>
+
+      <div style={{ display: "flex", gap: "10px" }}>
+        {status === "Pending" ? (
+          <>
+            <button onClick={() => onConfirm(id)} style={{ background: COLORS.primary, color: "#FFF", border: "none", padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Confirm</button>
+            <button onClick={() => onDecline(id)} style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Decline</button>
+          </>
+        ) : (
+          status === "Confirmed" && (
+            <button onClick={() => onCancel(id)} style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Cancel booking</button>
+          )
+        )}
+        <button style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>View profile</button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+const MOCK_REQUESTS = [
+  { id: "b1", customerName: "Ahmed Mostafa", status: "Pending", carModel: "Toyota Corolla 2021", serviceType: "Oil Change", date: "May 28, 2026", time: "10:00 AM", timeAgo: "10m ago", note: "Please check the front brake pads as well." },
+  { id: "b2", customerName: "Sara Khaled", status: "Confirmed", carModel: "Hyundai Tucson 2020", serviceType: "Brakes Repair", date: "May 29, 2026", time: "02:30 PM", timeAgo: "2h ago", note: "Using genuine Hyundai spare parts only please." },
+  { id: "b3", customerName: "Mohamed Hassan", status: "Pending", carModel: "Kia Sportage 2022", serviceType: "AC Maintenance", date: "May 30, 2026", time: "11:15 AM", timeAgo: "Yesterday", note: "AC is blowing warm air." }
+];
 
 export default function BookingRequestsPage() {
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [centerName, setCenterName] = useState("AutoCare Nasr City");
+  const [ownerName, setOwnerName] = useState("Mohamed Hassan");
 
-  
   useEffect(() => {
+    getMe()
+      .then(res => {
+        const name = res?.data?.fullName ?? res?.fullName;
+        if (name) setOwnerName(name);
+      })
+      .catch(() => {});
+
+    serviceCentersService.getMy()
+      .then(res => {
+        const d = res?.data ?? res;
+        if (d) {
+          const name = d.name ?? d.Name;
+          if (name) setCenterName(name);
+        }
+      })
+      .catch(() => {});
+
     const fetchBookings = async () => {
       setLoading(true);
       try {
         const data = await bookingService.getServiceCenterBookings();
-        // Assuming data is an array of bookings
-        setRequests(data);
+        setRequests(data || []);
       } catch (error) {
         console.error("Failed to load bookings:", error);
-
+        setRequests([]);
       } finally {
         setLoading(false);
       }
@@ -142,7 +179,7 @@ export default function BookingRequestsPage() {
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
       <header style={{ height: "70px", background: COLORS.surface, borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 30px", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ fontSize: "18px", fontWeight: 800 }}>AutoCare Nasr City</div>
+        <div style={{ fontSize: "18px", fontWeight: 800 }}>{centerName}</div>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>
           <Link href="/" style={{
             textDecoration: "none", color: COLORS.text, fontSize: "13px", fontWeight: 700,
@@ -151,8 +188,10 @@ export default function BookingRequestsPage() {
             ← Back to Website
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600 }}>Mohamed Hassan</span>
-            <div style={{ width: "35px", height: "35px", borderRadius: "50%", background: COLORS.primary, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>MH</div>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>{ownerName}</span>
+            <div style={{ width: "35px", height: "35px", borderRadius: "50%", background: COLORS.primary, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>
+              {ownerName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "SC"}
+            </div>
           </div>
         </div>
       </header>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { getMe } from "@/lib/api/usersService";
 
 const R = "#E8272A";
@@ -8,14 +9,39 @@ const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 
 export default function Navbar({ user: initialUser }) {
   const [user, setUser] = useState(initialUser || null);
+  const [dashboardUrl, setDashboardUrl] = useState("/user-dashboard");
 
   useEffect(() => {
-  
+    const cachedToken = localStorage.getItem("token");
+    const cachedRole = localStorage.getItem("userRole");
+    const cachedName = localStorage.getItem("userName");
+    
+    if (cachedToken) {
+      setUser({ name: cachedName || "User" });
+      if (cachedRole === "Admin") {
+        setDashboardUrl("/admin");
+      } else if (cachedRole === "ServiceCenter" || cachedRole === "Center" || cachedRole === "ServiceCenterOwner") {
+        setDashboardUrl("/booking-requests");
+      } else {
+        setDashboardUrl("/user-dashboard");
+      }
+    }
+
     const fetchUser = async () => {
       try {
         const result = await getMe();
         if (result?.data?.fullName) {
           setUser({ name: result.data.fullName });
+          localStorage.setItem("userName", result.data.fullName);
+          const role = result?.data?.role ?? result?.data?.Role ?? localStorage.getItem("userRole") ?? "User";
+          localStorage.setItem("userRole", role);
+          if (role === "Admin") {
+            setDashboardUrl("/admin");
+          } else if (role === "ServiceCenter" || role === "Center" || role === "ServiceCenterOwner") {
+            setDashboardUrl("/booking-requests");
+          } else {
+            setDashboardUrl("/user-dashboard");
+          }
         }
       } catch (error) {
         console.log("Waiting for Backend to turn on...", error.message);
@@ -46,28 +72,28 @@ export default function Navbar({ user: initialUser }) {
         zIndex: 100, 
         boxShadow: "0 2px 12px rgba(0,0,0,.18)" 
       }}>
-        <a href="/" style={{ textDecoration: "none" }}>
+        <Link href="/" style={{ textDecoration: "none" }}>
           <span style={{ color: "#fff", fontSize: 20, fontWeight: 900, letterSpacing: -.5 }}>
             AUTO<span style={{ opacity: .4, fontWeight: 400 }}>RIA</span>
           </span>
-        </a>
+        </Link>
 
         <div style={row(20)}>
           {[
             ["Home", "/"], 
             ["Services", "/search-results"], 
-            ["Spare Parts", "/spare-parts-search"],
-            ["Register Center", "/service-center-registration"],
-            ["Edit Business", "/service-center/edit"],
-            ["Inventory", "/spare-parts-inventory"]
+            ["Spare Parts", "/spare-parts-search"]
           ].map(([l, h]) => (
-            <a key={l} href={h} className="nav-link" style={{ color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>{l}</a>
+            <Link key={l} href={h} className="nav-link" style={{ color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>{l}</Link>
           ))}
+          {user && (
+            <Link href={dashboardUrl} className="nav-link" style={{ color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>Dashboard</Link>
+          )}
         </div>
 
         <div style={row(15)}>
 
-          <a href="/notifications" style={{ textDecoration: "none", position: "relative", display: "flex", alignItems: "center" }} className="btn-hover">
+          <Link href="/notifications" style={{ textDecoration: "none", position: "relative", display: "flex", alignItems: "center" }} className="btn-hover">
             <span style={{ fontSize: 20 }}>🔔</span>
             <span style={{ 
               position: "absolute", 
@@ -85,34 +111,36 @@ export default function Navbar({ user: initialUser }) {
               justifyContent: "center",
               border: `1.5px solid ${R}`
             }}>2</span>
-          </a>
+          </Link>
 
           {user ? (
-            <div className="btn-hover" style={{ ...row(10), cursor: "pointer" }}>
-              <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{user.name}</span>
-              <div style={{ 
-                width: 32, 
-                height: 32, 
-                borderRadius: "50%", 
-                background: "#fff", 
-                color: R, 
-                display: "flex", 
-                alignItems: "center", 
-                justifyContent: "center", 
-                fontWeight: 800, 
-                fontSize: 12 
-              }}>
-                {user.name?.[0].toUpperCase() || "U"}
+            <Link href={dashboardUrl} style={{ textDecoration: "none", color: "inherit" }}>
+              <div className="btn-hover" style={{ ...row(10), cursor: "pointer" }}>
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{user.name}</span>
+                <div style={{ 
+                  width: 32, 
+                  height: 32, 
+                  borderRadius: "50%", 
+                  background: "#fff", 
+                  color: R, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  fontWeight: 800, 
+                  fontSize: 12 
+                }}>
+                  {user.name?.[0].toUpperCase() || "U"}
+                </div>
               </div>
-            </div>
+            </Link>
           ) : (
             <div style={row(8)}>
-              <a href="/login" style={{ textDecoration: "none" }}>
+              <Link href="/login" style={{ textDecoration: "none" }}>
                 <button className="btn-hover" style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,.45)", color: "#fff", padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Login</button>
-              </a>
-              <a href="/signup" style={{ textDecoration: "none" }}>
+              </Link>
+              <Link href="/signup" style={{ textDecoration: "none" }}>
                 <button className="btn-hover" style={{ background: "#fff", border: "none", color: R, padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Sign Up</button>
-              </a>
+              </Link>
             </div>
           )}
         </div>

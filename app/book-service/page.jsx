@@ -56,29 +56,24 @@ export default function BookServicePage() {
   const handleBooking = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
-
     try {
-      
-      const apiData = {
+      await bookingService.createBooking({
         serviceType: formData.serviceType,
         carBrand: formData.carBrand,
-        carYear: parseInt(formData.carYear) || 0,
-        appointmentDate: formData.date,
+        carModel: formData.carModel || "Unknown",
+        carYear: formData.carYear || "",
+        date: formData.date,
         timeSlot: formData.timeSlot,
         customerName: formData.name,
-        customerPhone: formData.phone,
-        notes: formData.notes,
-        status: "Pending" 
-      };
-
-      await bookingService.createBooking(apiData);
-      
+        CustomerName: formData.name,
+        phone: formData.phone,
+        notes: formData.notes
+      });
+      setStep(5);
+    } catch (err) {
+      alert("Failed to submit booking: " + err.message);
+    } finally {
       setLoading(false);
-      setStep(5); 
-    } catch (error) {
-      setLoading(false);
-      console.error("Booking Error:", error);
-      alert(error.message || "Something went wrong while booking. Please try again.");
     }
   };
 
@@ -286,7 +281,9 @@ export default function BookServicePage() {
 
           {step === 5 && (
             <div className="step-content" style={{ textAlign: "center", padding: "20px 0" }}>
-              <div style={{ fontSize: "60px", marginBottom: "20px" }}>🎉</div>
+              <div style={{ marginBottom: "20px" }}>
+                <i className="fa-solid fa-circle-check" style={{ fontSize: "72px", color: COLORS.success }} />
+              </div>
               <h2 style={{ fontSize: "24px", fontWeight: 900, marginBottom: "12px" }}>Booking Confirmed!</h2>
               <p style={{ color: COLORS.textLight, fontSize: "16px", lineHeight: 1.6, marginBottom: "30px" }}>
                 Your appointment has been successfully scheduled. We've sent a confirmation SMS to your phone.

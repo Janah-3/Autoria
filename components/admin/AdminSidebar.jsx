@@ -7,6 +7,7 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
     { id: "Review moderation", icon: "⭐", badge: badges.reviews },
     { id: "User reports", icon: "🚩", badge: badges.reports },
     { id: "Featured listings", icon: "💎", badge: badges.featured },
+    { id: "User management", icon: "👥", badge: badges.users },
   ];
 
   return (

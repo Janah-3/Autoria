@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { serviceCentersService } from "@/lib/api/serviceCentersService";
+import { serviceCentersService, mapServiceCenterListItem } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 
 export default function ServiceCenterProfile() {
@@ -25,8 +25,8 @@ export default function ServiceCenterProfile() {
       .getMy()
       .then((res) => {
         const d = res?.data ?? res;
-        if (d && d.name) {
-          setCenter(d);
+        if (d && (d.name || d.Name)) {
+          setCenter(mapServiceCenterListItem(d));
         } else {
           setCenter(null);
         }

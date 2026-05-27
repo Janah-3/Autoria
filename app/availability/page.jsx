@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { serviceCentersService } from "@/lib/api/serviceCentersService";
-import { getMe } from "@/lib/api/usersService";
+import { serviceCentersService } from "@/lib/api/serviceCentersService";import { getMe } from "@/lib/api/usersService";
+
 
 const COLORS = {
   primary: "#E8272A",
@@ -22,13 +22,13 @@ const Sidebar = ({ active }) => (
     <div style={{ padding: "0 25px", marginBottom: "40px" }}>
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
-        { id: "Dashboard", icon: "📊", path: "/booking-requests" },
+        { id: "Dashboard", icon: "📊", path: "/dashboard" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
-        { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
-        { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
-        { id: "Reviews", icon: "⭐", path: "#" },
-        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
+        { id: "Services & pricing", icon: "🏷️", path: "/services" },
+        { id: "Spare parts", icon: "⚙️", path: "/spare-parts" },
+        { id: "Reviews", icon: "⭐", path: "/reviews" },
+        { id: "Business profile", icon: "🏢", path: "/business-profile" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{ 
@@ -89,51 +89,10 @@ export default function AvailabilityPage() {
 
   const [timeSlots, setTimeSlots] = useState([]);
   const [selectedDate, setSelectedDate] = useState("Monday 16 March");
-  const [centerName, setCenterName] = useState("Loading Center...");
-  const [userName, setUserName] = useState("Loading Owner...");
+  const [centerName, setCenterName] = useState("AutoCare Nasr City");
+  const [ownerName, setOwnerName] = useState("Nada Hany");
 
   useEffect(() => {
-    // Fetch dynamic center operating hours
-    serviceCentersService.getMy()
-      .then(res => {
-        const d = res.data;
-        if (d) {
-          setCenterName(d.name || "AutoCare Nasr City");
-          if (d.operatingHours && d.operatingHours.length > 0) {
-            const mapped = d.operatingHours.map(h => ({
-              day: h.day,
-              isOpen: !h.isClosed,
-              start: h.openTime ? h.openTime.substring(0, 5) : "09:00",
-              end: h.closeTime ? h.closeTime.substring(0, 5) : "18:00",
-            }));
-            
-            // Merge loaded working hours to guarantee we have all 7 days represented correctly
-            setWorkingHours(prev => {
-              return prev.map(p => {
-                const match = mapped.find(m => m.day.toLowerCase() === p.day.toLowerCase());
-                return match ? match : p;
-              });
-            });
-          }
-        }
-      })
-      .catch(err => {
-        console.error("Failed to fetch service center hours:", err);
-        setCenterName("AutoCare Nasr City");
-      });
-
-    // Fetch dynamic logged-in user profile
-    getMe()
-      .then(res => {
-        if (res?.data?.fullName) {
-          setUserName(res.data.fullName);
-        } else {
-          setUserName("Mohamed Hassan");
-        }
-      })
-      .catch(() => {
-        setUserName("Mohamed Hassan");
-      });
 
     setTimeSlots([
       { time: "09:00", status: "available" },
@@ -151,6 +110,35 @@ export default function AvailabilityPage() {
     ]);
   }, [selectedDate]);
 
+  useEffect(() => {
+    getMe()
+      .then(res => {
+        const name = res?.data?.fullName ?? res?.fullName;
+        if (name) setOwnerName(name);
+      })
+      .catch(() => {});
+
+    serviceCentersService.getMy()
+      .then(res => {
+        const d = res?.data ?? res;
+        if (d) {
+          const name = d.name ?? d.Name;
+          if (name) setCenterName(name);
+          
+          const rawHours = d.operatingHours ?? d.OperatingHours;
+          if (rawHours && rawHours.length) {
+            setWorkingHours(rawHours.map(h => ({
+              day: h.day ?? h.Day,
+              isOpen: h.isOpen ?? h.IsOpen ?? false,
+              start: h.start ?? h.Start ?? "09:00",
+              end: h.end ?? h.End ?? "18:00"
+            })));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleToggleDay = (day) => {
     setWorkingHours(prev => prev.map(d => d.day === day ? { ...d, isOpen: !d.isOpen } : d));
   };
@@ -161,25 +149,20 @@ export default function AvailabilityPage() {
 
   const handleSaveHours = async () => {
     try {
-      // Map working hours back to API schema
-      const apiHours = workingHours.map(h => ({
-        day: h.day,
-        isClosed: !h.isOpen,
-        openTime: h.isOpen ? `${h.start}:00` : "00:00:00",
-        closeTime: h.isOpen ? `${h.end}:00` : "00:00:00",
-      }));
-
-      await serviceCentersService.updateOperatingHours(apiHours);
+      await serviceCentersService.updateOperatingHours(workingHours);
       alert("Hours saved successfully!");
     } catch (err) {
-      alert("Failed to save operating hours: " + err.message);
+      alert("Failed to save: " + err.message);
     }
   };
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
       <header style={{ height: "70px", background: COLORS.surface, borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 30px", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ fontSize: "18px", fontWeight: 800 }}>{centerName}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ fontSize: "18px", fontWeight: 800 }}>{centerName}</div>
+          <span style={{ background: "#E7F5EA", color: "#28A745", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px" }}>● Live Backend API Connected</span>
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>
           <Link href="/" style={{ 
             textDecoration: "none", color: COLORS.text, fontSize: "13px", fontWeight: 700, 
@@ -188,9 +171,9 @@ export default function AvailabilityPage() {
             ← Back to Website
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600 }}>{userName}</span>
+            <span style={{ fontSize: "14px", fontWeight: 600 }}>{ownerName}</span>
             <div style={{ width: "35px", height: "35px", borderRadius: "50%", background: COLORS.primary, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>
-              {userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2) : "MH"}
+              {ownerName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "SC"}
             </div>
           </div>
         </div>

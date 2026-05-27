@@ -186,7 +186,7 @@ function CenterCard({ c }) {
         fontSize: 40, 
         position: "relative" 
       }}>
-        {!c.cover && c.icon}
+        {!c.cover && (c.icon || <i className="fa-solid fa-wrench" style={{ color: "#9ca3af" }}></i>)}
         <span style={{ position: "absolute", top: 9, left: 9, background: R, color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20 }}>{c.badge}</span>
         <span style={{
           position: "absolute", top: 9, right: 9,
@@ -295,6 +295,12 @@ function SortBar({ sort, setSort, count }) {
 }
 
 
+const MOCK_CENTERS_LIST = [
+  { id: "1", bg: "#fff0f0", icon: "🏭", badge: "Top Rated", name: "ProCare Auto Center", loc: "Nasr City, Cairo", city: "Cairo", desc: "Top Rated center — Oil Change, Brakes, AC Service.", tags: ["Oil Change", "Brakes", "AC Service"], stars: 5, rating: 4.9, reviews: 312, price: "From 150 EGP", open: true },
+  { id: "2", bg: "#fefce8", icon: "🔩", badge: "Fast Service", name: "SpeedFix Workshop", loc: "Heliopolis, Cairo", city: "Cairo", desc: "Fast Service center — Engine Repair, Diagnostics.", tags: ["Engine Repair", "Diagnostics"], stars: 5, rating: 4.7, reviews: 198, price: "From 200 EGP", open: true },
+  { id: "3", bg: "#f0fdf4", icon: "🚗", badge: "New", name: "GreenWheel Service", loc: "6th of October, Giza", city: "Giza", desc: "New center — Tires, Alignment, Wash.", tags: ["Tires", "Alignment", "Wash"], stars: 4, rating: 4.5, reviews: 87, price: "From 80 EGP", open: true },
+];
+
 export default function ServiceCentersPage() {
   const [centers, setCenters]           = useState([]);
   const [loading, setLoading]           = useState(true);
@@ -319,8 +325,14 @@ export default function ServiceCentersPage() {
 
     serviceCentersService
       .getAll()
-      .then((res) => setCenters(getServiceCenterItems(res)))
-      .catch((err) => console.error("Service centers:", err))
+      .then((res) => {
+        const items = getServiceCenterItems(res);
+        setCenters(items || []);
+      })
+      .catch((err) => {
+        console.error("Service centers:", err);
+        setCenters([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 

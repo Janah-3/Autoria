@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getMe } from "@/lib/api/usersService";
 import { getAllCars, getCarItems } from "@/lib/api/carsService";
 import { getAllBookings } from "@/lib/api/bookingsService";
 
 export default function UserDashboardPage() {
+  const router = useRouter();
   const [cars, setCars] = useState([]);
   const [upcomingBookings, setUpcomingBookings] = useState([]);
   const [userName, setUserName] = useState("");
@@ -14,9 +16,15 @@ export default function UserDashboardPage() {
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
       try {
         const me = await getMe();
-        if (me?.data?.fullName) setUserName(me.data.fullName);
+        if (me?.data?.fullName) {
+          setUserName(me.data.fullName);
+        } else {
+          router.push("/login");
+          return;
+        }
 
         const carsRes = await getAllCars();
         setCars(
@@ -46,6 +54,7 @@ export default function UserDashboardPage() {
         );
       } catch (err) {
         console.error("User dashboard:", err);
+        router.push("/login");
       } finally {
         setLoading(false);
       }
@@ -84,7 +93,7 @@ export default function UserDashboardPage() {
           border-bottom: 1px solid #E5E7EB;
           display: flex;
           align-items: center;
-          justify-content: flex-end;
+          justify-content: space-between;
           padding: 0 40px;
           position: sticky;
           top: 0;
@@ -346,9 +355,20 @@ export default function UserDashboardPage() {
 
 
       <main className="main-content">
-
-
-
+        <div className="topbar">
+          <Link href="/" style={{
+            textDecoration: "none", color: "#374151", fontSize: "13px", fontWeight: 700,
+            display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "8px", border: `1px solid #E5E7EB`
+          }}>
+            ← Back to Website
+          </Link>
+          <div className="user-profile">
+            <span className="user-name">{userName || "User"}</span>
+            <div className="user-avatar">
+              {userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "U"}
+            </div>
+          </div>
+        </div>
 
         <div className="dashboard-body">
           <div className="welcome-section">
@@ -379,7 +399,7 @@ export default function UserDashboardPage() {
             </div>
 
             <div className="quick-actions">
-              <Link href="/search" className="action-btn btn-primary">
+              <Link href="/book-service" className="action-btn btn-primary">
                 <i className="fa-solid fa-plus"></i> Book New Service
               </Link>
               <Link href="/cars/add-car" className="action-btn btn-secondary">

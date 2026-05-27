@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
-import { sparePartsService } from "../../src/API/sparePartsService";
+import { sparePartsService } from "../../lib/sparePartsService";
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -61,8 +61,19 @@ const PartCard = ({ part }) => {
 
 function ResultsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [parts, setParts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Search panel states
+  const [q, setQ] = useState(searchParams.get("q") || "");
+  const [brand, setBrand] = useState(searchParams.get("brand") || "");
+  const [model, setModel] = useState(searchParams.get("model") || "");
+  const [year, setYear] = useState(searchParams.get("year") || "");
+  
+  // Filtering states
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [governorate, setGovernorate] = useState("All Cairo");
 
   useEffect(() => {
     const fetchParts = async () => {
@@ -71,10 +82,21 @@ function ResultsContent() {
         const query = {
           q: searchParams.get("q") || "",
           brand: searchParams.get("brand") || "",
-          model: searchParams.get("model") || ""
+          model: searchParams.get("model") || "",
+          year: searchParams.get("year") || "",
         };
         const data = await sparePartsService.getSpareParts(query);
-        setParts(Array.isArray(data) ? data : []);
+        
+        // Filter by category if any selected
+        if (selectedCategories.length > 0) {
+          const filtered = data.filter(item => 
+            selectedCategories.includes(item.category) || 
+            selectedCategories.includes(item.type === "Used" ? "Engine Parts" : "Brake Pads")
+          );
+          setParts(filtered);
+        } else {
+          setParts(data);
+        }
       } catch (error) {
         console.error("Failed to fetch spare parts:", error);
       } finally {
@@ -82,7 +104,32 @@ function ResultsContent() {
       }
     };
     fetchParts();
+  }, [searchParams, selectedCategories]);
+
+  // Sync state with URL change
+  useEffect(() => {
+    setQ(searchParams.get("q") || "");
+    setBrand(searchParams.get("brand") || "");
+    setModel(searchParams.get("model") || "");
+    setYear(searchParams.get("year") || "");
   }, [searchParams]);
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (brand) params.set("brand", brand);
+    if (model) params.set("model", model);
+    if (year) params.set("year", year);
+    router.push(`/spare-parts-results?${params.toString()}`);
+  };
+
+  const toggleCategory = (cat) => {
+    if (selectedCategories.includes(cat)) {
+      setSelectedCategories(selectedCategories.filter(c => c !== cat));
+    } else {
+      setSelectedCategories([...selectedCategories, cat]);
+    }
+  };
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, fontFamily: "'Inter', sans-serif" }}>
@@ -96,21 +143,50 @@ function ResultsContent() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 180px 180px 180px auto", gap: "12px", alignItems: "end", background: "#F8F9FA", padding: "20px", borderRadius: "16px", border: `1px solid ${COLORS.border}` }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                <label style={{ fontSize: "10px", fontWeight: 700, color: COLORS.muted2, textTransform: "uppercase" }}>Part Name or Number</label>
-               <input value="Brake Pads" style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} />
+               <input 
+                 value={q} 
+                 onChange={e => setQ(e.target.value)}
+                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                 placeholder="e.g. Brake Pads"
+                 style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} 
+               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                <label style={{ fontSize: "10px", fontWeight: 700, color: COLORS.muted2, textTransform: "uppercase" }}>Brand</label>
-               <input value="Toyota" style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} />
+               <input 
+                 value={brand} 
+                 onChange={e => setBrand(e.target.value)}
+                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                 placeholder="Toyota"
+                 style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} 
+               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                <label style={{ fontSize: "10px", fontWeight: 700, color: COLORS.muted2, textTransform: "uppercase" }}>Model</label>
-               <input value="Corolla" style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} />
+               <input 
+                 value={model} 
+                 onChange={e => setModel(e.target.value)}
+                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                 placeholder="Corolla"
+                 style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} 
+               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                <label style={{ fontSize: "10px", fontWeight: 700, color: COLORS.muted2, textTransform: "uppercase" }}>Year</label>
-               <input value="2015" style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} />
+               <input 
+                 value={year} 
+                 onChange={e => setYear(e.target.value)}
+                 onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                 placeholder="2015"
+                 style={{ background: "#FFF", border: `1px solid ${COLORS.border}`, borderRadius: "8px", padding: "12px", color: COLORS.text, outline: "none" }} 
+               />
             </div>
-            <button style={{ background: COLORS.primary, color: "#FFF", border: "none", padding: "12px 30px", borderRadius: "8px", fontWeight: 800 }}>Find Parts</button>
+            <button 
+              onClick={handleSearch}
+              style={{ background: COLORS.primary, color: "#FFF", border: "none", padding: "12px 30px", borderRadius: "8px", fontWeight: 800, cursor: "pointer" }}
+            >
+              Find Parts
+            </button>
           </div>
         </div>
       </section>
@@ -121,26 +197,38 @@ function ResultsContent() {
           
           <div style={{ marginBottom: "35px" }}>
             <div style={{ fontSize: "11px", fontWeight: 900, marginBottom: "15px", color: COLORS.text }}>PART CATEGORY</div>
-            {["Brakes & Pads", "Engine Parts", "Filters", "Electrical"].map(cat => (
+            {["Brake Pads", "Engine Parts", "Filters", "Electrical"].map(cat => (
               <label key={cat} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", fontSize: "13px", color: COLORS.muted2, cursor: "pointer" }}>
-                <input type="checkbox" style={{ accentColor: COLORS.primary }} /> {cat}
+                <input 
+                  type="checkbox" 
+                  checked={selectedCategories.includes(cat)}
+                  onChange={() => toggleCategory(cat)}
+                  style={{ accentColor: COLORS.primary }} 
+                /> {cat}
               </label>
             ))}
           </div>
 
           <div style={{ marginBottom: "35px" }}>
             <div style={{ fontSize: "11px", fontWeight: 900, marginBottom: "15px", color: COLORS.text }}>LOCATION</div>
-            <select style={{ width: "100%", background: "#F8F9FA", border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", color: COLORS.text }}>
+            <select 
+              value={governorate}
+              onChange={e => setGovernorate(e.target.value)}
+              style={{ width: "100%", background: "#F8F9FA", border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", color: COLORS.text }}
+            >
               <option>All Cairo</option>
+              <option>Giza</option>
+              <option>Alexandria</option>
             </select>
           </div>
-
-          <button style={{ width: "100%", background: COLORS.primary, color: "#FFF", border: "none", padding: "14px", borderRadius: "12px", fontWeight: 800 }}>Apply Filters</button>
         </aside>
 
         <div style={{ padding: "30px" }}>
           <div style={{ display: "flex", gap: "8px", alignItems: "center", fontSize: "12px", color: COLORS.muted2, marginBottom: "25px" }}>
-            Spare Parts <span style={{ color: COLORS.muted }}>/</span> Toyota Corolla 2015 <span style={{ color: COLORS.muted }}>/</span> <span style={{ color: COLORS.text, fontWeight: 700 }}>Brake Pads</span>
+            Spare Parts 
+            {brand && <> <span style={{ color: COLORS.muted }}>/</span> {brand} </>}
+            {model && <> <span style={{ color: COLORS.muted }}>/</span> {model} </>}
+            {q && <> <span style={{ color: COLORS.muted }}>/</span> <span style={{ color: COLORS.text, fontWeight: 700 }}>{q}</span> </>}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "25px" }}>
