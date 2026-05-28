@@ -38,7 +38,7 @@ namespace Autoria.features.ServiceCenter.Commands.MatchServiceCenters
                     .FirstOrDefaultAsync();
             }
 
-            var availableServiceTypes = await _dbContext.serviceTypes.Select(st => st.Name)
+            var availableServiceTypes = await _dbContext.ServiceTypes.Select(st => st.Name)
                 .ToListAsync(cancellationToken);
 
             var intent = await _geminiService.ExtractIntentAsync(request.Issue, availableServiceTypes);

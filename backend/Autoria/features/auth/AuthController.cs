@@ -5,6 +5,7 @@ using Autoria.features.auth.Commands.Login;
 using Autoria.features.auth.Commands.logout;
 using Autoria.features.auth.Commands.RefreshToken;
 using Autoria.features.auth.Commands.register;
+using Autoria.features.auth.Commands.RegisterMechanic;
 using Autoria.features.auth.Commands.ResendVerificationEmail;
 using Autoria.features.auth.Commands.ResetPassword;
 using Autoria.features.auth.Commands.VerifyEmail;
@@ -36,10 +37,23 @@ namespace Autoria.features.auth
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterCommand command)
+        public async Task<IActionResult> Register([FromBody] RegisterCommand command)
         {
             var result = await _mediator.Send(command);
+            return Success(result, "Registration successful");
+        }
 
+        [HttpPost("register/car-owner")]
+        public async Task<IActionResult> RegisterCarOwner([FromBody] RegisterCommand command)
+        {
+            var result = await _mediator.Send(command);
+            return Success(result, "Registration successful");
+        }
+
+        [HttpPost("register/mechanic")]
+        public async Task<IActionResult> RegisterMechanic([FromForm] RegisterMechanicCommand command)
+        {
+            var result = await _mediator.Send(command);
             return Success(result, "Registration successful");
         }
 

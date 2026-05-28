@@ -13,7 +13,7 @@ namespace Autoria.Infrastructure.Persistence.Seeding.Seeds
 
         public async Task SeedAsync()
         {
-            var roles = new[] { "Admin", "User", "ServiceCenterOwner" };
+            var roles = new[] { "Admin", "User", "ServiceCenterOwner" , "Mechanic" };
 
             foreach(var role in roles)
             {

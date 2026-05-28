@@ -1,8 +1,11 @@
-﻿namespace Autoria.shared.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Autoria.shared.Entities
 {
     public class ServiceType
     {
-        public Guid ServiceId { get; set; }
+        [Key]
+        public Guid ServiceTypeId { get; set; }
         public string Name { get; set; } = default!;
 
     }

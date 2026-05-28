@@ -1,5 +1,6 @@
 ﻿using Autoria.features.ServiceCenter.Entities;
 using Autoria.Infrastructure.Identity.entities;
+using Autoria.shared.Entities;
 
 namespace Autoria.features.Booking.Entities
 {

@@ -61,7 +61,7 @@ namespace Autoria.features.auth.Commands.register
 
             var verificationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
 
-            var verificationLink = $"https://autoria.com/verify-email?token={Uri.EscapeDataString(verificationToken)}&email={user.Email}";
+            var verificationLink = $"http://localhost:3000/emailVAR?token={Uri.EscapeDataString(verificationToken)}&email={user.Email}";
 
             await _emailService.SendMailAsync(
                 to: user.Email,

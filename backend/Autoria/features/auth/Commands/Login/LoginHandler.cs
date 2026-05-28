@@ -40,6 +40,9 @@ namespace Autoria.features.auth.Commands.Login
             if (!user.EmailConfirmed)
                 throw new ForbiddenException("Please verify your email before logging in");
 
+            if (user.IsBanned)
+                throw new ForbiddenException("this account is restricted");
+
             return await _jwtService.GenerateToken(user);
 
         }

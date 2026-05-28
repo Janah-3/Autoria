@@ -8,6 +8,7 @@
         Review,
         Booking,
         SparePart,
-        Car
+        Car,
+        Mechanic
     }
 }

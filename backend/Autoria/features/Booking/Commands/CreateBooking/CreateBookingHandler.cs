@@ -31,17 +31,22 @@ namespace Autoria.features.Booking.Commands.CreateBooking
                 ?? throw new NotFoundException("Car not found or does not belong to the current user.");
 
             var serviceTypeExists = await _db.ServiceTypes
-                .AnyAsync(st => st.Id == request.ServiceTypeId, cancellationToken);
+                .AnyAsync(st => st.ServiceTypeId == request.ServiceTypeId, cancellationToken);
             if (!serviceTypeExists)
                 throw new NotFoundException("Service type not found.");
 
+       
+
             var timeSlot = await _db.TimeSlots
-                .FirstOrDefaultAsync(ts =>
-                    ts.Id == request.TimeSlotId &&
-                    ts.ServiceCenterId == request.ServiceCenterId &&
-                    !ts.IsBlocked &&
-                    !ts.IsBooked, cancellationToken)
-                ?? throw new BadRequestException("Time slot is unavailable or does not exist.");
+      .FirstOrDefaultAsync(
+          ts =>
+              ts.Id == request.TimeSlotId &&
+              ts.ServiceCenterId == request.ServiceCenterId &&
+              !ts.IsBlocked &&
+              !ts.IsBooked,
+          cancellationToken
+      )
+      ?? throw new BadRequestException("Time slot is unavailable or does not exist.");
 
             var booking = new Entities.Booking
             {
@@ -59,7 +64,14 @@ namespace Autoria.features.Booking.Commands.CreateBooking
             timeSlot.IsBooked = true;
 
             _db.Bookings.Add(booking);
-            await _db.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.InnerException?.Message ?? ex.Message);
+            }
 
             var user = await _db.Users.FindAsync([userId], cancellationToken);
             await _notificationService.SendAsync(
