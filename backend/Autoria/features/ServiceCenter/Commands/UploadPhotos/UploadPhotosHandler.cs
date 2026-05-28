@@ -1,4 +1,4 @@
-﻿using Autoria.features.ServiceCenter.Entities;
+﻿ using Autoria.features.ServiceCenter.Entities;
 using Autoria.Infrastructure.Persistence;
 using Autoria.shared.Contracts;
 using Autoria.shared.Enums;

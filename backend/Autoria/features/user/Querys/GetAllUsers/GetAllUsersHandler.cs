@@ -65,7 +65,8 @@ namespace Autoria.features.user.Querys.GetAllUsers
                     FullName = user.FullName,
                     Email = user.Email,
                     PhoneNumber = user.PhoneNumber,
-                    Role = role
+                    Role = role,
+                    Is_Banned = user.IsBanned,
                 });
             }
 

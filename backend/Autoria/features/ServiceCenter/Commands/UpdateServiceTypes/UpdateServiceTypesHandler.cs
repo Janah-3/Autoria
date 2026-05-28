@@ -28,8 +28,8 @@ namespace Autoria.features.ServiceCenter.Commands.UpdateServiceTypes
 
             // Validate all IDs exist in the lookup table
             var validIds = await _context.ServiceTypes
-                .Where(st => request.ServiceTypeIds.Contains(st.Id))
-                .Select(st => st.Id)
+                .Where(st => request.ServiceTypeIds.Contains(st.ServiceTypeId))
+                .Select(st => st.ServiceTypeId)
                 .ToListAsync(cancellationToken);
 
             var invalidIds = request.ServiceTypeIds.Except(validIds).ToList();

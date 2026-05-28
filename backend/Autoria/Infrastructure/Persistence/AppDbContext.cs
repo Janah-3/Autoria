@@ -9,8 +9,11 @@ using Autoria.features.Reports.Entity;
 using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;
 using Autoria.features.SpareParts.Entities;
+using Autoria.Features.JobRequests.Entities;
+using Autoria.Features.Mechanics.Entities;
 using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Persistence.Entities;
+using Autoria.shared.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -43,7 +46,6 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<OperatingHours> OperatingHours { get; set; }
         public DbSet<ServiceType> ServiceTypes { get; set; }
         public DbSet<CarBrand> CarBrands { get; set; }
-       public DbSet<ServiceType> serviceTypes { get; set; }
         public DbSet<Booking> Bookings { get; set; } 
         public DbSet<Review> Reviews { get; set; }
         public DbSet<ReviewReply> ReviewReplies { get; set; }
@@ -55,6 +57,9 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<PartReservation> PartReservations { get; set; }
         public DbSet<SparePartImage> SparePartImages { get; set; }
         public DbSet<InventoryHistory> InventoryHistories { get; set; }
+        public DbSet<MechanicProfile> MechanicProfiles { get; set; }
+        public DbSet<MechanicSpecialization> mechanicSpecializations { get; set; }
+        public DbSet<JobRequest> JobRequests { get; set; }
 
     }
 }

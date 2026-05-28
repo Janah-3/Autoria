@@ -1,4 +1,6 @@
-﻿namespace Autoria.features.ServiceCenter.Entities
+﻿using Autoria.shared.Entities;
+
+namespace Autoria.features.ServiceCenter.Entities
 {
     public class ServiceCenterServiceType
     {

@@ -31,7 +31,7 @@ namespace Autoria.features.Booking.Commands.CreateBooking
                 ?? throw new NotFoundException("Car not found or does not belong to the current user.");
 
             var serviceTypeExists = await _db.ServiceTypes
-                .AnyAsync(st => st.Id == request.ServiceTypeId, cancellationToken);
+                .AnyAsync(st => st.ServiceTypeId == request.ServiceTypeId, cancellationToken);
             if (!serviceTypeExists)
                 throw new NotFoundException("Service type not found.");
 
