@@ -62,6 +62,8 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<MechanicProfile> MechanicProfiles { get; set; }
         public DbSet<MechanicSpecialization> mechanicSpecializations { get; set; }
         public DbSet<JobRequest> JobRequests { get; set; }
-
+        public DbSet<ContactMessage> ContactMessages { get; set; }
+        public DbSet<MileageEntry> MileageEntries { get; set; }
+        public DbSet<MaintenanceReminder> MaintenanceReminders { get; set; }
     }
 }
