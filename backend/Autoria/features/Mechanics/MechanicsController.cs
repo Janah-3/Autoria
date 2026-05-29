@@ -1,4 +1,6 @@
-﻿using Autoria.Features.Mechanics.Commands.ApproveMechanic;
+﻿using Autoria.features.Mechanics.Queries.GetMyProfile;
+using Autoria.Features.JobRequests.Commands.CreateJobRequest;
+using Autoria.Features.Mechanics.Commands.ApproveMechanic;
 using Autoria.Features.Mechanics.Commands.RejectMechanic;
 using Autoria.Features.Mechanics.Commands.UpdateMechanicProfile;
 using Autoria.Features.Mechanics.Queries.BrowseMechanics;
@@ -59,6 +61,15 @@ namespace Autoria.Features.Mechanics
             return Success("Profile updated successfully");
         }
 
+        [HttpGet("my/profile")]
+        [Authorize(Roles = Roles.Mechanic)]
+        public async Task<IActionResult> getMyProfile([FromForm] GetMyProfileQuery query)
+        {
+           
+            var result = await _mediator.Send(query);
+            return Success(result);
+        }
+
         [HttpGet("my/earnings")]
         [Authorize(Roles = Roles.Mechanic)]
         public async Task<IActionResult> GetEarnings(
@@ -94,6 +105,15 @@ namespace Autoria.Features.Mechanics
         {
             await _mediator.Send(command with { MechanicId = mechanicId});
             return Success("Mechanic rejected successfully");
+        }
+
+        // Car owner — create a job request
+        [HttpPost("{mechanicId}/job-requests")]
+        [Authorize(Roles = Roles.User)]
+        public async Task<IActionResult> Create(Guid mechanicId, [FromBody] CreateJobRequestCommand command)
+        {
+            await _mediator.Send(command with { MechanicId = mechanicId });
+            return Success("Job request created successfully");
         }
     }
 }
