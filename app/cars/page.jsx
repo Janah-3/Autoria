@@ -48,7 +48,7 @@ const CarCard = ({ car, handleSetDefault }) => {
       <div className="car-visual">
         <CarSVG color={car.color} size={155} />
       </div>
-      
+
       <div className="car-body">
         <div className="car-top">
           <div className="car-name">{car.make} {car.model}</div>
@@ -61,24 +61,29 @@ const CarCard = ({ car, handleSetDefault }) => {
           <span className="car-tag">{transmissionName}</span>
         </div>
       </div>
-      
+
       <div className="car-footer">
         <div className="car-km">🛣 {car.mileage} km</div>
         <div className="car-plate">{car.licensePlate}</div>
       </div>
-      
+
       <div className="car-actions">
-        <Link href={`/cars/edit-car?id=${car.id}`} className="btn-edit" style={{ textDecoration: 'none' }}>
+        <Link
+          href="/cars/edit-car"
+          onClick={() => localStorage.setItem("selectedCar", JSON.stringify(car))}
+          className="btn-edit"
+          style={{ textDecoration: 'none' }}
+        >
           <EditIcon /> Edit
         </Link>
-        
+
         {!car.isPrimary && (
           <button className="btn-set-default" onClick={() => handleSetDefault(car)}>
             Set Default
           </button>
         )}
-        
-        <Link href={`/cars/deleteCar?id=${car.id}`} className="btn-delete" style={{ textDecoration: 'none' }}>
+
+        <Link href={`/cars/deleteCar?id=${car.vin}`} className="btn-delete" style={{ textDecoration: 'none' }}>
           <TrashIcon />
         </Link>
       </div>
@@ -97,14 +102,25 @@ export default function CarsPage() {
     try {
       setIsLoading(true);
       const response = await getAllCars();
-      
+
+      console.log("🚗 Full API response:", response);
+
+      let items = [];
       if (response.data && response.data.data && response.data.data.items) {
-        setCarsList(response.data.data.items);
+        items = response.data.data.items;
       } else if (response.data && response.data.items) {
-        setCarsList(response.data.items);
-      } else {
-        setCarsList([]);
+        items = response.data.items;
+      } else if (Array.isArray(response.data)) {
+        items = response.data;
       }
+
+      console.log("🚗 Car items:", items);
+      if (items.length > 0) {
+        console.log("🚗 First car object keys:", Object.keys(items[0]));
+        console.log("🚗 First car:", items[0]);
+      }
+
+      setCarsList(items);
     } catch (error) {
       console.error("Failed to load cars:", error);
       setCarsList([]);
@@ -127,16 +143,17 @@ export default function CarsPage() {
 
   const handleSetDefault = async (car) => {
     try {
-      await updateCar(car.id, {
+
+      await updateCar(car.vin, {
         licensePlate: car.licensePlate,
         mileage: car.mileage,
         color: car.color,
         isPrimary: true
       });
-      
+
       displayToast('Set as your default car');
-      loadCars(); 
-      
+      loadCars();
+
     } catch (error) {
       alert("Failed to update default car");
     }
@@ -357,7 +374,7 @@ export default function CarsPage() {
       `}</style>
 
       <div className="page">
-        
+
         <div className="page-header">
           <div>
             <div className="page-title">My Cars 🚗</div>
@@ -365,7 +382,7 @@ export default function CarsPage() {
               {carsList.length} vehicles registered
             </div>
           </div>
-          
+
           <Link href="/cars/add-car" className="btn-add" style={{ textDecoration: 'none' }}>
             + Add New Car
           </Link>
@@ -376,7 +393,7 @@ export default function CarsPage() {
         ) : (
           <div className="cars-grid">
             {carsList.map(car => (
-              <CarCard key={car.id || car.vin} car={car} handleSetDefault={handleSetDefault} />
+              <CarCard key={car.carId || car.id || car.vin} car={car} handleSetDefault={handleSetDefault} />
             ))}
 
             <Link href="/cars/add-car" className="add-card" style={{ textDecoration: 'none' }}>
@@ -391,7 +408,7 @@ export default function CarsPage() {
             ✓ {toastMessage}
           </div>
         )}
-        
+
       </div>
     </div>
   );

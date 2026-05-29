@@ -1,7 +1,9 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { getAllCars, getCarItems } from "@/lib/api/carsService";
-import CarCard from "../AddCar/page";
-import CarForm from "../EditCar/page";
+// import CarCard from "../AddCar/page";
+// import CarForm from "../EditCar/page";
 
 export default function CarsPage() {
   const [cars, setCars] = useState([]);
@@ -65,11 +67,15 @@ export default function CarsPage() {
         </button>
       </div>
 
-      {showForm && <CarForm onClose={() => setShowForm(false)} />}
+      {/* {showForm && <CarForm onClose={() => setShowForm(false)} />} */}
 
       <div className="grid">
         {cars.map((car) => (
-          <CarCard key={car.id} car={car} />
+          // <CarCard key={car.id} car={car} />
+          <div key={car.id} style={{ padding: "20px", border: "1px solid #ccc", borderRadius: "8px" }}>
+            <h3>{car.make} {car.model}</h3>
+            <p>Plate: {car.licensePlate}</p>
+          </div>
         ))}
       </div>
     </div>

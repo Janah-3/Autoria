@@ -7,7 +7,7 @@ import { getCarById, updateCar } from "../../../src/API/carsService";
 
 
 const COLORS = [
-  "#E8192C", "#212121", "#FFFFFF", "#9E9E9E", "#1565C0", 
+  "#E8192C", "#212121", "#FFFFFF", "#9E9E9E", "#1565C0",
   "#2E7D32", "#F9A825", "#5D4037", "#FF7043"
 ];
 const FUELS = ["Petrol", "Diesel", "Hybrid", "Electric", "LPG"];
@@ -45,21 +45,21 @@ export default function EditCarPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (carId) {
-      getCarById(carId)
-        .then((response) => {
-          setFormData(response.data);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Error fetching car:", error);
-          alert("Car not found");
-          router.push("/cars");
-        });
-    }
-  }, [carId, router]);
+    // هنقرا بيانات العربية اللي خزناها في صفحة الستة علطول
+    const savedCar = localStorage.getItem("selectedCar");
 
- 
+    if (savedCar) {
+      const carData = JSON.parse(savedCar);
+      setFormData(carData);
+      setIsLoading(false);
+    } else {
+      // لو ملهاش داتا متسجلة نرجع لصفحة العربيات
+      alert("No car data found");
+      router.push("/cars");
+    }
+  }, [router]);
+
+
   const handleInputChange = (field, value) => {
     setFormData((prevData) => ({
       ...prevData,
@@ -67,55 +67,55 @@ export default function EditCarPage() {
     }));
     setHasUnsavedChanges(true);
   };
-  
+
   const handleSaveChanges = async () => {
     try {
- 
+
       const payload = {
         licensePlate: formData.licensePlate,
         mileage: parseInt(formData.mileage, 10),
         color: formData.color,
         isPrimary: formData.isPrimary
       };
-      
-      await updateCar(carId, payload);
-      
+
+      await updateCar(formData.vin, payload);
+
       setIsSaved(true);
       setTimeout(() => {
         router.push("/cars");
       }, 1800);
-      
+
     } catch (error) {
       alert(`Failed to update car: ${error.message}`);
     }
   };
 
 
-  const inputStyles = { 
-    width: "100%", 
-    padding: "11px 14px", 
-    borderRadius: "10px", 
-    border: "1.5px solid #E0E0E0", 
-    fontSize: "14px", 
-    outline: "none", 
-    boxSizing: "border-box", 
-    fontFamily: "inherit", 
-    transition: "border-color .18s" 
+  const inputStyles = {
+    width: "100%",
+    padding: "11px 14px",
+    borderRadius: "10px",
+    border: "1.5px solid #E0E0E0",
+    fontSize: "14px",
+    outline: "none",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+    transition: "border-color .18s"
   };
-  
-  const readOnlyInputStyles = { 
-    ...inputStyles, 
-    background: "#f9f9f9", 
-    color: "#888", 
-    cursor: "not-allowed" 
+
+  const readOnlyInputStyles = {
+    ...inputStyles,
+    background: "#f9f9f9",
+    color: "#888",
+    cursor: "not-allowed"
   };
-  
-  const labelStyles = { 
-    fontSize: "13px", 
-    fontWeight: "700", 
-    color: "#424242", 
-    display: "block", 
-    marginBottom: "6px" 
+
+  const labelStyles = {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#424242",
+    display: "block",
+    marginBottom: "6px"
   };
 
 
@@ -149,7 +149,7 @@ export default function EditCarPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F7F8FA", fontFamily: "'Segoe UI', sans-serif" }}>
-      
+
 
       <nav style={{ background: "#fff", borderBottom: "2px solid #E8192C", padding: "0 32px", height: "60px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 8px rgba(232,25,44,.08)" }}>
         <span style={{ fontSize: "20px", fontWeight: "900", color: "#E8192C" }}>
@@ -162,13 +162,13 @@ export default function EditCarPage() {
 
       <div style={{ maxWidth: "640px", margin: "0 auto", padding: "36px 24px" }}>
         <div style={{ fontSize: "24px", fontWeight: "900", marginBottom: "4px" }}>
-          Edit Car 
+          Edit Car
         </div>
         <div style={{ fontSize: "14px", color: "#9E9E9E", marginBottom: "28px" }}>
           Update your vehicle information
         </div>
 
- 
+
         <div style={{ background: "linear-gradient(135deg,#FFF0F1,#FFF8F8)", borderRadius: "16px", padding: "24px", textAlign: "center", marginBottom: "24px", border: "1.5px solid #FFCDD0" }}>
           <CarSVG color={formData.color} size={160} />
           <div style={{ fontSize: "18px", fontWeight: "800", marginTop: "8px", color: "#212121" }}>
@@ -186,27 +186,27 @@ export default function EditCarPage() {
 
 
         <div style={{ background: "#fff", borderRadius: "16px", padding: "28px", boxShadow: "0 2px 16px rgba(0,0,0,.06)", border: "1.5px solid #f0f0f0", marginBottom: "16px" }}>
-          
+
           <div style={{ fontSize: "16px", fontWeight: "800", marginBottom: "18px", color: "#212121", borderBottom: "1px solid #F0F0F0", paddingBottom: "12px" }}>
-             Editable Info
+            Editable Info
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "20px" }}>
             <div>
               <label style={labelStyles}>License Plate</label>
-              <input 
-                style={inputStyles} 
-                value={formData.licensePlate} 
-                onChange={(e) => handleInputChange("licensePlate", e.target.value.toUpperCase())} 
+              <input
+                style={inputStyles}
+                value={formData.licensePlate}
+                onChange={(e) => handleInputChange("licensePlate", e.target.value.toUpperCase())}
               />
             </div>
             <div>
               <label style={labelStyles}>Mileage (km)</label>
-              <input 
-                style={inputStyles} 
-                type="number" 
-                value={formData.mileage} 
-                onChange={(e) => handleInputChange("mileage", e.target.value)} 
+              <input
+                style={inputStyles}
+                type="number"
+                value={formData.mileage}
+                onChange={(e) => handleInputChange("mileage", e.target.value)}
               />
             </div>
           </div>
@@ -215,16 +215,16 @@ export default function EditCarPage() {
             <label style={labelStyles}>Car Color</label>
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
               {COLORS.map((colorCode) => (
-                <div 
-                  key={colorCode} 
-                  onClick={() => handleInputChange("color", colorCode)} 
-                  style={{ 
-                    width: "34px", height: "34px", borderRadius: "50%", 
-                    background: colorCode, 
-                    border: formData.color === colorCode ? "3px solid #E8192C" : "2px solid #E0E0E0", 
-                    cursor: "pointer", 
-                    boxShadow: formData.color === colorCode ? "0 0 0 3px rgba(232,25,44,.2)" : "none", 
-                    transition: "all .18s" 
+                <div
+                  key={colorCode}
+                  onClick={() => handleInputChange("color", colorCode)}
+                  style={{
+                    width: "34px", height: "34px", borderRadius: "50%",
+                    background: colorCode,
+                    border: formData.color === colorCode ? "3px solid #E8192C" : "2px solid #E0E0E0",
+                    cursor: "pointer",
+                    boxShadow: formData.color === colorCode ? "0 0 0 3px rgba(232,25,44,.2)" : "none",
+                    transition: "all .18s"
                   }}
                 />
               ))}
@@ -232,9 +232,9 @@ export default function EditCarPage() {
           </div>
 
           <div style={{ fontSize: "16px", fontWeight: "800", marginBottom: "18px", color: "#212121", borderBottom: "1px solid #F0F0F0", paddingBottom: "12px", marginTop: "30px" }}>
-              Read-Only Specs
+            Read-Only Specs
           </div>
-          
+
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
             <div>
               <label style={labelStyles}>Make</label>
@@ -265,18 +265,18 @@ export default function EditCarPage() {
 
 
         <div style={{ display: "flex", gap: "12px" }}>
-          <Link 
-            href="/cars" 
+          <Link
+            href="/cars"
             style={{ flex: 1, padding: "13px", background: "#F0F0F0", color: "#424242", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: "pointer", textAlign: "center", textDecoration: "none", display: "block" }}
           >
             Cancel
           </Link>
-          <button 
-            onClick={handleSaveChanges} 
+          <button
+            onClick={handleSaveChanges}
             disabled={!hasUnsavedChanges}
-            style={{ flex: 2, padding: "13px", background: "#E8192C", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 16px rgba(232,25,44,.25)", opacity: hasUnsavedChanges ? 1 : 0.5 }} 
+            style={{ flex: 2, padding: "13px", background: "#E8192C", color: "#fff", border: "none", borderRadius: "10px", fontSize: "15px", fontWeight: "700", cursor: "pointer", boxShadow: "0 4px 16px rgba(232,25,44,.25)", opacity: hasUnsavedChanges ? 1 : 0.5 }}
           >
-             Save Changes
+            Save Changes
           </button>
         </div>
       </div>
