@@ -1,4 +1,5 @@
-﻿using Autoria.features.Booking.Entities;
+﻿using System.Reflection.Emit;
+using Autoria.features.Booking.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -25,5 +26,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
             .WithOne(ts => ts.Booking)
             .HasForeignKey<Booking>(b => b.TimeSlotId)
             .OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(b => b.ServiceType)
+            .WithMany()
+            .HasForeignKey(b => b.ServiceTypeId);
     }
 }
