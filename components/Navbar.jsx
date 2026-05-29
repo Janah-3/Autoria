@@ -10,6 +10,18 @@ const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 export default function Navbar({ user: initialUser }) {
   const [user, setUser] = useState(initialUser || null);
   const [dashboardUrl, setDashboardUrl] = useState("/user-dashboard");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const toggleDropdown = (e) => {
+    e.stopPropagation();
+    setDropdownOpen(prev => !prev);
+  };
+
+  useEffect(() => {
+    const closeDropdown = () => setDropdownOpen(false);
+    window.addEventListener("click", closeDropdown);
+    return () => window.removeEventListener("click", closeDropdown);
+  }, []);
 
   useEffect(() => {
     const cachedToken = localStorage.getItem("token");
@@ -59,6 +71,65 @@ export default function Navbar({ user: initialUser }) {
         .btn-hover { transition: all 0.2s ease; }
         .btn-hover:hover { transform: scale(1.04); filter: brightness(1.1); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .btn-hover:active { transform: scale(0.96); }
+        .profile-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          background: #ffffff;
+          border-radius: 10px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+          border: 1.5px solid #f0f0f0;
+          min-width: 160px;
+          overflow: hidden;
+          opacity: 0;
+          transform: translateY(-8px) scale(0.96);
+          transform-origin: top right;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          pointer-events: none;
+          z-index: 1000;
+        }
+        .profile-dropdown.open {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          pointer-events: auto;
+        }
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 16px;
+          color: #333;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          cursor: pointer;
+          transition: background 0.15s ease, color 0.15s ease;
+        }
+        .dropdown-item:hover {
+          background: #f7f8fa;
+        }
+        .dropdown-item.logout {
+          color: #E8272A;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .dropdown-item.logout:hover {
+          background: #fff5f5;
+        }
+        .dropdown-item.logout .logout-arrow {
+          transition: transform 0.2s ease;
+          font-weight: 900;
+        }
+        .dropdown-item.logout:hover .logout-arrow {
+          transform: translateX(4px);
+        }
+        .chevron-icon {
+          transition: transform 0.2s ease;
+        }
+        .chevron-icon.open {
+          transform: rotate(180deg);
+        }
       `}</style>
 
       <nav style={{ 
@@ -114,8 +185,12 @@ export default function Navbar({ user: initialUser }) {
           </Link>
 
           {user ? (
-            <Link href={dashboardUrl} style={{ textDecoration: "none", color: "inherit" }}>
-              <div className="btn-hover" style={{ ...row(10), cursor: "pointer" }}>
+            <div style={{ position: "relative" }}>
+              <div 
+                className="btn-hover" 
+                onClick={toggleDropdown}
+                style={{ ...row(8), cursor: "pointer", userSelect: "none" }}
+              >
                 <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{user.name}</span>
                 <div style={{ 
                   width: 32, 
@@ -131,8 +206,17 @@ export default function Navbar({ user: initialUser }) {
                 }}>
                   {user.name?.[0].toUpperCase() || "U"}
                 </div>
+                <span className={`chevron-icon ${dropdownOpen ? "open" : ""}`} style={{ color: "#fff", fontSize: 10, display: "inline-block" }}>
+                  ▼
+                </span>
               </div>
-            </Link>
+
+              <div className={`profile-dropdown ${dropdownOpen ? "open" : ""}`}>
+                <Link href="/logout" className="dropdown-item logout">
+                  Log Out <span className="logout-arrow">→</span>
+                </Link>
+              </div>
+            </div>
           ) : (
             <div style={row(8)}>
               <Link href="/login" style={{ textDecoration: "none" }}>

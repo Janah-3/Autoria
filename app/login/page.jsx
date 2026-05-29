@@ -36,7 +36,7 @@ function LoginView() {
         (typeof window !== "undefined" ? localStorage.getItem("userRole") : null);
 
       if (role === "Admin") {
-        window.location.href = "/admin-dashboard";
+        window.location.href = "/admin";
       } else if (role === "ServiceCenter" || role === "Center") {
         window.location.href = "/booking-requests";
       } else {

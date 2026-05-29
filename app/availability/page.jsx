@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { serviceCentersService } from "@/lib/api/serviceCentersService";import { getMe } from "@/lib/api/usersService";
+import { serviceCentersService } from "@/lib/api/serviceCentersService";
+import { getMe } from "@/lib/api/usersService";
+import { bookingsService } from "@/lib/api/bookingsService";
 
 
 const COLORS = {
@@ -91,6 +93,42 @@ export default function AvailabilityPage() {
   const [selectedDate, setSelectedDate] = useState("Monday 16 March");
   const [centerName, setCenterName] = useState("AutoCare Nasr City");
   const [ownerName, setOwnerName] = useState("Nada Hany");
+  const [centerId, setCenterId] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [blockForm, setBlockForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    startTime: "09:00",
+    endTime: "10:00"
+  });
+
+  const handleBlockSlot = async () => {
+    if (!centerId) {
+      alert("Error: Service Center ID not loaded. Please try again.");
+      return;
+    }
+
+    try {
+      const response = await bookingsService.addAvailableSlot({
+        serviceCenterId: centerId,
+        date: blockForm.date,
+        startTime: blockForm.startTime,
+        endTime: blockForm.endTime
+      });
+
+      if (response?.success || response?.message === "Success") {
+        alert("Slot blocked successfully!");
+        setIsModalOpen(false);
+        setTimeSlots(prev => [
+          ...prev,
+          { time: `${blockForm.startTime} - ${blockForm.endTime}`, status: "blocked" }
+        ]);
+      } else {
+        alert(response?.message || "Failed to block slot. Slot might already be booked or blocked.");
+      }
+    } catch (err) {
+      alert("Error blocking slot: " + err.message);
+    }
+  };
 
   useEffect(() => {
 
@@ -120,10 +158,20 @@ export default function AvailabilityPage() {
 
     serviceCentersService.getMy()
       .then(res => {
+        console.log("=== getMy API Response ===", res);
         const d = res?.data ?? res;
         if (d) {
           const name = d.name ?? d.Name;
           if (name) setCenterName(name);
+          
+          // Robust ID fallbacks to match any backend variation
+          const cid = d.id ?? d.Id ?? d.serviceCenterId ?? d.ServiceCenterId ?? d.centerId ?? d.CenterId;
+          if (cid) {
+            setCenterId(cid);
+            console.log("=== setCenterId Success ===", cid);
+          } else {
+            console.warn("=== Could not find ID in response ===", d);
+          }
           
           const rawHours = d.operatingHours ?? d.OperatingHours;
           if (rawHours && rawHours.length) {
@@ -136,7 +184,9 @@ export default function AvailabilityPage() {
           }
         }
       })
-      .catch(() => {});
+      .catch(err => {
+        console.error("=== getMy API Error ===", err);
+      });
   }, []);
 
   const handleToggleDay = (day) => {
@@ -215,10 +265,79 @@ export default function AvailabilityPage() {
                   </div>
                 ))}
               </div>
-              <button style={{ width: "100%", background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", fontWeight: 700, marginTop: "25px" }}>+ Block a date or range</button>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                style={{ width: "100%", background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", fontWeight: 700, marginTop: "25px", cursor: "pointer" }}
+              >
+                + Block a date or range
+              </button>
             </div>
 
           </div>
+
+          {isModalOpen && (
+            <div style={{
+              position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+              zIndex: 1000, backdropFilter: "blur(4px)"
+            }}>
+              <div style={{
+                background: COLORS.surface, borderRadius: "20px", padding: "30px", width: "400px",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.2)", border: `1px solid ${COLORS.border}`,
+                position: "relative", color: COLORS.text
+              }}>
+                <h3 style={{ fontSize: "18px", fontWeight: 800, marginBottom: "20px" }}>Block a Time Slot</h3>
+                
+                <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>DATE</label>
+                    <input 
+                      type="date" 
+                      value={blockForm.date} 
+                      onChange={(e) => setBlockForm(prev => ({ ...prev, date: e.target.value }))}
+                      style={{ padding: "10px", borderRadius: "10px", border: `1px solid ${COLORS.border}`, fontSize: "14px", fontFamily: "inherit" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>START TIME</label>
+                      <input 
+                        type="time" 
+                        value={blockForm.startTime} 
+                        onChange={(e) => setBlockForm(prev => ({ ...prev, startTime: e.target.value }))}
+                        style={{ padding: "10px", borderRadius: "10px", border: `1px solid ${COLORS.border}`, fontSize: "14px", fontFamily: "inherit" }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>END TIME</label>
+                      <input 
+                        type="time" 
+                        value={blockForm.endTime} 
+                        onChange={(e) => setBlockForm(prev => ({ ...prev, endTime: e.target.value }))}
+                        style={{ padding: "10px", borderRadius: "10px", border: `1px solid ${COLORS.border}`, fontSize: "14px", fontFamily: "inherit" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "15px", marginTop: "30px" }}>
+                  <button 
+                    onClick={() => setIsModalOpen(false)}
+                    style={{ flex: 1, background: "#F1F3F5", border: "none", padding: "12px", borderRadius: "10px", fontWeight: 700, cursor: "pointer", color: COLORS.textLight }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleBlockSlot}
+                    style={{ flex: 1, background: COLORS.primary, border: "none", padding: "12px", borderRadius: "10px", fontWeight: 700, cursor: "pointer", color: "#FFF" }}
+                  >
+                    Block Slot
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{ background: COLORS.surface, padding: "30px", borderRadius: "20px", border: `1px solid ${COLORS.border}` }}>
             <h3 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "25px" }}>Time slots — {selectedDate}</h3>

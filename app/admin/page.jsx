@@ -7,6 +7,7 @@ import AdminSidebar from "@/components/admin/AdminSidebar";
 import userService from "@/lib/userService";
 import { adminService } from "@/lib/api/adminService";
 import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
+import { sparePartsService } from "@/lib/sparePartsService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -51,6 +52,27 @@ export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
+
+  const [sparePartsList, setSparePartsList] = useState([]);
+  const [sparePartsLoading, setSparePartsLoading] = useState(false);
+  const [sparePartsError, setSparePartsError] = useState("");
+  const [sparePartsSearch, setSparePartsSearch] = useState("");
+  const [sparePartsCategoryFilter, setSparePartsCategoryFilter] = useState("");
+  const [sparePartsIncludeInactive, setSparePartsIncludeInactive] = useState(true);
+  
+  const [showAddPartModal, setShowAddPartModal] = useState(false);
+  const [newPartData, setNewPartData] = useState({
+    name: "",
+    category: "Brake Pads",
+    brand: "",
+    model: "",
+    productionDate: "",
+    partNumber: "",
+    countryOfOrigin: "",
+    manufacturer: "",
+    description: "",
+    imageUrls: [""]
+  });
 
   useEffect(() => {
     userService.getCurrentUser()
@@ -195,6 +217,8 @@ export default function AdminDashboard() {
     if (!confirm("Are you sure you want to ban this user?")) return;
     userService.banUser(userId)
       .then(() => {
+    
+        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, is_Banned: true } : u));
         fetchUsers();
       })
       .catch((err) => {
@@ -206,6 +230,8 @@ export default function AdminDashboard() {
     if (!confirm("Are you sure you want to unban this user?")) return;
     userService.unbanUser(userId)
       .then(() => {
+        // Optimistically update local state to show active status immediately
+        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, is_Banned: false } : u));
         fetchUsers();
       })
       .catch((err) => {
@@ -222,6 +248,80 @@ export default function AdminDashboard() {
       .catch((err) => {
         alert(err.message || "Failed to delete user");
       });
+  };
+
+  const fetchSpareParts = () => {
+    if (!currentUser || currentUser.role !== "Admin") return;
+    setSparePartsLoading(true);
+    setSparePartsError("");
+
+    sparePartsService.getAdminSpareParts({
+      q: sparePartsSearch,
+      category: sparePartsCategoryFilter || undefined,
+      includeInactive: sparePartsIncludeInactive
+    })
+      .then((res) => {
+        const items = res?.items ?? res ?? [];
+        setSparePartsList(items);
+      })
+      .catch((err) => {
+        setSparePartsError(err.message || "Failed to fetch spare parts catalog");
+      })
+      .finally(() => {
+        setSparePartsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "Admin" && activeTab === "Spare Parts") {
+      fetchSpareParts();
+    }
+  }, [currentUser, activeTab, sparePartsSearch, sparePartsCategoryFilter, sparePartsIncludeInactive]);
+
+  const handleAddSparePart = async (e) => {
+    e.preventDefault();
+    if (!newPartData.name || !newPartData.brand || !newPartData.model || !newPartData.productionDate || !newPartData.partNumber || !newPartData.countryOfOrigin || !newPartData.manufacturer || !newPartData.description) {
+      alert("Please fill all required fields");
+      return;
+    }
+    try {
+      const cleanedUrls = newPartData.imageUrls.filter(url => url.trim() !== "");
+      
+      const payload = {
+        ...newPartData,
+        imageUrls: cleanedUrls.length > 0 ? cleanedUrls : ["https://www.carparts.com/details/brake-pad-set/bosch/bsbp934"]
+      };
+
+      await sparePartsService.addSparePart(payload);
+      alert("Spare part added successfully to catalog!");
+      setShowAddPartModal(false);
+      setNewPartData({
+        name: "",
+        category: "Brake Pads",
+        brand: "",
+        model: "",
+        productionDate: "",
+        partNumber: "",
+        countryOfOrigin: "",
+        manufacturer: "",
+        description: "",
+        imageUrls: [""]
+      });
+      fetchSpareParts();
+    } catch (err) {
+      alert("Failed to add spare part: " + err.message);
+    }
+  };
+
+  const handleDeleteSparePart = async (id, name) => {
+    if (!confirm(`Are you sure you want to permanently delete ${name} from the global catalog?`)) return;
+    try {
+      await sparePartsService.deleteSparePart(id);
+      alert("Spare part deleted successfully!");
+      fetchSpareParts();
+    } catch (err) {
+      alert("Failed to delete spare part: " + err.message);
+    }
   };
 
   
@@ -254,7 +354,7 @@ export default function AdminDashboard() {
         .back-link { transition: background 0.2s ease; }
         .back-link:hover { background: #f5f5f5 !important; }
       `}</style>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reviews: reviewsData.length, reports: reportsData.length, featured: featuredData.length, users: usersList.length }} colors={COLORS} />
+      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reviews: reviewsData.length, reports: reportsData.length, featured: featuredData.length, users: usersList.length, spareParts: sparePartsList.length }} colors={COLORS} />
 
       <main style={{ flex: 1, padding: "40px", maxWidth: "1600px" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
@@ -818,8 +918,347 @@ export default function AdminDashboard() {
                   </tbody>
                 </table>
               )}
-            </div>
           </div>
+        </div>
+      )}
+
+        {/* Spare Parts Catalog Management View */}
+        {activeTab === "Spare Parts" && (
+           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+               <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>View, update, add, or delete genuine parts inside the platform global catalog.</p>
+               <button 
+                 onClick={() => setShowAddPartModal(true)}
+                 style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
+               >
+                 <span>+</span> Add Spare Part
+               </button>
+             </div>
+
+             {/* Metrics row */}
+             <div style={{ display: "flex", gap: "20px" }}>
+               <StatCard label="Total Catalog Parts" value={sparePartsList.length.toString()} trend="Platform items" trendUp />
+               <StatCard label="Unique Categories" value={new Set(sparePartsList.map(p => p.category)).size.toString()} trend="Different types" />
+               <StatCard label="Unassigned Parts" value={sparePartsList.filter(p => p.totalAvailableCenters === 0).length.toString()} trend="No center offers them" />
+               <StatCard label="Active Status" value="Healthy" trend="100% working API" trendUp />
+             </div>
+
+             {/* Search and Filters panel */}
+             <div style={{ display: "flex", gap: "12px", background: COLORS.white, padding: "16px", borderRadius: "12px", border: `1px solid ${COLORS.border}`, alignItems: "center", flexWrap: "wrap" }}>
+               <div style={{ flex: 1, minWidth: "200px" }}>
+                 <input 
+                   type="text"
+                   placeholder="Search parts by name, SKU, serial, brand or model..." 
+                   value={sparePartsSearch}
+                   onChange={(e) => setSparePartsSearch(e.target.value)}
+                   style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px" }} 
+                 />
+               </div>
+
+               <div style={{ minWidth: "180px" }}>
+                 <select 
+                   value={sparePartsCategoryFilter}
+                   onChange={(e) => setSparePartsCategoryFilter(e.target.value)}
+                   style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px", background: "#fff" }}
+                 >
+                   <option value="">All Categories</option>
+                   <option value="Brake Pads">Brake Pads</option>
+                   <option value="Engine Parts">Engine Parts</option>
+                   <option value="Filters">Filters</option>
+                   <option value="Electrical">Electrical</option>
+                   <option value="Suspension">Suspension</option>
+                   <option value="Exhaust">Exhaust</option>
+                 </select>
+               </div>
+
+               <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "0 8px" }}>
+                 <label style={{ fontSize: "13px", fontWeight: 700, color: COLORS.textLight, cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
+                   <input 
+                     type="checkbox"
+                     checked={sparePartsIncludeInactive}
+                     onChange={(e) => setSparePartsIncludeInactive(e.target.checked)}
+                     style={{ width: "16px", height: "16px", accentColor: COLORS.primary }}
+                   />
+                   Include Inactive
+                 </label>
+               </div>
+             </div>
+
+             {/* Error notification */}
+             {sparePartsError && (
+               <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
+                 ⚠️ Error: {sparePartsError}
+               </div>
+             )}
+
+             {/* Catalog Table */}
+             <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden", boxShadow: SHADOW }}>
+               {sparePartsLoading ? (
+                 <div style={{ padding: "60px", textAlign: "center" }}>
+                   <div style={{ width: 30, height: 30, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 16px" }} />
+                   <div style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading catalog...</div>
+                 </div>
+               ) : (
+                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                   <thead style={{ background: COLORS.bg }}>
+                     <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
+                       <th style={{ padding: "16px 24px" }}>PART DETAILS</th>
+                       <th style={{ padding: "16px 24px" }}>CATEGORY</th>
+                       <th style={{ padding: "16px 24px" }}>PART NUMBER / SKU</th>
+                       <th style={{ padding: "16px 24px" }}>ORIGIN & BRAND</th>
+                       <th style={{ padding: "16px 24px" }}>AVAILABILITY</th>
+                       <th style={{ padding: "16px 24px" }}>ACTIONS</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     {sparePartsList.map(part => (
+                       <tr key={part.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                         <td style={{ padding: "18px 24px", display: "flex", alignItems: "center", gap: "12px" }}>
+                           <div style={{ width: "40px", height: "40px", borderRadius: "8px", background: COLORS.bg, border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                             {part.thumbnailUrl ? (
+                               <img src={part.thumbnailUrl} alt={part.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                             ) : (
+                               <span style={{ fontSize: "18px" }}>📦</span>
+                             )}
+                           </div>
+                           <div>
+                             <div style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{part.name}</div>
+                             <div style={{ fontSize: "11px", color: COLORS.textLight }}>Model: {part.model}</div>
+                           </div>
+                         </td>
+                         <td style={{ padding: "18px 24px" }}>
+                           <span style={{ background: "#F1F5F9", color: "#475569", fontSize: "11px", fontWeight: 800, padding: "4px 8px", borderRadius: "4px" }}>{part.category}</span>
+                         </td>
+                         <td style={{ padding: "18px 24px", fontSize: "13px", fontWeight: 600, fontFamily: "monospace" }}>{part.partNumber || "—"}</td>
+                         <td style={{ padding: "18px 24px" }}>
+                           <div style={{ fontSize: "13px", fontWeight: 700 }}>{part.brand}</div>
+                           <div style={{ fontSize: "11px", color: COLORS.textLight }}>Made in {part.countryOfOrigin || "Germany"}</div>
+                         </td>
+                         <td style={{ padding: "18px 24px" }}>
+                           <span style={{ color: part.totalAvailableCenters > 0 ? COLORS.success : COLORS.primary, fontWeight: 700, fontSize: "12px" }}>
+                             {part.totalAvailableCenters > 0 ? `✓ Available at ${part.totalAvailableCenters} centers` : "✗ No centers offering this part"}
+                           </span>
+                         </td>
+                         <td style={{ padding: "18px 24px" }}>
+                           <button 
+                             onClick={() => handleDeleteSparePart(part.id, part.name)}
+                             className="admin-btn"
+                             style={{ background: "#FFF1F1", color: COLORS.primary, border: `1px solid #FFDCDC`, padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, cursor: "pointer" }}
+                           >
+                             Delete Part
+                           </button>
+                         </td>
+                       </tr>
+                     ))}
+                     {sparePartsList.length === 0 && (
+                       <tr>
+                         <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                           <div style={{ fontSize: "40px", marginBottom: "10px" }}>📦</div>
+                           <div style={{ fontWeight: 800 }}>No parts found in platform catalog</div>
+                           <div style={{ fontSize: "12px" }}>Create one by clicking the "Add Spare Part" button above.</div>
+                         </td>
+                       </tr>
+                     )}
+                   </tbody>
+                 </table>
+               )}
+             </div>
+
+             {/* Add Spare Part Modal Overlay */}
+             {showAddPartModal && (
+               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+                 <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "700px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+                     <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>Add New Catalog Spare Part</h3>
+                     <button 
+                       onClick={() => setShowAddPartModal(false)}
+                       style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+                     >
+                       ✕
+                     </button>
+                   </div>
+                   
+                   <form onSubmit={handleAddSparePart} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Part Name / Model</label>
+                         <input 
+                           type="text"
+                           value={newPartData.name}
+                           onChange={(e) => setNewPartData({ ...newPartData, name: e.target.value })}
+                           placeholder="e.g. QuietCast Rear Brake Pad"
+                           required
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                         />
+                       </div>
+
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Category</label>
+                         <select
+                           value={newPartData.category}
+                           onChange={(e) => setNewPartData({ ...newPartData, category: e.target.value })}
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", background: "#fff" }}
+                         >
+                           <option value="Brake Pads">Brake Pads</option>
+                           <option value="Engine Parts">Engine Parts</option>
+                           <option value="Filters">Filters</option>
+                           <option value="Electrical">Electrical</option>
+                           <option value="Suspension">Suspension</option>
+                           <option value="Exhaust">Exhaust</option>
+                         </select>
+                       </div>
+                     </div>
+
+                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Brand</label>
+                         <input 
+                           type="text"
+                           value={newPartData.brand}
+                           onChange={(e) => setNewPartData({ ...newPartData, brand: e.target.value })}
+                           placeholder="e.g. Bosch"
+                           required
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                         />
+                       </div>
+
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Vehicle Model Code</label>
+                         <input 
+                           type="text"
+                           value={newPartData.model}
+                           onChange={(e) => setNewPartData({ ...newPartData, model: e.target.value })}
+                           placeholder="e.g. BP934 / Corolla"
+                           required
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                         />
+                       </div>
+                     </div>
+
+                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Production Date</label>
+                         <input 
+                           type="date"
+                           value={newPartData.productionDate}
+                           onChange={(e) => setNewPartData({ ...newPartData, productionDate: e.target.value })}
+                           required
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                         />
+                       </div>
+
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Part SKU / Serial Number</label>
+                         <input 
+                           type="text"
+                           value={newPartData.partNumber}
+                           onChange={(e) => setNewPartData({ ...newPartData, partNumber: e.target.value })}
+                           placeholder="e.g. BP934-SKU"
+                           required
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                         />
+                       </div>
+                     </div>
+
+                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Country of Origin</label>
+                         <input 
+                           type="text"
+                           value={newPartData.countryOfOrigin}
+                           onChange={(e) => setNewPartData({ ...newPartData, countryOfOrigin: e.target.value })}
+                           placeholder="e.g. Germany"
+                           required
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                         />
+                       </div>
+
+                       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                         <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Manufacturer</label>
+                         <input 
+                           type="text"
+                           value={newPartData.manufacturer}
+                           onChange={(e) => setNewPartData({ ...newPartData, manufacturer: e.target.value })}
+                           placeholder="e.g. Robert Bosch GmbH"
+                           required
+                           style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                         />
+                       </div>
+                     </div>
+
+                     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                       <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Part Description</label>
+                       <textarea 
+                         value={newPartData.description}
+                         onChange={(e) => setNewPartData({ ...newPartData, description: e.target.value })}
+                         placeholder="Describe technical specs, compatibility, and fitment..."
+                         required
+                         rows="3"
+                         style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", fontFamily: "inherit" }}
+                       />
+                     </div>
+
+                     {/* Image URLs input list */}
+                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                       <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight, display: "flex", justifyContent: "space-between" }}>
+                         <span>Part Image URLs</span>
+                         <button 
+                           type="button" 
+                           onClick={() => setNewPartData({ ...newPartData, imageUrls: [...newPartData.imageUrls, ""] })}
+                           style={{ background: "none", border: "none", color: COLORS.primary, fontSize: "11px", fontWeight: 800, cursor: "pointer" }}
+                         >
+                           + Add Another URL
+                         </button>
+                       </label>
+                       {newPartData.imageUrls.map((url, idx) => (
+                         <div key={idx} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                           <input 
+                             type="url"
+                             value={url}
+                             onChange={(e) => {
+                               const updated = [...newPartData.imageUrls];
+                               updated[idx] = e.target.value;
+                               setNewPartData({ ...newPartData, imageUrls: updated });
+                             }}
+                             placeholder="https://example.com/image.jpg"
+                             style={{ flex: 1, padding: "9px 12px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13px" }}
+                           />
+                           {newPartData.imageUrls.length > 1 && (
+                             <button 
+                               type="button"
+                               onClick={() => {
+                                 const updated = newPartData.imageUrls.filter((_, i) => i !== idx);
+                                 setNewPartData({ ...newPartData, imageUrls: updated });
+                               }}
+                               style={{ background: "#FEE2E2", border: "none", color: COLORS.primary, width: "32px", height: "32px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px" }}
+                             >
+                               ✕
+                             </button>
+                           )}
+                         </div>
+                       ))}
+                     </div>
+
+                     <div style={{ display: "flex", gap: "12px", marginTop: "16px", borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px", justifyContent: "flex-end" }}>
+                       <button 
+                         type="button" 
+                         onClick={() => setShowAddPartModal(false)}
+                         style={{ background: "#F3F4F6", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", color: COLORS.textLight, cursor: "pointer" }}
+                       >
+                         Cancel
+                       </button>
+                       <button 
+                         type="submit" 
+                         style={{ background: "#10B981", color: "#fff", border: "none", padding: "10px 24px", borderRadius: "8px", fontWeight: 800, fontSize: "13px", cursor: "pointer" }}
+                       >
+                         Save Part Catalog
+                       </button>
+                     </div>
+                   </form>
+                 </div>
+               </div>
+             )}
+           </div>
         )}
       </main>
     </div>
