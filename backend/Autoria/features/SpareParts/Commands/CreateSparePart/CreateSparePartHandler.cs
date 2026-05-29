@@ -41,6 +41,7 @@ namespace Autoria.features.SpareParts.Commands.CreateSparePart
                 CountryOfOrigin = request.CountryOfOrigin,
                 Manufacturer = request.Manufacturer,
                 Description = request.Description,
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 Images = request.ImageUrls.Select(url => new SparePartImage
                 {

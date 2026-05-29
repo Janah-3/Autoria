@@ -55,6 +55,7 @@ namespace Autoria.features.Notifications.Services
             NotificationType.BookingCompleted => "Your booking has been completed",
             NotificationType.BookingRescheduled => "Your booking has been rescheduled",
             NotificationType.BookingPending => "Your booking is pending confirmation",
+            NotificationType.MaintenanceReminder => "Maintenance reminder for your vehicle",
             _ => "Autoria Notification"
         };
 

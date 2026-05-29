@@ -6,6 +6,7 @@
         BookingCancelled,
         BookingCompleted,
         BookingRescheduled,
-        BookingPending
+        BookingPending,
+        MaintenanceReminder
     }
 }

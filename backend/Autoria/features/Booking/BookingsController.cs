@@ -1,4 +1,5 @@
-﻿using Autoria.features.Booking.Commands.BlockTimeSlot;
+﻿using Autoria.features.Booking.Commands.AddTimeSlot;
+using Autoria.features.Booking.Commands.BlockTimeSlot;
 using Autoria.features.Booking.Commands.CancelBooking;
 using Autoria.features.Booking.Commands.CompleteBooking;
 using Autoria.features.Booking.Commands.ConfirmBooking;
@@ -42,32 +43,47 @@ namespace Autoria.features.Booking
             return Ok(ApiResponse<List<TimeSlotDto>>.Ok(result));
         }
 
-        /// <summary>Block a time slot — service center owner only</summary>
-        [HttpPost("slots/block")]
-        public async Task<IActionResult> BlockTimeSlot([FromBody] BlockTimeSlotCommand command)
+        /// <summary>Add an available time slot — service center owner only</summary>
+        [HttpPost("slots")]
+        public async Task<IActionResult> AddTimeSlot([FromBody] AddTimeSlotRequest request)
         {
-            var slotId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetAvailableSlots), new { },
-                ApiResponse<Guid>.Ok(slotId, "Time slot blocked successfully."));
+            var slotId = await _mediator.Send(new AddTimeSlotCommand(
+                request.ServiceCenterId,
+                request.Date,
+                request.StartTime,
+                request.EndTime));
+            return Ok(ApiResponse<Guid>.Ok(slotId, "Time slot added successfully."));
         }
 
-        /// <summary>Unblock / delete a time slot — service center owner only</summary>
+        /// <summary>Block an existing time slot — service center owner only</summary>
+        [HttpPatch("slots/{slotId:guid}/block")]
+        public async Task<IActionResult> BlockTimeSlot(Guid slotId)
+        {
+            await _mediator.Send(new BlockTimeSlotCommand(slotId));
+            return Ok(ApiResponse<object>.Ok(null!, "Time slot blocked successfully."));
+        }
+
+        /// <summary>Delete a time slot — service center owner only</summary>
         [HttpDelete("slots/{slotId:guid}")]
-        public async Task<IActionResult> UnblockTimeSlot(Guid slotId)
+        public async Task<IActionResult> DeleteTimeSlot(Guid slotId)
         {
             await _mediator.Send(new UnblockTimeSlotCommand(slotId));
-            return Ok(ApiResponse<object>.Ok(null!, "Time slot unblocked successfully."));
+            return Ok(ApiResponse<object>.Ok(null!, "Time slot deleted successfully."));
         }
 
         // ── User Bookings ──────────────────────────────────────────────────────
 
-        /// <summary>Create a new booking by selecting a time slot</summary>
+        /// <summary>Create a new booking by selecting an available time slot</summary>
         [HttpPost]
-        public async Task<IActionResult> CreateBooking([FromBody] CreateBookingCommand command)
+        public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
         {
-            var bookingId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetBookingById), new { id = bookingId },
-                ApiResponse<Guid>.Ok(bookingId, "Booking created successfully."));
+            var bookingId = await _mediator.Send(new CreateBookingCommand(
+                request.CarId,
+                request.ServiceCenterId,
+                request.ServiceTypeId,
+                request.TimeSlotId,
+                request.Notes));
+            return Ok(ApiResponse<Guid>.Ok(bookingId, "Booking created successfully."));
         }
 
         /// <summary>Get current user's booking history with optional status filter</summary>
@@ -162,6 +178,8 @@ namespace Autoria.features.Booking
         }
     }
 
+    public record AddTimeSlotRequest(Guid ServiceCenterId, DateOnly Date, TimeOnly StartTime, TimeOnly EndTime);
+    public record CreateBookingRequest(Guid CarId, Guid ServiceCenterId, Guid ServiceTypeId, Guid TimeSlotId, string? Notes);
     public record CancelBookingRequest(string? CancellationReason);
     public record RescheduleBookingRequest(Guid NewTimeSlotId);
     public record CompleteBookingRequest(decimal? TotalPrice);

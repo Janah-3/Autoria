@@ -4,6 +4,7 @@ using Autoria.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 
@@ -12,9 +13,11 @@ using NetTopologySuite.Geometries;
 namespace Autoria.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260523202036_ContactUs_mileage")]
+    partial class ContactUs_mileage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,124 +25,6 @@ namespace Autoria.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("Autoria.Features.JobRequests.Entities.JobRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CancellationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid>("CarId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CarOwnerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LocationAddress")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid>("MechanicId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal?>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("ProblemDescription")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("ScheduledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CarId");
-
-                    b.HasIndex("CarOwnerId");
-
-                    b.HasIndex("MechanicId");
-
-                    b.ToTable("JOB_REQUESTS", (string)null);
-                });
-
-            modelBuilder.Entity("Autoria.Features.Mechanics.Entities.MechanicProfile", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ApprovalStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ApprovedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Point>("Location")
-                        .HasColumnType("geography");
-
-                    b.Property<string>("NationalIdUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ProfilePhotoUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<double>("Rating")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("float")
-                        .HasDefaultValue(0.0);
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<int>("YearsOfExperience")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("MECHANIC_PROFILES", (string)null);
-                });
 
             modelBuilder.Entity("Autoria.Infrastructure.Identity.entities.RefreshToken", b =>
                 {
@@ -678,8 +563,7 @@ namespace Autoria.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CancellationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("datetime2");
@@ -706,9 +590,8 @@ namespace Autoria.Migrations
                     b.Property<Guid>("SparePartId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
@@ -1079,6 +962,21 @@ namespace Autoria.Migrations
                     b.ToTable("ServiceCenterServiceTypes");
                 });
 
+            modelBuilder.Entity("Autoria.features.ServiceCenter.Entities.ServiceType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ServiceType");
+                });
+
             modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePart", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1154,36 +1052,6 @@ namespace Autoria.Migrations
                     b.HasIndex("SparePartId");
 
                     b.ToTable("SparePartImages");
-                });
-
-            modelBuilder.Entity("Autoria.shared.Entities.ServiceType", b =>
-                {
-                    b.Property<Guid>("ServiceTypeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("ServiceTypeId");
-
-                    b.ToTable("ServiceTypes");
-                });
-
-            modelBuilder.Entity("MechanicSpecialization", b =>
-                {
-                    b.Property<Guid>("MechanicProfileId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ServiceTypeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("MechanicProfileId", "ServiceTypeId");
-
-                    b.HasIndex("ServiceTypeId");
-
-                    b.ToTable("mechanicSpecializations");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1319,44 +1187,6 @@ namespace Autoria.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Autoria.Features.JobRequests.Entities.JobRequest", b =>
-                {
-                    b.HasOne("Autoria.features.Car.Entity.Car", "Car")
-                        .WithMany()
-                        .HasForeignKey("CarId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "CarOwner")
-                        .WithMany()
-                        .HasForeignKey("CarOwnerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.Features.Mechanics.Entities.MechanicProfile", "Mechanic")
-                        .WithMany()
-                        .HasForeignKey("MechanicId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Car");
-
-                    b.Navigation("CarOwner");
-
-                    b.Navigation("Mechanic");
-                });
-
-            modelBuilder.Entity("Autoria.Features.Mechanics.Entities.MechanicProfile", b =>
-                {
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
-                        .WithOne()
-                        .HasForeignKey("Autoria.Features.Mechanics.Entities.MechanicProfile", "UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Autoria.Infrastructure.Identity.entities.RefreshToken", b =>
                 {
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
@@ -1393,7 +1223,7 @@ namespace Autoria.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("Autoria.shared.Entities.ServiceType", "ServiceType")
+                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceType", "ServiceType")
                         .WithMany()
                         .HasForeignKey("ServiceTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1714,7 +1544,7 @@ namespace Autoria.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Autoria.shared.Entities.ServiceType", "ServiceType")
+                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceType", "ServiceType")
                         .WithMany()
                         .HasForeignKey("ServiceTypeId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1745,25 +1575,6 @@ namespace Autoria.Migrations
                         .IsRequired();
 
                     b.Navigation("SparePart");
-                });
-
-            modelBuilder.Entity("MechanicSpecialization", b =>
-                {
-                    b.HasOne("Autoria.Features.Mechanics.Entities.MechanicProfile", "MechanicProfile")
-                        .WithMany("Specializations")
-                        .HasForeignKey("MechanicProfileId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.shared.Entities.ServiceType", "ServiceType")
-                        .WithMany()
-                        .HasForeignKey("ServiceTypeId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("MechanicProfile");
-
-                    b.Navigation("ServiceType");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1815,11 +1626,6 @@ namespace Autoria.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Autoria.Features.Mechanics.Entities.MechanicProfile", b =>
-                {
-                    b.Navigation("Specializations");
                 });
 
             modelBuilder.Entity("Autoria.Infrastructure.Identity.entities.User", b =>

@@ -2,7 +2,9 @@
 using System.Reflection.Emit;
 using Autoria.features.Booking.Entities;
 using Autoria.features.Car.Entity;
+using Autoria.features.ContactUs.Entity;
 using Autoria.features.Inventory.Entities;
+using Autoria.features.MileageTracking.Entities;
 using Autoria.features.Notifications.Entities;
 using Autoria.features.PartReservations.Entities;
 using Autoria.features.Reports.Entity;
@@ -60,6 +62,8 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<MechanicProfile> MechanicProfiles { get; set; }
         public DbSet<MechanicSpecialization> mechanicSpecializations { get; set; }
         public DbSet<JobRequest> JobRequests { get; set; }
-
+        public DbSet<ContactMessage> ContactMessages { get; set; }
+        public DbSet<MileageEntry> MileageEntries { get; set; }
+        public DbSet<MaintenanceReminder> MaintenanceReminders { get; set; }
     }
 }

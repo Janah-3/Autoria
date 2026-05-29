@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Autoria.features.Booking.Commands.BlockTimeSlot
 {
-    public class BlockTimeSlotHandler : IRequestHandler<BlockTimeSlotCommand, Guid>
+    public class BlockTimeSlotHandler : IRequestHandler<BlockTimeSlotCommand>
     {
         private readonly AppDbContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -18,40 +18,29 @@ namespace Autoria.features.Booking.Commands.BlockTimeSlot
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<Guid> Handle(BlockTimeSlotCommand request, CancellationToken cancellationToken)
+        public async Task Handle(BlockTimeSlotCommand request, CancellationToken cancellationToken)
         {
             var userId = _httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? throw new UnauthorizedException("User not authenticated.");
 
-            var ownsCenter = await _db.ServiceCenters
-                .AnyAsync(sc => sc.Id == request.ServiceCenterId && sc.UserId == userId, cancellationToken);
-            if (!ownsCenter)
+            var slot = await _db.TimeSlots
+                .Include(ts => ts.ServiceCenter)
+                .FirstOrDefaultAsync(ts => ts.Id == request.TimeSlotId, cancellationToken)
+                ?? throw new NotFoundException("Time slot not found.");
+
+            if (slot.ServiceCenter.UserId != userId)
                 throw new ForbiddenException("You do not own this service center.");
 
-            var overlap = await _db.TimeSlots.AnyAsync(ts =>
-                ts.ServiceCenterId == request.ServiceCenterId &&
-                ts.Date == request.Date &&
-                ts.StartTime < request.EndTime &&
-                ts.EndTime > request.StartTime, cancellationToken);
+            if (slot.IsBooked)
+                throw new BadRequestException("Cannot block a slot that has an active booking.");
 
-            if (overlap)
-                throw new ConflictException("A time slot already exists in this time range.");
+            if (slot.IsBlocked)
+                throw new BadRequestException("Time slot is already blocked.");
 
-            var slot = new TimeSlot
-            {
-                Id = Guid.NewGuid(),
-                ServiceCenterId = request.ServiceCenterId,
-                Date = request.Date,
-                StartTime = request.StartTime,
-                EndTime = request.EndTime,
-                IsBlocked = true,
-                CreatedAt = DateTime.UtcNow
-            };
+            slot.IsBlocked = true;
 
-            _db.TimeSlots.Add(slot);
             await _db.SaveChangesAsync(cancellationToken);
-
-            return slot.Id;
         }
     }
+
 }

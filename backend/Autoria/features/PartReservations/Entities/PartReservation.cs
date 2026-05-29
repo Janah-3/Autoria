@@ -21,5 +21,6 @@ namespace Autoria.features.PartReservations.Entities
         public DateTime? CancelledAt { get; set; }
         public DateTime? PickedUpAt { get; set; }
         public string? CancellationReason { get; set; }
+        public decimal TotalPrice => Quantity * UnitPrice;
     }
 }
