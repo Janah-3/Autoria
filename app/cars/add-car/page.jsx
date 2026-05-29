@@ -46,6 +46,7 @@ export default function AddCarPage() {
     year: "",
     color: "#E8192C",
     plate: "",
+      vin: "",
     km: "",
     fuel: 0,
     transmission: 1,
@@ -88,6 +89,12 @@ export default function AddCarPage() {
     if (!formData.plate) errors.plate = "License plate is required";
     if (!formData.km) errors.km = "Mileage is required";
     
+      if (!formData.vin) errors.vin = "VIN is required";
+
+      if (formData.vin && formData.vin.length !== 17) {
+         errors.vin = "VIN must be 17 characters";
+        }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -112,7 +119,7 @@ export default function AddCarPage() {
         make: formData.brand,
         model: formData.model,
         year: parseInt(formData.year, 10),
-        vin: "UNKNOWN_VIN", 
+         vin: formData.vin || "UNKNOWN_VIN",
         licensePlate: formData.plate,
         mileage: parseInt(formData.km, 10),
         color: formData.color,
@@ -347,6 +354,18 @@ export default function AddCarPage() {
                 />
                 {validationErrors.km && <div style={errorTextStyles}>⚠ {validationErrors.km}</div>}
               </div>
+              <div style={{ marginBottom: "16px" }}>
+  <label style={labelStyles}>VIN Number</label>
+  <input
+    style={validationErrors.vin ? errorInputStyles : inputStyles}
+    placeholder="e.g. 1HGCM82633A004352"
+    value={formData.vin}
+    onChange={(e) => handleInputChange("vin", e.target.value.toUpperCase())}
+  />
+  {validationErrors.vin && (
+    <div style={errorTextStyles}>⚠ {validationErrors.vin}</div>
+  )}
+</div>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "24px" }}>

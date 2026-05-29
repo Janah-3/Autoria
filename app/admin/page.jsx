@@ -175,6 +175,7 @@ export default function AdminDashboard() {
       IsBanned: isBannedParam,
     })
       .then((users) => {
+         console.log("Fetched users:", users);
         setUsersList(users || []);
       })
       .catch((err) => {
@@ -183,6 +184,7 @@ export default function AdminDashboard() {
       .finally(() => {
         setUsersLoading(false);
       });
+     
   };
 
   useEffect(() => {

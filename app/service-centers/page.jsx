@@ -327,6 +327,7 @@ export default function ServiceCentersPage() {
       .getAll()
       .then((res) => {
         const items = getServiceCenterItems(res);
+        console.log(res);
         setCenters(items || []);
       })
       .catch((err) => {
