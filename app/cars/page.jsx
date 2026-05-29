@@ -69,7 +69,7 @@ const CarCard = ({ car, handleSetDefault }) => {
 
       <div className="car-actions">
         <Link
-          href="/cars/edit-car"
+          href={`/cars/edit-car?id=${car.id}`}
           onClick={() => localStorage.setItem("selectedCar", JSON.stringify(car))}
           className="btn-edit"
           style={{ textDecoration: 'none' }}
