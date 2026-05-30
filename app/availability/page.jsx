@@ -24,7 +24,7 @@ const Sidebar = ({ active }) => (
     <div style={{ padding: "0 25px", marginBottom: "40px" }}>
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
-        { id: "Dashboard", icon: "📊", path: "/booking-requests" },
+        { id: "Dashboard", icon: "📊", path: "/service-center" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
         { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },

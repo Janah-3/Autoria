@@ -34,7 +34,7 @@ export default function Navbar({ user: initialUser }) {
       if (cachedRole === "Admin") {
         setDashboardUrl("/admin");
       } else if (cachedRole === "ServiceCenter" || cachedRole === "Center" || cachedRole === "ServiceCenterOwner") {
-        setDashboardUrl("/booking-requests");
+        setDashboardUrl("/service-center");
       } else {
         setDashboardUrl("/user-dashboard");
       }
@@ -51,7 +51,7 @@ export default function Navbar({ user: initialUser }) {
           if (role === "Admin") {
             setDashboardUrl("/admin");
           } else if (role === "ServiceCenter" || role === "Center" || role === "ServiceCenterOwner") {
-            setDashboardUrl("/booking-requests");
+            setDashboardUrl("/service-center");
           } else {
             setDashboardUrl("/user-dashboard");
           }
