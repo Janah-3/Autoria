@@ -27,8 +27,8 @@ const Sidebar = ({ active }) => (
         { id: "Availability", icon: "📅", path: "/availability" },
         { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
         { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
-        { id: "Reviews", icon: "⭐", path: "#" },
-        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
+        { id: "Reviews", icon: "⭐", path: "/reviews" },
+        { id: "Business profile", icon: "🏢", path: "/service-center" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{ 

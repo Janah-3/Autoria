@@ -217,6 +217,11 @@ export default function Navbar({ user: initialUser }) {
               </div>
 
               <div className={`profile-dropdown ${dropdownOpen ? "open" : ""}`}>
+                <Link href={dashboardUrl} className="dropdown-item" style={{ borderBottom: "1.5px solid #f0f0f0" }}>
+                  {dashboardUrl.includes("admin") ? "🔑 Admin Panel" : 
+                   dashboardUrl.includes("booking-requests") ? "📋 Partner Dashboard" : 
+                   "👤 My Dashboard"}
+                </Link>
                 <Link href="/logout" className="dropdown-item logout">
                   Log Out <span className="logout-arrow">→</span>
                 </Link>

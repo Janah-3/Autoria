@@ -52,6 +52,13 @@ export default function AdminDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const closeDropdown = () => setDropdownOpen(false);
+    window.addEventListener("click", closeDropdown);
+    return () => window.removeEventListener("click", closeDropdown);
+  }, []);
 
   const [sparePartsList, setSparePartsList] = useState([]);
   const [sparePartsLoading, setSparePartsLoading] = useState(false);
@@ -369,12 +376,35 @@ export default function AdminDashboard() {
                 <span>←</span> Back to Website
               </Link>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "14px", fontWeight: 800 }}>{adminName}</div>
-                <div style={{ fontSize: "11px", color: COLORS.textLight }}>{currentUser?.role || "Admin"}</div>
+            <div style={{ position: "relative" }}>
+              <div 
+                onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
+                style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", userSelect: "none" }}
+              >
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 800 }}>{adminName}</div>
+                  <div style={{ fontSize: "11px", color: COLORS.textLight }}>{currentUser?.role || "Admin"}</div>
+                </div>
+                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: COLORS.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{adminInitials}</div>
+                <span style={{ fontSize: "9px", color: COLORS.textLight }}>▼</span>
               </div>
-              <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: COLORS.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{adminInitials}</div>
+
+              {dropdownOpen && (
+                <div style={{
+                  position: "absolute", top: "calc(100% + 8px)", right: 0,
+                  background: "#ffffff", borderRadius: "10px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.15)", border: `1px solid ${COLORS.border}`,
+                  minWidth: "160px", overflow: "hidden", zIndex: 1000
+                }}>
+                  <Link href="/admin" style={{ display: "block", padding: "10px 16px", color: COLORS.text, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                    🔑 Admin Dashboard
+                  </Link>
+                  <div style={{ borderTop: `1px solid ${COLORS.border}` }} />
+                  <Link href="/logout" style={{ display: "block", padding: "10px 16px", color: COLORS.primary, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                    🚪 Log Out
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </header>

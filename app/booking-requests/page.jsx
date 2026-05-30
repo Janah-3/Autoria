@@ -25,13 +25,13 @@ const Sidebar = ({ active }) => (
     <div style={{ padding: "0 25px", marginBottom: "40px" }}>
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
-        { id: "Dashboard", icon: "📊", path: "/dashboard" },
+        { id: "Dashboard", icon: "📊", path: "/booking-requests" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
-        { id: "Services & pricing", icon: "🏷️", path: "/services" },
-        { id: "Spare parts", icon: "⚙️", path: "/spare-parts" },
+        { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
+        { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
         { id: "Reviews", icon: "⭐", path: "/reviews" },
-        { id: "Business profile", icon: "🏢", path: "/business-profile" }
+        { id: "Business profile", icon: "🏢", path: "/service-center" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{
@@ -188,6 +188,14 @@ export default function BookingRequestsPage() {
     (r) => filter === "All" || getRequestStatus(r) === filter
   );
 
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const closeDropdown = () => setDropdownOpen(false);
+    window.addEventListener("click", closeDropdown);
+    return () => window.removeEventListener("click", closeDropdown);
+  }, []);
+
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
       <header style={{ height: "70px", background: COLORS.surface, borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 30px", position: "sticky", top: 0, zIndex: 100 }}>
@@ -199,11 +207,34 @@ export default function BookingRequestsPage() {
           }}>
             ← Back to Website
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600 }}>{ownerName}</span>
-            <div style={{ width: "35px", height: "35px", borderRadius: "50%", background: COLORS.primary, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>
-              {ownerName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "SC"}
+          <div style={{ position: "relative" }}>
+            <div 
+              onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
+              style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", userSelect: "none" }}
+            >
+              <span style={{ fontSize: "14px", fontWeight: 600 }}>{ownerName}</span>
+              <div style={{ width: "35px", height: "35px", borderRadius: "50%", background: COLORS.primary, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>
+                {ownerName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "SC"}
+              </div>
+              <span style={{ fontSize: "9px", color: COLORS.textLight }}>▼</span>
             </div>
+
+            {dropdownOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 8px)", right: 0,
+                background: "#ffffff", borderRadius: "10px",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${COLORS.border}`,
+                minWidth: "160px", overflow: "hidden", zIndex: 1000
+              }}>
+                <Link href="/service-center" style={{ display: "block", padding: "10px 16px", color: COLORS.text, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                  🏢 Business Profile
+                </Link>
+                <div style={{ borderTop: `1px solid ${COLORS.border}` }} />
+                <Link href="/logout" style={{ display: "block", padding: "10px 16px", color: COLORS.primary, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                  🚪 Log Out
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
