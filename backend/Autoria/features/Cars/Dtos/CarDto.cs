@@ -5,6 +5,8 @@ namespace Autoria.features.Cars.Dtos
 {
     public class CarDto
     {
+
+        public Guid Id { get; set; }
         public string Make { get; set; } = default!;
         public string Model { get; set; } = default!;
         public int Year { get; set; }

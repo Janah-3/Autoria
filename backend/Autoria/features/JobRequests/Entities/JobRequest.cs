@@ -13,8 +13,6 @@ namespace Autoria.Features.JobRequests.Entities
         public Guid CarId { get; set; }
         public string ProblemDescription { get; set; } = default!;
         public string LocationAddress { get; set; } = default!;
-        public double Latitude { get; set; }
-        public double Longitude { get; set; }
         public string Status { get; set; } = JobRequestStatus.Pending;
         public string? CancellationReason { get; set; }
         public string? RejectionReason { get; set; }

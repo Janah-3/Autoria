@@ -4,6 +4,7 @@ using Autoria.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 
@@ -12,9 +13,11 @@ using NetTopologySuite.Geometries;
 namespace Autoria.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260529105820_added-jobRequest-Table")]
+    partial class addedjobRequestTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -437,50 +440,6 @@ namespace Autoria.Migrations
                     b.ToTable("Cars");
                 });
 
-            modelBuilder.Entity("Autoria.features.ContactUs.Entity.ContactMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AdminNotes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsResolved")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ContactMessages");
-                });
-
             modelBuilder.Entity("Autoria.features.Inventory.Entities.Inventory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -558,78 +517,6 @@ namespace Autoria.Migrations
                     b.HasIndex("InventoryId");
 
                     b.ToTable("InventoryHistories");
-                });
-
-            modelBuilder.Entity("Autoria.features.MileageTracking.Entities.MaintenanceReminder", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CarId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsTriggered")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MileageThreshold")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("TriggeredAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CarId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("MaintenanceReminders");
-                });
-
-            modelBuilder.Entity("Autoria.features.MileageTracking.Entities.MileageEntry", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CarId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("LoggedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Mileage")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CarId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("MileageEntries");
                 });
 
             modelBuilder.Entity("Autoria.features.Notifications.Entities.Notification", b =>
@@ -724,131 +611,6 @@ namespace Autoria.Migrations
                     b.HasIndex("SparePartId");
 
                     b.ToTable("PartReservations");
-                });
-
-            modelBuilder.Entity("Autoria.features.Payments.Entities.Invoice", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("BookingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ClientId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("IssuedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ServiceCenterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClientId");
-
-                    b.HasIndex("ServiceCenterId");
-
-                    b.ToTable("Invoices");
-                });
-
-            modelBuilder.Entity("Autoria.features.Payments.Entities.InvoiceItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId");
-
-                    b.ToTable("InvoiceItems");
-                });
-
-            modelBuilder.Entity("Autoria.features.Payments.Entities.Payment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("BookingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("InvoiceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Method")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("RefundReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("RefundedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TransactionId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("Autoria.features.Reports.Entity.Report", b =>
@@ -1025,57 +787,6 @@ namespace Autoria.Migrations
                     b.HasIndex("ServiceCenterId");
 
                     b.ToTable("OperatingHours");
-                });
-
-            modelBuilder.Entity("Autoria.features.ServiceCenter.Entities.ProfileView", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("IpAddress")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ServiceCenterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("ViewedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ServiceCenterId");
-
-                    b.ToTable("ProfileViews");
-                });
-
-            modelBuilder.Entity("Autoria.features.ServiceCenter.Entities.PromotionLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("RecipientCount")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ServiceCenterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Subject")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ServiceCenterId");
-
-                    b.ToTable("PromotionLogs");
                 });
 
             modelBuilder.Entity("Autoria.features.ServiceCenter.Entities.ServiceCenter", b =>
@@ -1311,36 +1022,6 @@ namespace Autoria.Migrations
                     b.ToTable("SpareParts");
                 });
 
-            modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePartCompatibility", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CarMake")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CarModel")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("SparePartId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("YearFrom")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("YearTo")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SparePartId");
-
-                    b.ToTable("SparePartCompatibilities");
-                });
-
             modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePartImage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1359,47 +1040,6 @@ namespace Autoria.Migrations
                     b.HasIndex("SparePartId");
 
                     b.ToTable("SparePartImages");
-                });
-
-            modelBuilder.Entity("Autoria.features.Subscribtion.Entities.ServiceCenterSubscription", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("AmountPaid")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("CancellationReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CancelledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Plan")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("ServiceCenterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ServiceCenterId");
-
-                    b.ToTable("ServiceCenterSubscriptions");
                 });
 
             modelBuilder.Entity("Autoria.shared.Entities.ServiceType", b =>
@@ -1695,15 +1335,6 @@ namespace Autoria.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Autoria.features.ContactUs.Entity.ContactMessage", b =>
-                {
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Autoria.features.Inventory.Entities.Inventory", b =>
                 {
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
@@ -1740,44 +1371,6 @@ namespace Autoria.Migrations
                     b.Navigation("ChangedBy");
 
                     b.Navigation("Inventory");
-                });
-
-            modelBuilder.Entity("Autoria.features.MileageTracking.Entities.MaintenanceReminder", b =>
-                {
-                    b.HasOne("Autoria.features.Car.Entity.Car", "Car")
-                        .WithMany()
-                        .HasForeignKey("CarId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Car");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Autoria.features.MileageTracking.Entities.MileageEntry", b =>
-                {
-                    b.HasOne("Autoria.features.Car.Entity.Car", "Car")
-                        .WithMany()
-                        .HasForeignKey("CarId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Car");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Autoria.features.Notifications.Entities.Notification", b =>
@@ -1821,55 +1414,6 @@ namespace Autoria.Migrations
                     b.Navigation("ServiceCenter");
 
                     b.Navigation("SparePart");
-                });
-
-            modelBuilder.Entity("Autoria.features.Payments.Entities.Invoice", b =>
-                {
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "Client")
-                        .WithMany()
-                        .HasForeignKey("ClientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
-                        .WithMany()
-                        .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Client");
-
-                    b.Navigation("ServiceCenter");
-                });
-
-            modelBuilder.Entity("Autoria.features.Payments.Entities.InvoiceItem", b =>
-                {
-                    b.HasOne("Autoria.features.Payments.Entities.Invoice", "Invoice")
-                        .WithMany("Items")
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
-                });
-
-            modelBuilder.Entity("Autoria.features.Payments.Entities.Payment", b =>
-                {
-                    b.HasOne("Autoria.features.Payments.Entities.Invoice", "Invoice")
-                        .WithOne("Payment")
-                        .HasForeignKey("Autoria.features.Payments.Entities.Payment", "InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Autoria.features.Reports.Entity.Report", b =>
@@ -1942,28 +1486,6 @@ namespace Autoria.Migrations
                 {
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
                         .WithMany("OperatingHours")
-                        .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ServiceCenter");
-                });
-
-            modelBuilder.Entity("Autoria.features.ServiceCenter.Entities.ProfileView", b =>
-                {
-                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
-                        .WithMany()
-                        .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ServiceCenter");
-                });
-
-            modelBuilder.Entity("Autoria.features.ServiceCenter.Entities.PromotionLog", b =>
-                {
-                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
-                        .WithMany()
                         .HasForeignKey("ServiceCenterId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2053,17 +1575,6 @@ namespace Autoria.Migrations
                     b.Navigation("CreatedBy");
                 });
 
-            modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePartCompatibility", b =>
-                {
-                    b.HasOne("Autoria.features.SpareParts.Entities.SparePart", "SparePart")
-                        .WithMany("Compatibilities")
-                        .HasForeignKey("SparePartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SparePart");
-                });
-
             modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePartImage", b =>
                 {
                     b.HasOne("Autoria.features.SpareParts.Entities.SparePart", "SparePart")
@@ -2073,17 +1584,6 @@ namespace Autoria.Migrations
                         .IsRequired();
 
                     b.Navigation("SparePart");
-                });
-
-            modelBuilder.Entity("Autoria.features.Subscribtion.Entities.ServiceCenterSubscription", b =>
-                {
-                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
-                        .WithMany()
-                        .HasForeignKey("ServiceCenterId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ServiceCenter");
                 });
 
             modelBuilder.Entity("MechanicSpecialization", b =>
@@ -2178,13 +1678,6 @@ namespace Autoria.Migrations
                     b.Navigation("History");
                 });
 
-            modelBuilder.Entity("Autoria.features.Payments.Entities.Invoice", b =>
-                {
-                    b.Navigation("Items");
-
-                    b.Navigation("Payment");
-                });
-
             modelBuilder.Entity("Autoria.features.Reviews.Entity.Review", b =>
                 {
                     b.Navigation("Photos");
@@ -2207,8 +1700,6 @@ namespace Autoria.Migrations
 
             modelBuilder.Entity("Autoria.features.SpareParts.Entities.SparePart", b =>
                 {
-                    b.Navigation("Compatibilities");
-
                     b.Navigation("Images");
 
                     b.Navigation("Inventories");

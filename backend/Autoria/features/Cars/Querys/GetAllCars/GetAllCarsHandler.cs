@@ -74,6 +74,7 @@ namespace Autoria.features.Cars.Querys.GetAllCars
                 .Take(request.PageSize)
                 .Select(c => new CarDto
                 {
+                    Id = c.CarId,
                     Color = c.Color,
                     CreatedAt = c.CreatedAt,
                     FuelType = c.FuelType,
