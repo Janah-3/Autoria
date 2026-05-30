@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getAllCars, updateCar } from "../../src/API/carsService";
+import { getAllCars, updateCar, getCarItems, getCarId } from "../../src/API/carsService";
 
 
 const FUEL_TYPES = ["Petrol", "Diesel", "Hybrid", "Electric", "LPG"];
@@ -83,7 +83,7 @@ const CarCard = ({ car, handleSetDefault }) => {
           </button>
         )}
 
-        <Link href={`/cars/deleteCar?id=${car.vin}`} className="btn-delete" style={{ textDecoration: 'none' }}>
+        <Link href={`/cars/deleteCar?id=${getCarId(car)}`} className="btn-delete" style={{ textDecoration: 'none' }}>
           <TrashIcon />
         </Link>
       </div>
@@ -144,7 +144,7 @@ export default function CarsPage() {
   const handleSetDefault = async (car) => {
     try {
 
-      await updateCar(car.vin, {
+      await updateCar(getCarId(car), {
         licensePlate: car.licensePlate,
         mileage: car.mileage,
         color: car.color,

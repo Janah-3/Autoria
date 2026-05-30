@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { bookingService } from "../../src/API/bookingService";
+import { bookingService, getBookingItems } from "@/lib/api/bookingsService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 
@@ -142,8 +142,8 @@ export default function BookingRequestsPage() {
     const fetchBookings = async () => {
       setLoading(true);
       try {
-        const data = await bookingService.getServiceCenterBookings();
-        setRequests(data || []);
+        const res = await bookingService.getServiceCenterBookings();
+        setRequests(getBookingItems(res));
       } catch (error) {
         console.error("Failed to load bookings:", error);
         setRequests([]);
@@ -154,11 +154,17 @@ export default function BookingRequestsPage() {
     fetchBookings();
   }, []);
 
+  const getRequestStatus = (r) => r?.status ?? r?.Status ?? "Pending";
+  const getRequestId = (r) => r?.id ?? r?.Id;
 
   const handleConfirm = async (id) => {
     try {
       await bookingService.updateBookingStatus(id, "Confirmed");
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "Confirmed" } : r));
+      setRequests((prev) =>
+        prev.map((r) =>
+          getRequestId(r) === id ? { ...r, status: "Confirmed", Status: "Confirmed" } : r
+        )
+      );
     } catch (error) {
       alert("Failed to confirm booking: " + error.message);
     }
@@ -167,14 +173,20 @@ export default function BookingRequestsPage() {
   const handleDecline = async (id) => {
     try {
       await bookingService.updateBookingStatus(id, "Declined");
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "Declined" } : r));
+      setRequests((prev) =>
+        prev.map((r) =>
+          getRequestId(r) === id ? { ...r, status: "Declined", Status: "Declined" } : r
+        )
+      );
     } catch (error) {
       alert("Failed to decline booking: " + error.message);
     }
   };
 
 
-  const filteredRequests = requests.filter(r => filter === "All" || r.status === filter);
+  const filteredRequests = requests.filter(
+    (r) => filter === "All" || getRequestStatus(r) === filter
+  );
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
@@ -213,7 +225,7 @@ export default function BookingRequestsPage() {
                       border: `1px solid ${filter === tab ? COLORS.primary : COLORS.border}`,
                       color: filter === tab ? COLORS.primary : COLORS.textLight,
                     }}>
-                    {tab} {tab === "Pending" && <span style={{ opacity: 0.6 }}>{requests.filter(r => r.status === "Pending").length}</span>}
+                    {tab} {tab === "Pending" && <span style={{ opacity: 0.6 }}>{requests.filter((r) => getRequestStatus(r) === "Pending").length}</span>}
                   </div>
                 ))}
               </div>
@@ -223,9 +235,9 @@ export default function BookingRequestsPage() {
             {loading ? (
               <div style={{ textAlign: "center", padding: "50px", color: COLORS.textLight }}>Loading requests...</div>
             ) : (
-              filteredRequests.map(req => (
+              filteredRequests.map((req) => (
                 <RequestCard
-                  key={req.id}
+                  key={getRequestId(req) ?? req.customerName}
                   request={req}
                   onConfirm={handleConfirm}
                   onDecline={handleDecline}

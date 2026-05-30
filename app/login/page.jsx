@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { login } from "@/lib/api/authService";
+import { getMe } from "@/lib/api/usersService";
 
 export default function LoginPage() {
   return <LoginView />;
@@ -22,7 +23,7 @@ function LoginView() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
+
     if (!formData.email || !formData.password) {
       setError("All fields required");
       return;
@@ -30,14 +31,34 @@ function LoginView() {
 
     setLoading(true);
     try {
-      const result = await login(formData);
-      const role =
-        result.data?.role ||
-        (typeof window !== "undefined" ? localStorage.getItem("userRole") : null);
+      await login(formData);
 
-      if (role === "Admin") {
+      let role =
+        typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+
+      try {
+        const me = await getMe();
+        if (me?.data?.fullName) {
+          localStorage.setItem("userName", me.data.fullName);
+        }
+        const meRole = me?.data?.role ?? me?.data?.Role;
+        if (meRole) {
+          role = meRole;
+          localStorage.setItem("userRole", meRole);
+        }
+      } catch {
+        /* profile optional for redirect */
+      }
+
+      const roleNorm = String(role || "").trim();
+
+      if (roleNorm === "Admin") {
         window.location.href = "/admin";
-      } else if (role === "ServiceCenter" || role === "Center") {
+      } else if (
+        roleNorm === "ServiceCenter" ||
+        roleNorm === "Center" ||
+        roleNorm === "ServiceCenterOwner"
+      ) {
         window.location.href = "/booking-requests";
       } else {
         window.location.href = "/user-dashboard";
@@ -218,22 +239,22 @@ function LoginView() {
         <div className="right">
           <form className="form" onSubmit={handleSubmit}>
             <h3>Login to your account</h3>
-            
-            <input 
-              name="email" 
+
+            <input
+              name="email"
               type="email"
-              placeholder="Email Address" 
+              placeholder="Email Address"
               required
-              onChange={handleChange} 
+              onChange={handleChange}
             />
 
             <div className="input-group">
-              <input 
-                name="password" 
-                type={showPw ? "text" : "password"} 
-                placeholder="Password" 
+              <input
+                name="password"
+                type={showPw ? "text" : "password"}
+                placeholder="Password"
                 required
-                onChange={handleChange} 
+                onChange={handleChange}
               />
               <button type="button" className="eye-btn" onClick={() => setShowPw(!showPw)}>
                 <i className={`fa-solid ${showPw ? "fa-eye-slash" : "fa-eye"}`}></i>

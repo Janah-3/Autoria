@@ -169,7 +169,7 @@ export default function CenterProfilePage() {
               <div style={{ fontSize: 18, fontWeight: 700, color: R }}>{center.phone || "Not provided"}</div>
             </div>
             
-            <a href="/book-service" style={{ textDecoration: "none" }}>
+            <a href={`/book-service?serviceCenterId=${center.id}`} style={{ textDecoration: "none" }}>
               <button className="btn-hover" style={{ width: "100%", background: R, color: "#fff", border: "none", padding: "16px", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: "pointer", marginBottom: 12 }}>
                 Request Booking
               </button>

@@ -101,6 +101,15 @@ export default function DeleteCarPage() {
   }
 
 
+  if (!carDetails) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F7F8FA", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Cairo', sans-serif" }}>
+        <div style={{ color: "#9E9E9E", fontSize: "15px" }}>Car not found</div>
+      </div>
+    );
+  }
+
+
   if (isConfirmed) {
     return (
       <>

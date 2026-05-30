@@ -7,5 +7,6 @@ export {
   deleteCar,
   getCars,
   getCarItems,
+  getCarId,
   default,
 } from "../../lib/api/carsService";

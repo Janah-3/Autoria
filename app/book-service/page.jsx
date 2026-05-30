@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { bookingsService } from "@/lib/api/bookingsService";
+import { getAllCars, getCarItems, getCarId } from "@/lib/api/carsService";
+import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
+import { getMe } from "@/lib/api/usersService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -15,10 +18,29 @@ const COLORS = {
   success: "#28A745",
 };
 
+const FALLBACK_SLOTS = ["09:00 AM", "11:00 AM", "01:00 PM", "03:00 PM", "05:00 PM", "07:00 PM"];
+
+function parseSlotTime(slot) {
+  return slot?.startTime ?? slot?.time ?? slot?.label ?? "";
+}
+
+function getSlotId(slot) {
+  return slot?.id ?? slot?.timeSlotId ?? slot?.TimeSlotId ?? null;
+}
+
 export default function BookServicePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const serviceCenterFromUrl = searchParams.get("serviceCenterId") || "";
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [initLoading, setInitLoading] = useState(true);
+  const [selectedCarId, setSelectedCarId] = useState("");
+  const [selectedServiceCenterId, setSelectedServiceCenterId] = useState(serviceCenterFromUrl);
+  const [serviceCenters, setServiceCenters] = useState([]);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [formData, setFormData] = useState({
     serviceType: "",
     carBrand: "",
@@ -26,21 +48,127 @@ export default function BookServicePage() {
     carYear: "",
     date: "",
     timeSlot: "",
+    timeSlotId: "",
     name: "",
     phone: "",
-    notes: ""
+    notes: "",
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBookingData() {
+      try {
+        if (typeof window !== "undefined" && !localStorage.getItem("token")) {
+          router.push("/login");
+          return;
+        }
+
+        const [carsResponse, centersResponse, meResponse] = await Promise.all([
+          getAllCars(),
+          serviceCentersService.getAll(),
+          getMe().catch(() => null),
+        ]);
+
+        if (cancelled) return;
+
+        const cars = getCarItems(carsResponse);
+        const primary = cars.find((car) => car.isPrimary) || cars[0];
+
+        if (primary) {
+          const carId = getCarId(primary);
+          setSelectedCarId(carId || "");
+          setFormData((prev) => ({
+            ...prev,
+            carBrand: primary.make || prev.carBrand,
+            carModel: primary.model || prev.carModel,
+            carYear: String(primary.year || prev.carYear),
+          }));
+        }
+
+        const centers = getServiceCenterItems(centersResponse);
+        setServiceCenters(centers);
+
+        if (!serviceCenterFromUrl && centers.length === 1) {
+          setSelectedServiceCenterId(centers[0].id);
+        }
+
+        const user = meResponse?.data;
+        if (user) {
+          setFormData((prev) => ({
+            ...prev,
+            name: user.fullName || user.FullName || prev.name,
+            phone: user.phoneNumber || user.PhoneNumber || user.phone || prev.phone,
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to load booking data:", error);
+      } finally {
+        if (!cancelled) setInitLoading(false);
+      }
+    }
+
+    loadBookingData();
+    return () => {
+      cancelled = true;
+    };
+  }, [router, serviceCenterFromUrl]);
+
+  useEffect(() => {
+    if (!formData.date || !selectedServiceCenterId) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    let cancelled = false;
+    setSlotsLoading(true);
+
+    bookingsService
+      .getAvailableSlots(selectedServiceCenterId, formData.date)
+      .then((response) => {
+        if (cancelled) return;
+        const items = response?.data?.items ?? response?.data ?? [];
+        setAvailableSlots(Array.isArray(items) ? items : []);
+      })
+      .catch((error) => {
+        console.error("Failed to load time slots:", error);
+        if (!cancelled) setAvailableSlots([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSlotsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.date, selectedServiceCenterId]);
+
+  const selectedCenter = serviceCenters.find(
+    (center) => String(center.id) === String(selectedServiceCenterId)
+  );
 
   const nextStep = (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
+    if (step === 1 && !selectedServiceCenterId) {
+      alert("Please select a service center");
+      return;
+    }
     if (step === 1 && !formData.serviceType) {
       alert("Please select a service type first");
       return;
     }
-    setStep(s => Math.min(s + 1, 4));
+    if (step === 2 && (!formData.date || !formData.timeSlot)) {
+      alert("Please select a date and time slot");
+      return;
+    }
+    if (step === 3 && (!formData.name.trim() || !formData.phone.trim())) {
+      alert("Please enter your name and phone number");
+      return;
+    }
+    setStep((s) => Math.min(s + 1, 4));
   };
 
   const prevStep = (e) => {
@@ -48,57 +176,81 @@ export default function BookServicePage() {
       e.preventDefault();
       e.stopPropagation();
     }
-    setStep(s => Math.max(s - 1, 1));
+    setStep((s) => Math.max(s - 1, 1));
   };
 
-const handleBooking = async (e) => {
+  const handleBooking = async (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
+    if (!localStorage.getItem("token")) {
+      alert("Please log in to book a service");
+      router.push("/login");
+      return;
+    }
+
+    if (!selectedCarId) {
+      alert("Please add a car to your account before booking");
+      router.push("/cars/add-car");
+      return;
+    }
+
+    if (!selectedServiceCenterId) {
+      alert("Please select a service center");
+      return;
+    }
+
     setLoading(true);
     try {
-      // تظبيط صيغة التاريخ والوقت لتناسب السيرفر
-      const formattedDate = formData.date ? `${formData.date}T00:00:00.000Z` : new Date().toISOString();
+      const appointment = formData.date
+        ? `${formData.date}T00:00:00.000Z`
+        : new Date().toISOString();
 
       const payload = {
-        request: {
-          // الأكواد الحقيقية المأخوذة من الـ SSMS الخاص بكِ مباشرة
-          CarId: "35E6BE7A-1CB3-4697-AB7B-5C00FE1F6F0A",
-          ServiceCenterId: "343F2D88-4FF3-43F3-86B3-E9DDC380D733",
-          ServiceTypeId: "A61DC601-A7CB-4DB1-9162-EFE9DD4FA337",
-          TimeSlotId: "7F9084F8-9861-4FF2-8B8C-B794A34DAE36",
-          
-          // الحقول الأساسية المطلوبة (not null) بنوع بياناتها الصحيح
-          Status: 0, 
-          Appointment: formattedDate,
-          Notes: formData.notes || "No notes",
-          TotalPrice: 250.00, 
-          
-          // البيانات القادمة ديناميكياً من الفورم
-          ServiceType: formData.serviceType,
-          CarBrand: formData.carBrand || "Toyota",
-          CarModel: formData.carModel || "Corolla",
-          CarYear: parseInt(formData.carYear) || 2026,
-          CustomerName: formData.name || "Guest",
-          Phone: formData.phone || "01000000000"
-        }
+        carId: selectedCarId,
+        serviceCenterId: selectedServiceCenterId,
+        timeSlotId: formData.timeSlotId || undefined,
+        serviceType: formData.serviceType,
+        carBrand: formData.carBrand,
+        carModel: formData.carModel || "Unknown",
+        carYear: parseInt(formData.carYear, 10) || null,
+        appointmentDate: formData.date,
+        date: formData.date,
+        appointment,
+        timeSlot: formData.timeSlot,
+        customerName: formData.name,
+        phone: formData.phone,
+        notes: formData.notes || "",
+        status: "Pending",
       };
 
-      console.log("🚀 Sending 100% Real Validated Payload:", payload);
-      
-      // هنا الطلب هيروح حقيقي ويرجع بـ 200 OK بنجاح تام!
       await bookingsService.create(payload);
-      
-      setStep(5); 
+      setStep(5);
     } catch (err) {
-      console.log("❌ Error caught during real test:", err);
-      alert(err.message || "Something went wrong");
+      console.error("Booking error:", err);
+      alert(err.message || "Something went wrong while booking");
     } finally {
       setLoading(false);
     }
   };
+
+  const slotOptions =
+    availableSlots.length > 0
+      ? availableSlots.map((slot) => ({
+          id: getSlotId(slot),
+          label: parseSlotTime(slot),
+        }))
+      : FALLBACK_SLOTS.map((time) => ({ id: "", label: time }));
+
+  if (initLoading) {
+    return (
+      <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", fontFamily: "sans-serif", padding: "40px 20px" }}>
@@ -121,40 +273,62 @@ const handleBooking = async (e) => {
             <div style={{ position: "absolute", top: "15px", left: "0", right: "0", height: "2px", background: "#e5e7eb", zIndex: 0 }} />
             <div style={{ position: "absolute", top: "15px", left: "0", width: `${((step - 1) / 3) * 100}%`, height: "2px", background: COLORS.primary, zIndex: 0, transition: "width 0.4s ease" }} />
 
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: step >= i ? COLORS.primary : COLORS.white,
-                color: step >= i ? COLORS.white : COLORS.textLight,
-                border: `2px solid ${step >= i ? COLORS.primary : "#e5e7eb"}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "14px",
-                fontWeight: 700,
-                zIndex: 1,
-                transition: "all 0.3s ease"
-              }}>
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  borderRadius: "50%",
+                  background: step >= i ? COLORS.primary : COLORS.white,
+                  color: step >= i ? COLORS.white : COLORS.textLight,
+                  border: `2px solid ${step >= i ? COLORS.primary : "#e5e7eb"}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  zIndex: 1,
+                  transition: "all 0.3s ease",
+                }}
+              >
                 {step > i ? "✓" : i}
               </div>
             ))}
           </div>
         )}
 
-        <div style={{
-          background: COLORS.white,
-          borderRadius: "24px",
-          padding: "40px",
-          boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
-          border: `1px solid ${COLORS.border}`
-        }}>
-
+        <div
+          style={{
+            background: COLORS.white,
+            borderRadius: "24px",
+            padding: "40px",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
+            border: `1px solid ${COLORS.border}`,
+          }}
+        >
           {step === 1 && (
             <div className="step-content">
               <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "24px" }}>Vehicle & Service</h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Service Center</label>
+                  <select
+                    value={selectedServiceCenterId}
+                    onChange={(e) => {
+                      setSelectedServiceCenterId(e.target.value);
+                      setFormData((prev) => ({ ...prev, timeSlot: "", timeSlotId: "" }));
+                    }}
+                    style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
+                  >
+                    <option value="">Select a service center</option>
+                    {serviceCenters.map((center) => (
+                      <option key={center.id} value={center.id}>
+                        {center.name}{center.loc ? ` — ${center.loc}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Service Type</label>
                   <select
@@ -203,32 +377,41 @@ const handleBooking = async (e) => {
                   <input
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value, timeSlot: "", timeSlotId: "" })}
                     style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
                   />
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Time Slot</label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
-                    {["09:00 AM", "11:00 AM", "01:00 PM", "03:00 PM", "05:00 PM", "07:00 PM"].map(time => (
-                      <button
-                        key={time}
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); setFormData({ ...formData, timeSlot: time }); }}
-                        style={{
-                          padding: "10px",
-                          borderRadius: "10px",
-                          border: `1.5px solid ${formData.timeSlot === time ? COLORS.primary : COLORS.border}`,
-                          background: formData.timeSlot === time ? "#FFF4F4" : COLORS.bg,
-                          color: formData.timeSlot === time ? COLORS.primary : COLORS.text,
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          transition: "all 0.2s ease"
-                        }}
-                      >{time}</button>
-                    ))}
-                  </div>
+                  {slotsLoading ? (
+                    <div style={{ fontSize: "13px", color: COLORS.textLight }}>Loading available slots...</div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+                      {slotOptions.map((slot) => (
+                        <button
+                          key={`${slot.id || "fallback"}-${slot.label}`}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setFormData({ ...formData, timeSlot: slot.label, timeSlotId: slot.id || "" });
+                          }}
+                          style={{
+                            padding: "10px",
+                            borderRadius: "10px",
+                            border: `1.5px solid ${formData.timeSlot === slot.label ? COLORS.primary : COLORS.border}`,
+                            background: formData.timeSlot === slot.label ? "#FFF4F4" : COLORS.bg,
+                            color: formData.timeSlot === slot.label ? COLORS.primary : COLORS.text,
+                            fontSize: "12px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          {slot.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -275,6 +458,10 @@ const handleBooking = async (e) => {
               <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "24px" }}>Review Booking</h2>
               <div style={{ background: COLORS.bg, borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: COLORS.textLight, fontSize: "14px" }}>Service Center:</span>
+                  <span style={{ fontWeight: 700 }}>{selectedCenter?.name || "—"}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: COLORS.textLight, fontSize: "14px" }}>Service:</span>
                   <span style={{ fontWeight: 700 }}>{formData.serviceType}</span>
                 </div>
@@ -303,9 +490,14 @@ const handleBooking = async (e) => {
               </p>
               <button
                 type="button"
-                onClick={(e) => { e.preventDefault(); router.push("/"); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  router.push("/");
+                }}
                 style={{ background: COLORS.primary, color: COLORS.white, border: "none", padding: "12px 30px", borderRadius: "12px", fontWeight: 700, cursor: "pointer" }}
-              >Back to Home</button>
+              >
+                Back to Home
+              </button>
             </div>
           )}
 
@@ -316,11 +508,13 @@ const handleBooking = async (e) => {
                   type="button"
                   onClick={prevStep}
                   style={{ flex: 1, background: "transparent", color: COLORS.text, border: `1.5px solid ${COLORS.border}`, padding: "14px", borderRadius: "12px", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
-                >Back</button>
+                >
+                  Back
+                </button>
               )}
               <button
                 type="button"
-                onClick={(e) => step === 4 ? handleBooking(e) : nextStep(e)}
+                onClick={(e) => (step === 4 ? handleBooking(e) : nextStep(e))}
                 disabled={loading}
                 style={{
                   flex: 2,
@@ -332,16 +526,14 @@ const handleBooking = async (e) => {
                   fontSize: "14px",
                   fontWeight: 700,
                   cursor: "pointer",
-                  opacity: loading ? 0.7 : 1
+                  opacity: loading ? 0.7 : 1,
                 }}
               >
                 {loading ? "Processing..." : step === 4 ? "Confirm Booking" : "Continue"}
               </button>
             </div>
           )}
-
         </div>
-
       </div>
     </div>
   );
