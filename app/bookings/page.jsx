@@ -4,11 +4,12 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAllBookings } from "../../src/API/bookingsService";
 
-const STATUS_TABS = ["All", "Pending", "Confirmed", "Completed", "Cancelled"];
+const STATUS_TABS = ["All", "Pending", "Confirmed", "InProgress", "Completed", "Cancelled"];
 
 const STATUS_STYLES = {
   Pending:   { background: "#FFF8E1", color: "#F9A825", border: "1px solid #FFE082" },
   Confirmed: { background: "#E3F2FD", color: "#1565C0", border: "1px solid #BBDEFB" },
+  InProgress: { background: "#E8EAF6", color: "#3F51B5", border: "1px solid #C5CAE9" },
   Completed: { background: "#E8F5E9", color: "#2E7D32", border: "1px solid #C8E6C9" },
   Cancelled: { background: "#FAFAFA", color: "#9E9E9E", border: "1px solid #E0E0E0" },
 };
@@ -28,16 +29,19 @@ const CarIcon = () => (
 function BookingCard({ booking }) {
   const statusStyle = STATUS_STYLES[booking.status] || STATUS_STYLES.Pending;
   const isCancellable = booking.status === "Pending" || booking.status === "Confirmed";
+  const displayStatus = booking.status === "InProgress" ? "In Progress" : booking.status;
 
   return (
     <div className="booking-card">
       <div className="card-header">
         <div>
           <div className="center-name">{booking.serviceCenter.name}</div>
-          <div className="center-address">{booking.serviceCenter.address}</div>
+          {booking.serviceCenter.address && (
+            <div className="center-address">{booking.serviceCenter.address}</div>
+          )}
         </div>
         <span className="status-badge" style={statusStyle}>
-          {booking.status}
+          {displayStatus}
         </span>
       </div>
 
@@ -56,7 +60,11 @@ function BookingCard({ booking }) {
           <span className="info-label">Vehicle</span>
           <span className="info-value car-value">
             <CarIcon />
-            {booking.car.make} {booking.car.model} &mdash; {booking.car.licensePlate}
+            {booking.car.make || booking.car.model ? (
+              `${booking.car.make} ${booking.car.model} — ${booking.car.licensePlate}`
+            ) : (
+              `Plate: ${booking.car.licensePlate}`
+            )}
           </span>
         </div>
       </div>
@@ -365,7 +373,7 @@ export default function BookingHistoryPage() {
               className={`tab-btn ${activeTab === tab ? "active" : ""}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab}
+              {tab === "InProgress" ? "In Progress" : tab}
             </button>
           ))}
         </div>

@@ -8,11 +8,13 @@ import { getBookingById } from "../../../src/API/bookingsService";
 const STATUS_STYLES = {
   Pending:   { background: "#FFF8E1", color: "#F9A825", border: "1px solid #FFE082" },
   Confirmed: { background: "#E3F2FD", color: "#1565C0", border: "1px solid #BBDEFB" },
+  InProgress: { background: "#E8EAF6", color: "#3F51B5", border: "1px solid #C5CAE9" },
   Completed: { background: "#E8F5E9", color: "#2E7D32", border: "1px solid #C8E6C9" },
   Cancelled: { background: "#FAFAFA", color: "#9E9E9E", border: "1px solid #E0E0E0" },
 };
 
 function DetailRow({ label, value }) {
+  if (value === undefined || value === null || value === "") return null;
   return (
     <div className="detail-row">
       <span className="detail-label">{label}</span>
@@ -99,6 +101,7 @@ export default function BookingDetailsPage() {
 
   const statusStyle = STATUS_STYLES[booking.status] || STATUS_STYLES.Pending;
   const isCancellable = booking.status === "Pending" || booking.status === "Confirmed";
+  const displayStatus = booking.status === "InProgress" ? "In Progress" : booking.status;
 
   return (
     <div className="page-container">
@@ -307,7 +310,7 @@ export default function BookingDetailsPage() {
             <div className="booking-id">Booking ID: {booking.id}</div>
           </div>
           <span className="status-badge" style={statusStyle}>
-            {booking.status}
+            {displayStatus}
           </span>
         </div>
 

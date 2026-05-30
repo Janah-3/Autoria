@@ -105,8 +105,11 @@ export default function ServiceCenterRegistration() {
         const myScRes = await serviceCentersService.getMyIfExists();
         if (myScRes?.data) {
           const status = myScRes.data.approvalStatus;
-          // ApprovalStatus enum: 0=Draft, 1=Pending, 2=UnderReview, 3=Approved, 4=Rejected
-          const statusName = ["Draft", "Pending", "UnderReview", "Approved", "Rejected"][status] || String(status);
+          // approvalStatus can be a string ("Draft") or a number (0=Draft, 1=Pending, ...)
+          const statusName =
+            typeof status === "number"
+              ? (["Draft", "Pending", "UnderReview", "Approved", "Rejected"][status] || String(status))
+              : String(status);
           setExistingStatus(statusName);
           if (statusName === "Draft") {
             setIsDraft(true);
@@ -297,9 +300,22 @@ export default function ServiceCenterRegistration() {
 
       // Step 1: Create or skip if already exists as draft
       if (!isDraft) {
-        // Fresh creation
-        await serviceCentersService.create(createPayload);
-        // After creation, the SC is in Draft status and user role becomes ServiceCenterOwner
+        try {
+          await serviceCentersService.create(createPayload);
+          // After creation, the SC is in Draft status
+        } catch (createErr) {
+          // If the user already has a service center (e.g. token role not yet updated),
+          // treat it as an existing draft and continue with uploads instead of failing.
+          const msg = (createErr?.message || "").toLowerCase();
+          const isAlreadyExists =
+            msg.includes("already have") ||
+            msg.includes("already exists") ||
+            createErr?.status === 400;
+          if (!isAlreadyExists) {
+            throw createErr; // some other creation error — rethrow
+          }
+          console.warn("Service center already exists, skipping create and continuing with uploads.");
+        }
       }
       // If isDraft, SC already exists in Draft — we skip create and proceed to uploads
 
