@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { API_BASE_URL } from "@/lib/apiConfig";
+import { getMe } from "@/lib/api/usersService";
+import {
+  serviceCentersService,
+  getServiceCenterItems,
+} from "@/lib/api/serviceCentersService";
+import { sparePartsService } from "@/lib/sparePartsService";
+import { getSparePartItems } from "@/lib/api/mappers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { getMe } from "@/lib/api/usersService";
-import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
-import { sparePartsService } from "@/lib/api/sparePartsService";
 import { SkeletonBox, SkeletonCard } from "@/components/Skeleton";
 
 const R = "#E8272A";
@@ -86,9 +89,6 @@ function Hero({ setCenters, onAiSupportClick }) {
     ["4.8★", "Avg Rating"],
     ["50+", "Parts Brands"]
   ]);
-
-
-
   return (
     <section style={{ background: `linear-gradient(135deg,#111 0%,#2d1010 52%,${RD} 100%)`, padding: "72px 5% 64px", textAlign: "center" }}>
       <h1 style={{ color: "#fff", fontSize: 44, fontWeight: 900, lineHeight: 1.12, letterSpacing: -1.5, marginBottom: 14 }}>

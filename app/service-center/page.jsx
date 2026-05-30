@@ -2,28 +2,110 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { serviceCentersService, mapServiceCenterListItem } from "@/lib/api/serviceCentersService";
+import { bookingService, getBookingItems } from "@/lib/api/bookingsService";
 import { getMe } from "@/lib/api/usersService";
 
-export default function ServiceCenterProfile() {
+const COLORS = {
+  primary: "#E8272A",
+  primaryDark: "#B81C1F",
+  bg: "#F8F9FA",
+  sidebar: "#FFFFFF",
+  border: "#E9ECEF",
+  text: "#1A1A1A",
+  textLight: "#6C757D",
+  success: "#1B5E20",
+  successBg: "#E7F5EA",
+  warning: "#FFB800",
+  white: "#FFFFFF",
+  activeBg: "#FEEBEB"
+};
+
+const SHADOW = "0 4px 20px rgba(0,0,0,0.05)";
+
+const Sidebar = ({ active }) => (
+  <aside style={{ width: "240px", background: COLORS.sidebar, borderRight: `1px solid ${COLORS.border}`, padding: "30px 0", height: "100vh", position: "sticky", top: 0, flexShrink: 0 }}>
+    <div style={{ padding: "0 25px", marginBottom: "40px" }}>
+      <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
+      {[
+        { id: "Dashboard", icon: "📊", path: "/service-center" },
+        { id: "Booking requests", icon: "📬", path: "/booking-requests" },
+        { id: "Availability", icon: "📅", path: "/availability" },
+        { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
+        { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
+        { id: "Reviews", icon: "⭐", path: "/reviews" },
+        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
+      ].map(item => (
+        <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
+          <div style={{ 
+            display: "flex", alignItems: "center", gap: "12px", padding: "12px 25px", margin: "4px 15px", borderRadius: "10px",
+            fontSize: "14px", fontWeight: active === item.id ? 700 : 500, cursor: "pointer",
+            background: active === item.id ? COLORS.activeBg : "transparent",
+            color: active === item.id ? COLORS.primary : COLORS.textLight,
+            borderLeft: active === item.id ? `4px solid ${COLORS.primary}` : "none"
+          }}>
+            <span>{item.icon}</span> {item.id}
+          </div>
+        </Link>
+      ))}
+    </div>
+  </aside>
+);
+
+const Card = ({ title, children, badge, badgeColor, actionText, onAction }) => (
+  <div style={{ background: COLORS.white, borderRadius: "16px", padding: "24px", border: `1px solid ${COLORS.border}`, boxShadow: SHADOW, height: "100%" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+      <div>
+        <h3 style={{ fontSize: "16px", fontWeight: 800, margin: 0 }}>{title}</h3>
+        {badge && <span style={{ background: badgeColor || "#F8F9FA", color: COLORS.primary, fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", marginTop: "4px", display: "inline-block" }}>{badge}</span>}
+      </div>
+      {actionText && <button onClick={onAction} style={{ background: "none", border: "none", color: COLORS.primary, fontWeight: 700, fontSize: "12px", cursor: "pointer" }}>{actionText}</button>}
+    </div>
+    {children}
+  </div>
+);
+
+const StatCard = ({ label, value, trend, trendUp }) => (
+  <div style={{ background: COLORS.white, borderRadius: "16px", padding: "24px", border: `1px solid ${COLORS.border}`, flex: 1, boxShadow: SHADOW }}>
+    <div style={{ color: COLORS.textLight, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>{label}</div>
+    <div style={{ fontSize: "28px", fontWeight: 900, marginBottom: "8px" }}>{value}</div>
+    <div style={{ fontSize: "12px", color: trendUp ? COLORS.success : COLORS.textLight, fontWeight: 600 }}>
+      {trendUp ? "↑" : "→"} {trend} <span style={{ color: COLORS.textLight, fontWeight: 400 }}>vs last week</span>
+    </div>
+  </div>
+);
+
+export default function ServiceCenterDashboard() {
   const [center, setCenter] = useState(null);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("AK");
+  const [userName, setUserName] = useState("MH");
+  const [ownerName, setOwnerName] = useState("Partner");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    // Fetch logged-in user info
+    const closeDropdown = () => setDropdownOpen(false);
+    window.addEventListener("click", closeDropdown);
+    return () => window.removeEventListener("click", closeDropdown);
+  }, []);
+
+  useEffect(() => {
+    // Fetch logged-in user profile
     getMe()
-      .then((res) => {
-        if (res?.data?.fullName) {
-          setUserName(res.data.fullName);
+      .then(res => {
+        const name = res?.data?.fullName ?? res?.fullName;
+        if (name) {
+          setUserName(name);
+          setOwnerName(name);
         }
       })
       .catch(() => {});
 
     // Fetch own service center profile
-    serviceCentersService
-      .getMy()
-      .then((res) => {
+    serviceCentersService.getMy()
+      .then(res => {
         const d = res?.data ?? res;
         if (d && (d.name || d.Name)) {
           setCenter(mapServiceCenterListItem(d));
@@ -31,36 +113,48 @@ export default function ServiceCenterProfile() {
           setCenter(null);
         }
       })
-      .catch((err) => {
-        console.error("Failed to fetch logged-in service center profile:", err);
+      .catch(err => {
+        console.error("Failed to load center:", err);
         setCenter(null);
+      });
+
+    // Fetch booking lists
+    bookingService.getServiceCenterBookings()
+      .then(res => {
+        setBookings(getBookingItems(res) || []);
       })
-      .finally(() => setLoading(false));
+      .catch(err => {
+        console.error("Failed to load bookings:", err);
+        setBookings([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
     return (
-      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F4F7F6" }}>
-        <div style={{ color: "#10B981", fontSize: "18px", fontWeight: "bold" }}>Loading profile...</div>
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: COLORS.bg }}>
+        <div style={{ color: COLORS.primary, fontSize: "18px", fontWeight: "bold" }}>Loading Dashboard...</div>
       </div>
     );
   }
 
   if (!center) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#F4F7F6", padding: "20px", fontFamily: "sans-serif" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#111827", marginBottom: "12px" }}>No Business Profile Found</h2>
-        <p style={{ color: "#6B7280", marginBottom: "24px", textAlign: "center", maxWidth: "400px" }}>
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: COLORS.bg, padding: "20px", fontFamily: "sans-serif" }}>
+        <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#111827", marginBottom: "12px" }}>No Partner Profile Found</h2>
+        <p style={{ color: COLORS.textLight, marginBottom: "24px", textAlign: "center", maxWidth: "400px" }}>
           You don't have an active service center profile yet, or you are not logged in as a Service Center partner.
         </p>
         <div style={{ display: "flex", gap: "12px" }}>
           <Link href="/service-center-registration">
-            <button style={{ background: "#10B981", color: "white", border: "none", padding: "12px 24px", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>
+            <button style={{ background: COLORS.primary, color: "white", border: "none", padding: "12px 24px", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>
               Register Business
             </button>
           </Link>
           <Link href="/login">
-            <button style={{ background: "transparent", color: "#374151", border: "1px solid #D1D5DB", padding: "12px 24px", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>
+            <button style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "12px 24px", borderRadius: "8px", fontWeight: "700", cursor: "pointer" }}>
               Partner Login
             </button>
           </Link>
@@ -69,247 +163,186 @@ export default function ServiceCenterProfile() {
     );
   }
 
+  const pendingBookings = bookings.filter(b => (b.status ?? b.Status) === "Pending");
+  const confirmedBookings = bookings.filter(b => (b.status ?? b.Status) === "Confirmed");
+  const completedValue = confirmedBookings.length * (center.minServicePrice || 250);
+
+  const initials = ownerName
+    .split(" ")
+    .map(n => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
-    <div className="sc-profile-layout">
+    <div style={{ display: "flex", background: COLORS.bg, minHeight: "100vh", fontFamily: "'Inter', sans-serif" }}>
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        .sc-profile-layout {
-          min-height: 100vh;
-          background: #F4F7F6;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-          padding-bottom: 100px;
-        }
-        
-        .top-nav {
-          background: #fff;
-          border-bottom: 1px solid #E5E7EB;
-          height: 70px;
-          padding: 0 40px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          position: sticky;
-          top: 0;
-          z-index: 50;
-        }
-
-        .logo { font-size: 24px; font-weight: 900; color: #E8192C; text-decoration: none; }
-        .nav-right { display: flex; align-items: center; gap: 16px; }
-        .back-btn { font-size: 14px; font-weight: 600; color: #4B5563; text-decoration: none; border: 1px solid #D1D5DB; padding: 8px 16px; border-radius: 6px; }
-        .user-badge { width: 36px; height: 36px; background: #10B981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; text-transform: uppercase; }
-
-        .container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 24px;
-        }
-
-        /* Hero Section */
-        .sc-hero {
-          background: #10B981;
-          border-radius: 16px;
-          padding: 32px;
-          color: white;
-          margin-bottom: 24px;
-          display: flex;
-          justify-content: space-between;
-        }
-
-        .hero-left { display: flex; gap: 24px; }
-        .sc-logo-box { width: 80px; height: 80px; background: rgba(255,255,255,0.2); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 40px; }
-        
-        .sc-name { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
-        .sc-meta { font-size: 14px; display: flex; align-items: center; gap: 8px; opacity: 0.9; margin-bottom: 12px; }
-        
-        .sc-tags { display: flex; gap: 8px; margin-bottom: 24px; }
-        .tag-verified { background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
-        
-        .hero-stats { display: flex; gap: 32px; }
-        .stat-item h3 { font-size: 24px; font-weight: 800; }
-        .stat-item p { font-size: 13px; opacity: 0.8; }
-
-        .hero-actions { display: flex; flex-direction: column; gap: 12px; align-items: flex-end; }
-        .btn-save { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.4); padding: 8px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-save:hover { background: rgba(255,255,255,0.1); }
-        .btn-book-top { background: white; color: #10B981; border: none; padding: 12px 32px; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-
-        /* Main Grid */
-        .content-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-        }
-
-        .card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #F3F4F6; margin-bottom: 24px; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .card-title { font-size: 18px; font-weight: 700; color: #111827; }
-        .card-link { color: #10B981; font-size: 14px; text-decoration: none; font-weight: 600; }
-
-        /* Contact & Hours */
-        .contact-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
-        .contact-item { display: flex; gap: 12px; align-items: flex-start; }
-        .contact-icon { width: 32px; height: 32px; background: #F3F4F6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #4B5563; flex-shrink: 0; }
-        .contact-text h4 { font-size: 12px; color: #6B7280; font-weight: 500; }
-        .contact-text p { font-size: 15px; color: #111827; font-weight: 500; }
-        .map-placeholder { background: #F3F4F6; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6B7280; font-weight: 500; }
-
-        /* Services & Brands */
-        .tags-wrapper { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
-        .service-tag { background: #ECFDF5; color: #059669; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid #A7F3D0; }
-        .brand-tag { background: #F3F4F6; color: #374151; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; border: 1px solid #E5E7EB; }
-
-        .price-range { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #F3F4F6; padding-top: 16px; }
-        .price-info h4 { font-size: 12px; color: #6B7280; font-weight: 500; }
-        .price-info p { font-size: 16px; font-weight: 700; color: #111827; }
-        .spare-parts-toggle { font-size: 13px; color: #059669; font-weight: 600; display: flex; align-items: center; gap: 4px; }
-
-        /* Photos Grid */
-        .photos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .photo-box { height: 100px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: rgba(0,0,0,0.1); }
-        .photo-box.c1 { background: #D1FAE5; }
-        .photo-box.c2 { background: #FEF3C7; }
-        .photo-box.c3 { background: #DBEAFE; }
-        .photo-box.c4 { background: #FCE7F3; }
-
-        /* Spare Parts */
-        .part-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #F3F4F6; }
-        .part-item:last-child { border-bottom: none; }
-        .part-info h4 { font-size: 15px; font-weight: 600; color: #111827; }
-        .part-info p { font-size: 13px; color: #6B7280; }
-        .part-action { text-align: right; }
-        .part-price { font-size: 16px; font-weight: 700; color: #111827; margin-bottom: 4px; }
-        .btn-reserve { background: #10B981; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
-
-        /* Sticky Footer */
-        .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #E5E7EB; padding: 16px 40px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -4px 6px rgba(0,0,0,0.02); z-index: 40; }
-        .footer-info h4 { font-size: 16px; font-weight: 700; color: #111827; }
-        .footer-info p { font-size: 13px; color: #6B7280; }
-        .btn-book-bottom { background: #10B981; color: white; padding: 12px 32px; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-
-        @media (max-width: 900px) {
-          .content-grid { grid-template-columns: 1fr; }
-          .sc-hero { flex-direction: column; gap: 24px; }
-          .hero-actions { align-items: flex-start; flex-direction: row; }
-        }
+        .partner-btn { transition: opacity 0.2s ease; cursor: pointer; }
+        .partner-btn:hover { opacity: 0.85; }
+        .back-link { transition: background 0.2s ease; }
+        .back-link:hover { background: #f5f5f5 !important; }
       `}</style>
+      
+      <Sidebar active="Dashboard" />
 
-      <nav className="top-nav">
-        <Link href="/user-dashboard" className="logo" style={{color: '#111827'}}>Autoria</Link>
-        <div className="nav-right">
-          <Link href="/booking-requests" className="back-btn">📋 Partner Dashboard</Link>
-          <div className="user-badge">{userName.split(" ").map(n => n[0]).join("") || "MH"}</div>
-        </div>
-      </nav>
+      <main style={{ flex: 1, padding: "40px", maxWidth: "1600px" }}>
+        <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
+          <div>
+            <h1 style={{ fontSize: "28px", fontWeight: 900, margin: 0 }}>Dashboard Overview</h1>
+            <p style={{ color: COLORS.textLight, fontSize: "14px", margin: "4px 0 0" }}>Partner Portal • Live performance</p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <Link href="/service-center/edit" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
+                ✏️ Edit Profile
+              </Link>
+              <Link href="/" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>←</span> Back to Website
+              </Link>
+            </div>
+            
+            <div style={{ position: "relative" }}>
+              <div 
+                onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
+                style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer", userSelect: "none" }}
+              >
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "14px", fontWeight: 800 }}>{ownerName}</div>
+                  <div style={{ fontSize: "11px", color: COLORS.textLight }}>Service Center Partner</div>
+                </div>
+                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: COLORS.primary, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{initials}</div>
+                <span style={{ fontSize: "9px", color: COLORS.textLight }}>▼</span>
+              </div>
 
-      <div className="container">
-        
-        {/* Hero */}
-        <div className="sc-hero">
-          <div className="hero-left">
-            <div className="sc-logo-box"><i className="fa-solid fa-wrench"></i></div>
-            <div>
-              <h1 className="sc-name">{center.name}</h1>
-              <div className="sc-meta">
-                <i className="fa-solid fa-location-dot"></i> {center.district}, {center.governorate}
-              </div>
-              <div className="sc-tags">
-                <span className="tag-verified"><i className="fa-solid fa-check"></i> Verified</span>
-                <span className="tag-verified">{center.type || "Service Center"}</span>
-              </div>
-              <div className="hero-stats">
-                <div className="stat-item">
-                  <h3>4.8</h3>
-                  <p>★ Rating</p>
+              {dropdownOpen && (
+                <div style={{
+                  position: "absolute", top: "calc(100% + 8px)", right: 0,
+                  background: "#ffffff", borderRadius: "10px",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.15)", border: `1px solid ${COLORS.border}`,
+                  minWidth: "160px", overflow: "hidden", zIndex: 1000
+                }}>
+                  <Link href="/service-center" style={{ display: "block", padding: "10px 16px", color: COLORS.text, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                    🏢 Business Dashboard
+                  </Link>
+                  <div style={{ borderTop: `1px solid ${COLORS.border}` }} />
+                  <Link href="/logout" style={{ display: "block", padding: "10px 16px", color: COLORS.primary, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                    🚪 Log Out
+                  </Link>
                 </div>
-                <div className="stat-item">
-                  <h3>—</h3>
-                  <p>Reviews</p>
-                </div>
-                <div className="stat-item">
-                  <h3>{center.district ? "Yes" : "No"}</h3>
-                  <p>Active profile</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
-          <div className="hero-actions">
-            <Link href="/service-center/edit">
-              <button className="btn-save"><i className="fa-regular fa-pen-to-square"></i> Edit Profile</button>
-            </Link>
-          </div>
+        </header>
+
+        {/* Stats Row */}
+        <div style={{ display: "flex", gap: "24px", marginBottom: "32px" }}>
+          <StatCard label="Total Requests" value={String(bookings.length)} trend="5% vs last week" trendUp />
+          <StatCard label="Pending Approval" value={String(pendingBookings.length)} trend="Action required" />
+          <StatCard label="Estimated Revenue" value={`EGP ${completedValue.toLocaleString()}`} trend="Based on confirmed bookings" trendUp />
+          <StatCard label="Center Rating" value="4.8 ★" trend="Stable" />
         </div>
 
-        <div className="content-grid">
+        {/* Split Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "32px" }}>
           
-          {/* Left Column */}
-          <div className="left-col">
-            
-            {/* Contact & Hours */}
-            <div className="card">
-              <h2 className="card-title" style={{marginBottom: '20px'}}>Contact & Hours</h2>
-              <div className="contact-list">
-                <div className="contact-item">
-                  <div className="contact-icon"><i className="fa-solid fa-phone"></i></div>
-                  <div className="contact-text">
-                    <h4>Phone</h4>
-                    <p>{center.phone || "Not provided"}</p>
-                  </div>
-                </div>
-                <div className="contact-item">
-                  <div className="contact-icon"><i className="fa-solid fa-location-dot"></i></div>
-                  <div className="contact-text">
-                    <h4>Address</h4>
-                    <p>{center.district}, {center.governorate}</p>
-                  </div>
-                </div>
-              </div>
+          {/* Left Side: Recent Requests */}
+          <Card title="Pending Booking Requests" badge={`${pendingBookings.length} new`} actionText="View all" onAction={() => router.push("/booking-requests")}>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ textAlign: "left", borderBottom: `1px solid ${COLORS.border}`, color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
+                    <th style={{ padding: "12px 8px" }}>CUSTOMER</th>
+                    <th style={{ padding: "12px 8px" }}>VEHICLE</th>
+                    <th style={{ padding: "12px 8px" }}>SERVICE REQUESTED</th>
+                    <th style={{ padding: "12px 8px" }}>DATE & TIME</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingBookings.slice(0, 4).map((b, idx) => (
+                    <tr key={idx} style={{ borderBottom: `1px solid ${COLORS.border}`, fontSize: "13px" }}>
+                      <td style={{ padding: "16px 8px", fontWeight: 700 }}>{b.customerName || b.CustomerName || "Client"}</td>
+                      <td style={{ padding: "16px 8px" }}>{b.carModel || b.CarModel || "Car"}</td>
+                      <td style={{ padding: "16px 8px" }}>{b.serviceType || b.ServiceType || "Maintenance"}</td>
+                      <td style={{ padding: "16px 8px", color: COLORS.textLight }}>{b.date || b.Date}, {b.time || b.Time}</td>
+                    </tr>
+                  ))}
+                  {pendingBookings.length === 0 && (
+                    <tr>
+                      <td colSpan="4" style={{ padding: "32px", textAlign: "center", color: COLORS.textLight }}>
+                        🎉 No pending requests to review.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
+          </Card>
 
-            {/* Services Offered */}
-            <div className="card">
-              <h2 className="card-title" style={{marginBottom: '16px'}}>Services Offered</h2>
-              <div className="tags-wrapper">
-                {center.serviceTypes && center.serviceTypes.length > 0 ? (
-                  center.serviceTypes.map(s => (
-                    <span className="service-tag" key={s}>{s}</span>
-                  ))
-                ) : (
-                  <span style={{ color: '#6B7280', fontSize: '13px', fontStyle: 'italic' }}>No service types configured</span>
-                )}
+          {/* Right Side: Quick Stats and Services */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+            
+            {/* Workshop Overview Card */}
+            <Card title="Workshop Profile Outline">
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <div style={{ fontSize: "12px", color: COLORS.textLight, fontWeight: 700 }}>WORKSHOP NAME</div>
+                  <div style={{ fontSize: "16px", fontWeight: 800 }}>{center.name}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "12px", color: COLORS.textLight, fontWeight: 700 }}>LOCATION</div>
+                  <div style={{ fontSize: "14px", fontWeight: 600 }}>{center.district}, {center.governorate}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "12px", color: COLORS.textLight, fontWeight: 700 }}>PHONE</div>
+                  <div style={{ fontSize: "14px" }}>{center.phone || "Not configured"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "12px", color: COLORS.textLight, fontWeight: 700, marginBottom: "8px" }}>SUPPORTED SERVICES</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {(center.serviceTypes || []).slice(0, 5).map(s => (
+                      <span key={s} style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1E40AF", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px" }}>
+                        {s}
+                      </span>
+                    ))}
+                    {(center.serviceTypes || []).length > 5 && (
+                      <span style={{ fontSize: "11px", color: COLORS.textLight, alignSelf: "center" }}>
+                        +{center.serviceTypes.length - 5} more
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              
-              <h2 className="card-title" style={{marginTop: '32px', marginBottom: '16px'}}>Car Brands Serviced</h2>
-              <div className="tags-wrapper">
-                {center.carBrands && center.carBrands.length > 0 ? (
-                  center.carBrands.map(b => (
-                    <span className="brand-tag" key={b}>{b}</span>
-                  ))
-                ) : (
-                  <span style={{ color: '#6B7280', fontSize: '13px', fontStyle: 'italic' }}>No brands configured</span>
-                )}
+            </Card>
+
+            {/* Performance Progress */}
+            <Card title="Booking Distribution">
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>
+                    <span>Pending Approval</span>
+                    <span>{bookings.length > 0 ? Math.round((pendingBookings.length / bookings.length) * 100) : 0}%</span>
+                  </div>
+                  <div style={{ height: "8px", background: "#F1F5F9", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ width: `${bookings.length > 0 ? (pendingBookings.length / bookings.length) * 100 : 0}%`, height: "100%", background: COLORS.primary }} />
+                  </div>
+                </div>
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 700, marginBottom: "6px" }}>
+                    <span>Confirmed Bookings</span>
+                    <span>{bookings.length > 0 ? Math.round((confirmedBookings.length / bookings.length) * 100) : 0}%</span>
+                  </div>
+                  <div style={{ height: "8px", background: "#F1F5F9", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ width: `${bookings.length > 0 ? (confirmedBookings.length / bookings.length) * 100 : 0}%`, height: "100%", background: COLORS.success }} />
+                  </div>
+                </div>
               </div>
-            </div>
+            </Card>
 
           </div>
 
-          {/* Right Column */}
-          <div className="right-col">
-            
-            {/* Photos */}
-            <div className="card">
-              <h2 className="card-title">Workshop Photos</h2>
-              <div className="photos-grid" style={{ marginTop: '16px' }}>
-                <div className="photo-box c1"><i className="fa-solid fa-car-side"></i></div>
-                <div className="photo-box c2"><i className="fa-solid fa-screwdriver"></i></div>
-                <div className="photo-box c3"><i className="fa-solid fa-building"></i></div>
-                <div className="photo-box c4"><i className="fa-solid fa-wrench"></i></div>
-              </div>
-            </div>
-
-          </div>
         </div>
-      </div>
 
+      </main>
     </div>
   );
 }

@@ -39,16 +39,50 @@ const PartCard = ({ part }) => {
         boxShadow: hovered ? "0 8px 24px rgba(0,0,0,0.06)" : "0 2px 8px rgba(0,0,0,0.02)"
       }}
     >
-      <div style={{ height: "140px", background: "#F1F3F5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "44px", position: "relative" }}>
-        {part.type === "Used" ? "⚙️" : "⭕"}
+      {/* IMAGE CONTAINER */}
+      <div style={{ 
+        height: "140px", 
+        background: "#F1F3F5", 
+        display: "flex", 
+        alignItems: "center", 
+        justifyContent: "center", 
+        position: "relative",
+        overflow: "hidden"
+      }}>
+        {part.thumbnailUrl ? (
+          <img 
+            src={part.thumbnailUrl} 
+            alt={part.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain", // Keeps aspect ratio perfect without cropping
+              padding: "10px"
+            }}
+            onError={(e) => {
+              // Fallback if the image URL fails to load at runtime
+              e.target.style.display = 'none';
+              e.target.parentElement.innerHTML = part.type === "Used" ? "⚙️" : "⭕";
+            }}
+          />
+        ) : (
+          <span style={{ fontSize: "44px" }}>
+            {part.type === "Used" ? "⚙️" : "⭕"}
+          </span>
+        )}
       </div>
+
+      {/* CARD CONTENT */}
       <div style={{ padding: "18px" }}>
         <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: "15px", fontWeight: 700, marginBottom: "4px", color: COLORS.text }}>{part.name}</h3>
-        <p style={{ fontSize: "12px", color: COLORS.muted2, marginBottom: "10px" }}>{part.car}</p>
+        <p style={{ fontSize: "12px", color: COLORS.muted2, marginBottom: "10px" }}>{part.brand} {part.model}</p>
         <div style={{ fontFamily: "'Syne', sans-serif", fontSize: "20px", fontWeight: 800, color: COLORS.accent, marginBottom: "4px" }}>
-           <span style={{ fontSize: "13px", marginRight: "4px" }}>EGP</span>{part.price}
+           <span style={{ fontSize: "13px", marginRight: "4px" }}>EGP</span>
+           {part.lowestPrice ? part.lowestPrice : "Contact for Price"}
         </div>
-        <div style={{ fontSize: "11px", color: COLORS.success, fontWeight: 700 }}>✓ {part.availability}</div>
+        <div style={{ fontSize: "11px", color: COLORS.success, fontWeight: 700 }}>
+          ✓ {part.totalAvailableCenters > 0 ? "Available on order" : "Available on order"}
+        </div>
         
         <div style={{ display: "flex", gap: "8px", margin: "15px 0 0" }}>
           <button style={{ flex: 1, background: COLORS.primary, color: "#FFF", border: "none", padding: "10px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>Reserve</button>
@@ -58,6 +92,7 @@ const PartCard = ({ part }) => {
     </div>
   );
 };
+
 
 function ResultsContent() {
   const searchParams = useSearchParams();

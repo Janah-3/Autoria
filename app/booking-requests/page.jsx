@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { bookingService } from "../../src/API/bookingsService";
+import { bookingService, getBookingItems } from "@/lib/api/bookingsService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 
@@ -25,14 +25,14 @@ const Sidebar = ({ active }) => (
     <div style={{ padding: "0 25px", marginBottom: "40px" }}>
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
-        { id: "Dashboard", icon: "📊", path: "/dashboard" },
+        { id: "Dashboard", icon: "📊", path: "/service-center" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
-        { id: "Services & pricing", icon: "🏷️", path: "/services" },
-        { id: "Spare parts", icon: "⚙️", path: "/spare-parts" },
+        { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
+        { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
         { id: "Part reservations", icon: "📦", path: "/reservations" },
         { id: "Reviews", icon: "⭐", path: "/reviews" },
-        { id: "Business profile", icon: "🏢", path: "/business-profile" }
+        { id: "Business profile", icon: "🏢", path: "/service-center" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{
@@ -143,8 +143,8 @@ export default function BookingRequestsPage() {
     const fetchBookings = async () => {
       setLoading(true);
       try {
-        const data = await bookingService.getServiceCenterBookings();
-        setRequests(data || []);
+        const res = await bookingService.getServiceCenterBookings();
+        setRequests(getBookingItems(res));
       } catch (error) {
         console.error("Failed to load bookings:", error);
         setRequests([]);
@@ -155,11 +155,17 @@ export default function BookingRequestsPage() {
     fetchBookings();
   }, []);
 
+  const getRequestStatus = (r) => r?.status ?? r?.Status ?? "Pending";
+  const getRequestId = (r) => r?.id ?? r?.Id;
 
   const handleConfirm = async (id) => {
     try {
       await bookingService.updateBookingStatus(id, "Confirmed");
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "Confirmed" } : r));
+      setRequests((prev) =>
+        prev.map((r) =>
+          getRequestId(r) === id ? { ...r, status: "Confirmed", Status: "Confirmed" } : r
+        )
+      );
     } catch (error) {
       alert("Failed to confirm booking: " + error.message);
     }
@@ -168,14 +174,28 @@ export default function BookingRequestsPage() {
   const handleDecline = async (id) => {
     try {
       await bookingService.updateBookingStatus(id, "Declined");
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: "Declined" } : r));
+      setRequests((prev) =>
+        prev.map((r) =>
+          getRequestId(r) === id ? { ...r, status: "Declined", Status: "Declined" } : r
+        )
+      );
     } catch (error) {
       alert("Failed to decline booking: " + error.message);
     }
   };
 
 
-  const filteredRequests = requests.filter(r => filter === "All" || r.status === filter);
+  const filteredRequests = requests.filter(
+    (r) => filter === "All" || getRequestStatus(r) === filter
+  );
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const closeDropdown = () => setDropdownOpen(false);
+    window.addEventListener("click", closeDropdown);
+    return () => window.removeEventListener("click", closeDropdown);
+  }, []);
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
@@ -188,11 +208,34 @@ export default function BookingRequestsPage() {
           }}>
             ← Back to Website
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <span style={{ fontSize: "14px", fontWeight: 600 }}>{ownerName}</span>
-            <div style={{ width: "35px", height: "35px", borderRadius: "50%", background: COLORS.primary, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>
-              {ownerName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "SC"}
+          <div style={{ position: "relative" }}>
+            <div 
+              onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
+              style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer", userSelect: "none" }}
+            >
+              <span style={{ fontSize: "14px", fontWeight: 600 }}>{ownerName}</span>
+              <div style={{ width: "35px", height: "35px", borderRadius: "50%", background: COLORS.primary, color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "12px", fontWeight: 700 }}>
+                {ownerName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "SC"}
+              </div>
+              <span style={{ fontSize: "9px", color: COLORS.textLight }}>▼</span>
             </div>
+
+            {dropdownOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 8px)", right: 0,
+                background: "#ffffff", borderRadius: "10px",
+                boxShadow: "0 10px 25px rgba(0,0,0,0.1)", border: `1px solid ${COLORS.border}`,
+                minWidth: "160px", overflow: "hidden", zIndex: 1000
+              }}>
+                <Link href="/service-center" style={{ display: "block", padding: "10px 16px", color: COLORS.text, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                  🏢 Business Profile
+                </Link>
+                <div style={{ borderTop: `1px solid ${COLORS.border}` }} />
+                <Link href="/logout" style={{ display: "block", padding: "10px 16px", color: COLORS.primary, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
+                  🚪 Log Out
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -214,7 +257,7 @@ export default function BookingRequestsPage() {
                       border: `1px solid ${filter === tab ? COLORS.primary : COLORS.border}`,
                       color: filter === tab ? COLORS.primary : COLORS.textLight,
                     }}>
-                    {tab} {tab === "Pending" && <span style={{ opacity: 0.6 }}>{requests.filter(r => r.status === "Pending").length}</span>}
+                    {tab} {tab === "Pending" && <span style={{ opacity: 0.6 }}>{requests.filter((r) => getRequestStatus(r) === "Pending").length}</span>}
                   </div>
                 ))}
               </div>
@@ -224,9 +267,9 @@ export default function BookingRequestsPage() {
             {loading ? (
               <div style={{ textAlign: "center", padding: "50px", color: COLORS.textLight }}>Loading requests...</div>
             ) : (
-              filteredRequests.map(req => (
+              filteredRequests.map((req) => (
                 <RequestCard
-                  key={req.id}
+                  key={getRequestId(req) ?? req.customerName}
                   request={req}
                   onConfirm={handleConfirm}
                   onDecline={handleDecline}

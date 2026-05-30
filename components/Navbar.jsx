@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getMe } from "@/lib/api/usersService";
+import { clearAuthTokens } from "@/lib/api/client";
 
 const R = "#E8272A";
 const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
@@ -33,7 +34,7 @@ export default function Navbar({ user: initialUser }) {
       if (cachedRole === "Admin") {
         setDashboardUrl("/admin");
       } else if (cachedRole === "ServiceCenter" || cachedRole === "Center" || cachedRole === "ServiceCenterOwner") {
-        setDashboardUrl("/booking-requests");
+        setDashboardUrl("/service-center");
       } else {
         setDashboardUrl("/user-dashboard");
       }
@@ -50,12 +51,16 @@ export default function Navbar({ user: initialUser }) {
           if (role === "Admin") {
             setDashboardUrl("/admin");
           } else if (role === "ServiceCenter" || role === "Center" || role === "ServiceCenterOwner") {
-            setDashboardUrl("/booking-requests");
+            setDashboardUrl("/service-center");
           } else {
             setDashboardUrl("/user-dashboard");
           }
         }
       } catch (error) {
+        if (error?.status === 401) {
+          clearAuthTokens();
+          setUser(null);
+        }
         console.log("Waiting for Backend to turn on...", error.message);
       }
     };
@@ -212,6 +217,11 @@ export default function Navbar({ user: initialUser }) {
               </div>
 
               <div className={`profile-dropdown ${dropdownOpen ? "open" : ""}`}>
+                <Link href={dashboardUrl} className="dropdown-item" style={{ borderBottom: "1.5px solid #f0f0f0" }}>
+                  {dashboardUrl.includes("admin") ? "🔑 Admin Panel" : 
+                   dashboardUrl.includes("booking-requests") ? "📋 Partner Dashboard" : 
+                   "👤 My Dashboard"}
+                </Link>
                 <Link href="/reservations" className="dropdown-item">
                   ⚙️ My Reservations
                 </Link>
