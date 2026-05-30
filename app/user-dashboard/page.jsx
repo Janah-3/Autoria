@@ -405,6 +405,9 @@ export default function UserDashboardPage() {
               <Link href="/cars/add-car" className="action-btn btn-secondary">
                 <i className="fa-solid fa-car-side"></i> Add a Vehicle
               </Link>
+              <Link href="/reservations" className="action-btn btn-secondary" style={{ background: "#FEEBEB", color: "#E8192C" }}>
+                <i className="fa-solid fa-box-open"></i> Part Reservations
+              </Link>
             </div>
           </div>
 

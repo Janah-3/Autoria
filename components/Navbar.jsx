@@ -212,7 +212,10 @@ export default function Navbar({ user: initialUser }) {
               </div>
 
               <div className={`profile-dropdown ${dropdownOpen ? "open" : ""}`}>
-                <Link href="/logout" className="dropdown-item logout">
+                <Link href="/reservations" className="dropdown-item">
+                  ⚙️ My Reservations
+                </Link>
+                <Link href="/logout" className="dropdown-item logout" style={{ borderTop: "1px solid #f0f0f0" }}>
                   Log Out <span className="logout-arrow">→</span>
                 </Link>
               </div>

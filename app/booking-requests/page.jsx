@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { bookingService } from "../../src/API/bookingService";
+import { bookingService } from "../../src/API/bookingsService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 
@@ -30,6 +30,7 @@ const Sidebar = ({ active }) => (
         { id: "Availability", icon: "📅", path: "/availability" },
         { id: "Services & pricing", icon: "🏷️", path: "/services" },
         { id: "Spare parts", icon: "⚙️", path: "/spare-parts" },
+        { id: "Part reservations", icon: "📦", path: "/reservations" },
         { id: "Reviews", icon: "⭐", path: "/reviews" },
         { id: "Business profile", icon: "🏢", path: "/business-profile" }
       ].map(item => (
