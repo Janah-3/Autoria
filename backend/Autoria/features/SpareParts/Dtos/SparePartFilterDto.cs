@@ -10,5 +10,8 @@
         public bool? IsAvailable { get; set; }
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+        public string? CarMake { get; set; }
+        public string? CarModel { get; set; }
+        public int? CarYear { get; set; }
     }
 }

@@ -7,10 +7,13 @@ using Autoria.features.Inventory.Entities;
 using Autoria.features.MileageTracking.Entities;
 using Autoria.features.Notifications.Entities;
 using Autoria.features.PartReservations.Entities;
+using Autoria.features.Payments.Entities;
 using Autoria.features.Reports.Entity;
 using Autoria.features.Reviews.Entity;
 using Autoria.features.ServiceCenter.Entities;
 using Autoria.features.SpareParts.Entities;
+using Autoria.features.Subscribtion.Entities;
+using Autoria.features.Subscribtion.Enums;
 using Autoria.Features.JobRequests.Entities;
 using Autoria.Features.Mechanics.Entities;
 using Autoria.Infrastructure.Identity.entities;
@@ -65,5 +68,12 @@ namespace Autoria.Infrastructure.Persistence
         public DbSet<ContactMessage> ContactMessages { get; set; }
         public DbSet<MileageEntry> MileageEntries { get; set; }
         public DbSet<MaintenanceReminder> MaintenanceReminders { get; set; }
+        public DbSet<ServiceCenterSubscription> ServiceCenterSubscriptions { get; set; }
+        public DbSet<ProfileView> ProfileViews { get; set; }
+        public DbSet<PromotionLog> PromotionLogs { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceItem> InvoiceItems { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<SparePartCompatibility> SparePartCompatibilities { get; set; }
     }
 }

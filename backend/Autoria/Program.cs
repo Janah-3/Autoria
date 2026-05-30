@@ -1,6 +1,10 @@
 using System.Reflection;
 using System.Text;
 using Autoria.features.Notifications.Services;
+using Autoria.features.Payments.Services;
+using Autoria.features.Subscribtion.Services;
+using Autoria.Infrastructure.AI;
+using Autoria.Infrastructure.AI.Contracts;
 using Autoria.Infrastructure.Email.Contracts;
 using Autoria.Infrastructure.Email.Models;
 using Autoria.Infrastructure.Email.Services;
@@ -21,10 +25,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
-using Autoria.Infrastructure.AI.Contracts;
-using Autoria.Infrastructure.AI;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Autoria
 {
@@ -133,6 +135,8 @@ namespace Autoria
             builder.Services.Configure<CloudinarySettings>(
             builder.Configuration.GetSection("Cloudinary"));
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
+            builder.Services.AddScoped<IPremiumGuard, PremiumGuard>();
+            builder.Services.AddScoped<IMockPaymentGateway, MockPaymentGateway>();
 
             builder.Services.AddCors(options =>
             {

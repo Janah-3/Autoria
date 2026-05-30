@@ -22,5 +22,6 @@ namespace Autoria.features.SpareParts.Entities
         // Navigation
         public ICollection<SparePartImage> Images { get; set; } = new List<SparePartImage>();
         public ICollection<Inventory.Entities.Inventory> Inventories { get; set; } = new List<Inventory.Entities.Inventory>();
+        public ICollection<SparePartCompatibility> Compatibilities { get; set; } = new List<SparePartCompatibility>();
     }
 }

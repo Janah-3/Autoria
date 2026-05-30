@@ -7,6 +7,10 @@
         BookingCompleted,
         BookingRescheduled,
         BookingPending,
-        MaintenanceReminder
+        MaintenanceReminder,
+        InvoiceIssued,
+        PaymentPending,
+        PaymentCompleted,
+        PaymentRefunded
     }
 }

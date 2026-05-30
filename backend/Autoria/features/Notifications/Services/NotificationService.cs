@@ -23,7 +23,6 @@ namespace Autoria.features.Notifications.Services
             NotificationChannel channel,
             string content)
         {
-            // Always persist in-app notification
             if (channel == NotificationChannel.InApp || channel == NotificationChannel.Both)
             {
                 var notification = new Notification
@@ -40,7 +39,6 @@ namespace Autoria.features.Notifications.Services
                 await _db.SaveChangesAsync();
             }
 
-            // Send email if channel requires it
             if (channel == NotificationChannel.Email || channel == NotificationChannel.Both)
             {
                 var subject = GetEmailSubject(type);
@@ -56,8 +54,11 @@ namespace Autoria.features.Notifications.Services
             NotificationType.BookingRescheduled => "Your booking has been rescheduled",
             NotificationType.BookingPending => "Your booking is pending confirmation",
             NotificationType.MaintenanceReminder => "Maintenance reminder for your vehicle",
+            NotificationType.InvoiceIssued => "Your invoice is ready",
+            NotificationType.PaymentPending => "Cash payment registered",
+            NotificationType.PaymentCompleted => "Payment completed successfully",
+            NotificationType.PaymentRefunded => "Payment refunded",
             _ => "Autoria Notification"
         };
-
     }
 }

@@ -41,12 +41,19 @@ namespace Autoria.features.SpareParts.Commands.CreateSparePart
                 CountryOfOrigin = request.CountryOfOrigin,
                 Manufacturer = request.Manufacturer,
                 Description = request.Description,
-                IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 Images = request.ImageUrls.Select(url => new SparePartImage
                 {
                     Id = Guid.NewGuid(),
                     Url = url
+                }).ToList(),
+                Compatibilities = (request.Compatibilities ?? new()).Select(c => new SparePartCompatibility
+                {
+                    Id = Guid.NewGuid(),
+                    CarMake = c.CarMake,
+                    CarModel = c.CarModel,
+                    YearFrom = c.YearFrom,
+                    YearTo = c.YearTo
                 }).ToList()
             };
 

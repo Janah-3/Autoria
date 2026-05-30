@@ -23,6 +23,7 @@ namespace Autoria.features.SpareParts.Queries.GetSparePartsCatalog
             var query = _db.SpareParts
                 .Include(sp => sp.Images)
                 .Include(sp => sp.Inventories)
+                .Include(sp => sp.Compatibilities)
                 .Where(sp => sp.IsActive);
 
             if (!string.IsNullOrWhiteSpace(f.Search))
@@ -46,6 +47,20 @@ namespace Autoria.features.SpareParts.Queries.GetSparePartsCatalog
 
             if (f.IsAvailable.HasValue)
                 query = query.Where(sp => sp.Inventories.Any(i => i.IsAvailable && i.Quantity > 0));
+
+            // TC-BE-SP-04: car compatibility filter
+            if (!string.IsNullOrWhiteSpace(f.CarMake))
+                query = query.Where(sp => sp.Compatibilities.Any(c =>
+                    c.CarMake.ToLower() == f.CarMake.ToLower()));
+
+            if (!string.IsNullOrWhiteSpace(f.CarModel))
+                query = query.Where(sp => sp.Compatibilities.Any(c =>
+                    c.CarModel.ToLower() == f.CarModel.ToLower()));
+
+            if (f.CarYear.HasValue)
+                query = query.Where(sp => sp.Compatibilities.Any(c =>
+                    (c.YearFrom == null || c.YearFrom <= f.CarYear) &&
+                    (c.YearTo == null || c.YearTo >= f.CarYear)));
 
             var totalCount = await query.CountAsync(cancellationToken);
 
