@@ -203,7 +203,7 @@ function CenterCard({ c }) {
         <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 2, color: "#111" }}>{c.name}</div>
         <div style={{ ...row(4), marginBottom: 6 }}>
           <span style={{ fontSize: 11, color: "#9ca3af" }}>📍</span>
-          <span style={{ fontSize: 11, color: "#9ca3af" }}>{c.loc}</span>
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>{c.address}</span>
         </div>
         <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.6, marginBottom: 10 }}>{c.desc}</p>
 
@@ -334,6 +334,7 @@ export default function ServiceCentersPage() {
         setCenters([]);
       })
       .finally(() => setLoading(false));
+      
   }, []);
 
   const ALL_CITIES = useMemo(
