@@ -25,43 +25,55 @@ namespace Autoria.Infrastructure.Persistence.Seeding
 
         public async Task SeedAsync()
         {
-            
-            await new RoleSeeder(_roleManager).SeedAsync();
-            await new UserSeeder(_userManager).SeedAsync();
-
-            
-            if (!await _context.ServiceTypes.AnyAsync())
+            try
             {
-                _context.ServiceTypes.AddRange(
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Oil Change" },
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Brakes" },
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "AC Repair" },
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Tires" },
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Engine Diagnostics" },
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Suspension" },
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Electrical" },
-                    new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Body Work" }
-                );
-            }
+                // 1. Seed Roles and Users first
+                await new RoleSeeder(_roleManager).SeedAsync();
+                await new UserSeeder(_userManager).SeedAsync();
 
-            if (!await _context.CarBrands.AnyAsync())
+                bool needsSave = false;
+
+                // 2. Seed Lookups
+                if (!await _context.ServiceTypes.AnyAsync())
+                {
+                    _context.ServiceTypes.AddRange(
+                        new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Oil Change" },
+                        new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Brakes" },
+                        new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "AC Repair" },
+                        new ServiceType { ServiceTypeId = Guid.NewGuid(), Name = "Tires" }
+                    );
+                    needsSave = true;
+                }
+
+                if (!await _context.CarBrands.AnyAsync())
+                {
+                    _context.CarBrands.AddRange(
+                        new CarBrand { Id = Guid.NewGuid(), Name = "Toyota" },
+                        new CarBrand { Id = Guid.NewGuid(), Name = "Hyundai" },
+                        new CarBrand { Id = Guid.NewGuid(), Name = "Kia" },
+                        new CarBrand { Id = Guid.NewGuid(), Name = "Nissan" }
+                    );
+                    needsSave = true;
+                }
+
+                if (needsSave)
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                // 3. Seed Complex Features
+                await new ServiceCenterSeeder(_context, _userManager).SeedAsync();
+            }
+            catch (Exception ex)
             {
-                _context.CarBrands.AddRange(
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Toyota" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Hyundai" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Kia" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Nissan" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Chevrolet" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Suzuki" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "BMW" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Mercedes" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Honda" },
-                    new CarBrand { Id = Guid.NewGuid(), Name = "Mitsubishi" }
-                );
+                // This will print out exactly what line failed and why in your IDE console
+                Console.WriteLine("=================== SEEDER CRASH ERROR ===================");
+                Console.WriteLine(ex.Message);
+                if (ex.InnerException != null) Console.WriteLine($"Inner: {ex.InnerException.Message}");
+                Console.WriteLine(ex.StackTrace);
+                Console.WriteLine("==========================================================");
+                throw; // rethrow so the app initialization catches it
             }
-
-           
-            await _context.SaveChangesAsync();
         }
     }
 }

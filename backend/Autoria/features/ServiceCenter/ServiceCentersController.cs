@@ -58,7 +58,7 @@ namespace Autoria.features.ServiceCenter
             return Success(new { serviceCenterId });
         }
 
-        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        //[Authorize(Roles = Roles.ServiceCenterOwner )]
         [HttpPost("my/documents")]
         public async Task<IActionResult> UploadDocuments([FromForm] UploadDocumentsRequest request)
         {
@@ -74,7 +74,7 @@ namespace Autoria.features.ServiceCenter
             return Success("Documents uploaded successfully");
         }
 
-        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
         [HttpPut("my/service-types")]
         public async Task<IActionResult> UpdateServiceTypes([FromBody] UpdateServiceTypesRequest request)
         {
@@ -90,7 +90,7 @@ namespace Autoria.features.ServiceCenter
 
 
 
-        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
         [HttpPut("my/car-brands")]
         public async Task<IActionResult> UpdateCarBrands([FromBody] UpdateCarBrandsRequest request)
         {
@@ -104,7 +104,7 @@ namespace Autoria.features.ServiceCenter
             return Success("Car brands updated successfully");
         }
 
-        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
         [HttpPut("my/operating-hours")]
         public async Task<IActionResult> UpdateOperatingHours([FromBody] UpdateOperatingHoursRequest request)
         {
@@ -136,7 +136,7 @@ namespace Autoria.features.ServiceCenter
         }
 
 
-        [Authorize(Roles = Roles.ServiceCenterOwner)]
+        //[Authorize(Roles = Roles.ServiceCenterOwner)]
         [HttpPost("my/submit")]
         public async Task<IActionResult> SubmitServiceCenter()
         {
