@@ -183,9 +183,7 @@ export default function SparePartDetailsPage() {
             <button style={{ width: "100%", background: COLORS.primary, color: "#fff", border: "none", padding: "15px", borderRadius: "10px", fontWeight: "bold", fontSize: "16px", cursor: "pointer", marginBottom: "10px" }}>
               Reserve Now
             </button>
-            <button style={{ width: "100%", background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", fontWeight: "bold", cursor: "pointer" }}>
-              ♡ Save to Wishlist
-            </button>
+          
           </div>
 
           <div style={{ background: "#fff", padding: "20px", borderRadius: "15px", border: `1px solid ${COLORS.border}` }}>
