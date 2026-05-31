@@ -103,7 +103,6 @@ export default function ServiceCenterDashboard() {
       })
       .catch(() => {});
 
-    // Fetch own service center profile
     serviceCentersService.getMy()
       .then(res => {
         const d = res?.data ?? res;
@@ -118,7 +117,7 @@ export default function ServiceCenterDashboard() {
         setCenter(null);
       });
 
-    // Fetch booking lists
+
     bookingService.getServiceCenterBookings()
       .then(res => {
         setBookings(getBookingItems(res) || []);

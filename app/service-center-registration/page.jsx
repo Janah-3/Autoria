@@ -14,6 +14,32 @@ const EGYPT_GOVERNORATES = [
   "Gharbia", "Suez", "Port Said", "Sharqia", "Beheira", "Asyut", "Sohag",
 ];
 
+const ALL_SERVICE_TYPES = [
+  { id: "779E6B5C-FC46-4207-940F-3C79DA96BECA", name: "Oil Change" },
+  { id: "0D78B545-DBE7-4C47-9557-61677308178D", name: "Brakes Repair" },
+  { id: "f218b908-d6e5-4eef-925b-12cf5873af8f", name: "Suspension" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", name: "AC Maintenance" },
+  { id: "b2c3d4e5-f6a7-8901-bcde-f12345678901", name: "Engine Diagnostics" },
+  { id: "c3d4e5f6-a7b8-9012-cdef-123456789012", name: "Tire Services" },
+  { id: "d4e5f6a7-b8c9-0123-defa-234567890123", name: "Electrical Systems" },
+  { id: "e5f6a7b8-c9d0-1234-efab-345678901234", name: "Body Work" },
+];
+
+const ALL_CAR_BRANDS = [
+  { id: "2DD8709F-DDFA-452C-A23B-1BCECD6CCFAE", name: "Toyota" },
+  { id: "3AA77C79-B11C-4455-9BC9-36B206BA5D0F", name: "Hyundai" },
+  { id: "4BB88D80-CC22-5566-AAD0-47C317CB6E1F", name: "Kia" },
+  { id: "5CC99E91-DD33-6677-BBE1-58D428DC7F2G", name: "Nissan" },
+  { id: "6DD00F02-EE44-7788-CCF2-69E539ED8030", name: "Honda" },
+  { id: "7EE11013-FF55-8899-DD03-70F64AFE9141", name: "BMW" },
+  { id: "8FF22124-0066-99AA-EE14-81077BFF0252", name: "Mercedes-Benz" },
+  { id: "9AA33235-1177-AABB-FF25-92188C001363", name: "Chevrolet" },
+  { id: "ABB44346-2288-BBCC-0036-A3299D112474", name: "Ford" },
+  { id: "BCC55457-3399-CCDD-1147-B430AE223585", name: "Mitsubishi" },
+  { id: "CDD66568-44AA-DDEE-2258-C541BF334696", name: "Suzuki" },
+  { id: "DEE77679-55BB-EEFF-3369-D652C0445707", name: "Volkswagen" },
+];
+
 const digitsOnly = (value, maxLen) =>
   value.replace(/\D/g, "").slice(0, maxLen);
 
@@ -41,9 +67,16 @@ export default function ServiceCenterRegistration() {
   const [existingStatus, setExistingStatus] = useState(null); // null = no SC, "Draft", "Pending", etc.
   const [isDraft, setIsDraft] = useState(false); // true if user already has a Draft SC
 
-  // Lookups
-  const [availableServices, setAvailableServices] = useState([]);
-  const [availableBrands, setAvailableBrands] = useState([]);
+  // Step 3 — Services & Brands selections
+  const [selectedServiceIds, setSelectedServiceIds] = useState(new Set());
+  const [selectedBrandIds, setSelectedBrandIds] = useState(new Set());
+
+  const toggleServiceId = (id) => setSelectedServiceIds(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
+  const toggleBrandId = (id) => setSelectedBrandIds(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next;
+  });
 
   // Google Maps refs
   const mapRef = useRef(null);
@@ -120,17 +153,7 @@ export default function ServiceCenterRegistration() {
         console.log("No existing service center found.");
       }
 
-      // Fetch dynamic lookup items from DB
-      try {
-        const [servicesRes, brandsRes] = await Promise.all([
-          serviceCentersService.getServiceTypes(),
-          serviceCentersService.getCarBrands(),
-        ]);
-        if (servicesRes?.data) setAvailableServices(servicesRes.data);
-        if (brandsRes?.data) setAvailableBrands(brandsRes.data);
-      } catch (err) {
-        console.warn("Could not load lookups:", err.message);
-      }
+      // Lookups fetched on dashboard later, skipped in registration
     }
     initPage();
   }, [router]);
@@ -251,6 +274,12 @@ export default function ServiceCenterRegistration() {
       if (!form.address.trim()) errs.address = "Detailed street address is required";
     }
     if (step === 3) {
+      if (selectedServiceIds.size === 0)
+        errs.services = "Please select at least one service type";
+      if (selectedBrandIds.size === 0)
+        errs.brands = "Please select at least one car brand";
+    }
+    if (step === 4) {
       if (!docFiles.commercialReg || !docFiles.taxCard || !docFiles.nationalId)
         errs.documents = "Please upload all three official documents";
     }
@@ -272,7 +301,7 @@ export default function ServiceCenterRegistration() {
   // ─── Submit ──────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const errs = validateStep(3);
+    const errs = validateStep(4);
     if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true);
@@ -289,7 +318,7 @@ export default function ServiceCenterRegistration() {
         taxCardNo: form.taxCardNo,
         ownerNationalId: form.ownerNationalId,
         ownerFullName: form.ownerName.trim(),
-        numServiceBays: Number(form.numServiceBays) || 1,
+        numServiceBays: 4, // Hardcoded default of 4 bays as requested (removed from front form)
         type: form.type,
         latitude: Number(form.latitude) || 30.0626,
         longitude: Number(form.longitude) || 31.3397,
@@ -329,17 +358,11 @@ export default function ServiceCenterRegistration() {
       // Step 3: Update operating hours
       await serviceCentersService.updateOperatingHours(DEFAULT_OPERATING_HOURS);
 
-      // Step 4: Update service types if any available
-      if (availableServices.length > 0) {
-        const serviceIds = availableServices.map((s) => s.id);
-        await serviceCentersService.updateServiceTypes(serviceIds);
-      }
+      // Step 4: Update service types with user's selection
+      await serviceCentersService.updateServiceTypes([...selectedServiceIds]);
 
-      // Step 5: Update car brands if any available
-      if (availableBrands.length > 0) {
-        const brandIds = availableBrands.map((b) => b.id);
-        await serviceCentersService.updateCarBrands(brandIds);
-      }
+      // Step 5: Update car brands with user's selection
+      await serviceCentersService.updateCarBrands([...selectedBrandIds]);
 
       // Step 6: Upload workshop photos
       if (docFiles.workshopPhotos?.length) {
@@ -350,7 +373,7 @@ export default function ServiceCenterRegistration() {
       // Step 7: Submit registration (changes status from Draft → Pending)
       await serviceCentersService.submitRegistration();
 
-      setCurrentStep(4); // success screen
+      setCurrentStep(5); // success screen
     } catch (err) {
       const apiErrors = err?.errors;
       const message =
@@ -366,7 +389,8 @@ export default function ServiceCenterRegistration() {
   const steps = [
     { n: 1, label: "Profile" },
     { n: 2, label: "Location" },
-    { n: 3, label: "Documents" },
+    { n: 3, label: "Services" },
+    { n: 4, label: "Documents" },
   ];
 
   // ─── Loading state ───────────────────────────────────────────
@@ -590,11 +614,11 @@ export default function ServiceCenterRegistration() {
 
       <div className="container">
         {/* Stepper */}
-        {currentStep <= 3 && (
+        {currentStep <= 4 && (
           <div className="stepper-header">
             <div
               className="step-progress-bar"
-              style={{ width: `${((currentStep - 1) / 2) * 90}%` }}
+              style={{ width: `${((currentStep - 1) / 3) * 90}%` }}
             />
             {steps.map((s) => (
               <div
@@ -686,17 +710,7 @@ export default function ServiceCenterRegistration() {
                   />
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Number of service bays</label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 6"
-                    value={form.numServiceBays}
-                    onChange={(e) => setForm({ ...form, numServiceBays: parseInt(e.target.value) })}
-                  />
-                </div>
+                {/* Number of service bays removed from UI */}
 
                 <div className="form-group full">
                   <label className="form-label">Description</label>
@@ -824,14 +838,75 @@ export default function ServiceCenterRegistration() {
               <div className="actions">
                 <button className="btn-back" onClick={handleBack}>← Back</button>
                 <button className="btn-next" onClick={handleNext}>
+                  Next: Services →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 3: Services & Brands ── */}
+          {currentStep === 3 && (
+            <div>
+              <h2 className="step-title">Services & supported brands</h2>
+              <p className="step-desc">
+                Tell customers what your workshop specializes in. You can update these anytime from your dashboard.
+              </p>
+
+              <label className="form-label" style={{ marginBottom: 8, display: "block" }}>Service types offered</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: 16, border: "1.5px dashed #E2E8F0", borderRadius: 14, background: "#F8FAFC", marginBottom: 8 }}>
+                {ALL_SERVICE_TYPES.map(st => (
+                  <label key={st.id} style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "8px 16px", borderRadius: 10, cursor: "pointer",
+                    border: `1.5px solid ${selectedServiceIds.has(st.id) ? "#E8272A" : "#CBD5E1"}`,
+                    background: selectedServiceIds.has(st.id) ? "#FEF2F2" : "#fff",
+                    fontWeight: 700, fontSize: 13.5,
+                    color: selectedServiceIds.has(st.id) ? "#E8272A" : "#475569",
+                    transition: "all 0.15s", userSelect: "none",
+                  }}>
+                    <input type="checkbox" style={{ display: "none" }}
+                      checked={selectedServiceIds.has(st.id)}
+                      onChange={() => toggleServiceId(st.id)} />
+                    {selectedServiceIds.has(st.id) ? "✓ " : ""}{st.name}
+                  </label>
+                ))}
+              </div>
+              {errors.services && <span className="error-hint">{errors.services}</span>}
+              <p style={{ fontSize: 12, color: "#94A3B8", marginBottom: 32 }}>{selectedServiceIds.size} service{selectedServiceIds.size !== 1 ? "s" : ""} selected</p>
+
+              <label className="form-label" style={{ marginBottom: 8, display: "block" }}>Car brands serviced</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: 16, border: "1.5px dashed #E2E8F0", borderRadius: 14, background: "#F8FAFC", marginBottom: 8 }}>
+                {ALL_CAR_BRANDS.map(cb => (
+                  <label key={cb.id} style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "8px 16px", borderRadius: 10, cursor: "pointer",
+                    border: `1.5px solid ${selectedBrandIds.has(cb.id) ? "#1E40AF" : "#CBD5E1"}`,
+                    background: selectedBrandIds.has(cb.id) ? "#EFF6FF" : "#fff",
+                    fontWeight: 700, fontSize: 13.5,
+                    color: selectedBrandIds.has(cb.id) ? "#1E40AF" : "#475569",
+                    transition: "all 0.15s", userSelect: "none",
+                  }}>
+                    <input type="checkbox" style={{ display: "none" }}
+                      checked={selectedBrandIds.has(cb.id)}
+                      onChange={() => toggleBrandId(cb.id)} />
+                    {selectedBrandIds.has(cb.id) ? "✓ " : ""}{cb.name}
+                  </label>
+                ))}
+              </div>
+              {errors.brands && <span className="error-hint">{errors.brands}</span>}
+              <p style={{ fontSize: 12, color: "#94A3B8", marginBottom: 32 }}>{selectedBrandIds.size} brand{selectedBrandIds.size !== 1 ? "s" : ""} selected</p>
+
+              <div className="actions">
+                <button className="btn-back" onClick={handleBack}>← Back</button>
+                <button className="btn-next" onClick={handleNext}>
                   Next: Documents →
                 </button>
               </div>
             </div>
           )}
 
-          {/* ── Step 3: Documents & Photos ── */}
-          {currentStep === 3 && (
+          {/* ── Step 4: Documents & Photos ── */}
+          {currentStep === 4 && (
             <form onSubmit={handleSubmit}>
               <h2 className="step-title">Legal &amp; security verification</h2>
               <p className="step-desc">
@@ -918,8 +993,8 @@ export default function ServiceCenterRegistration() {
             </form>
           )}
 
-          {/* ── Step 4: Success ── */}
-          {currentStep === 4 && (
+          {/* ── Step 5: Success ── */}
+          {currentStep === 5 && (
             <div className="success-wrapper">
               <div className="success-icon">✈</div>
               <h2 className="step-title" style={{ fontSize: 32 }}>Registration submitted!</h2>
@@ -946,10 +1021,6 @@ export default function ServiceCenterRegistration() {
                 <div className="summary-item">
                   <span className="summary-label">Contact email</span>
                   <span className="summary-val">{form.email}</span>
-                </div>
-                <div className="summary-item">
-                  <span className="summary-label">Service bays</span>
-                  <span className="summary-val">{form.numServiceBays} lifts (active)</span>
                 </div>
                 <div className="summary-item">
                   <span className="summary-label">Audit status</span>

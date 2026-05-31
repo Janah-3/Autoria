@@ -2,7 +2,35 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
+
+// Static lookups (match backend seed data)
+const ALL_SERVICE_TYPES = [
+  { id: "779E6B5C-FC46-4207-940F-3C79DA96BECA", name: "Oil Change" },
+  { id: "0D78B545-DBE7-4C47-9557-61677308178D", name: "Brakes Repair" },
+  { id: "f218b908-d6e5-4eef-925b-12cf5873af8f", name: "Suspension" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", name: "AC Maintenance" },
+  { id: "b2c3d4e5-f6a7-8901-bcde-f12345678901", name: "Engine Diagnostics" },
+  { id: "c3d4e5f6-a7b8-9012-cdef-123456789012", name: "Tire Services" },
+  { id: "d4e5f6a7-b8c9-0123-defa-234567890123", name: "Electrical Systems" },
+  { id: "e5f6a7b8-c9d0-1234-efab-345678901234", name: "Body Work" },
+];
+
+const ALL_CAR_BRANDS = [
+  { id: "2DD8709F-DDFA-452C-A23B-1BCECD6CCFAE", name: "Toyota" },
+  { id: "3AA77C79-B11C-4455-9BC9-36B206BA5D0F", name: "Hyundai" },
+  { id: "4BB88D80-CC22-5566-AAD0-47C317CB6E1F", name: "Kia" },
+  { id: "5CC99E91-DD33-6677-BBE1-58D428DC7F2G", name: "Nissan" },
+  { id: "6DD00F02-EE44-7788-CCF2-69E539ED8030", name: "Honda" },
+  { id: "7EE11013-FF55-8899-DD03-70F64AFE9141", name: "BMW" },
+  { id: "8FF22124-0066-99AA-EE14-81077BFF0252", name: "Mercedes-Benz" },
+  { id: "9AA33235-1177-AABB-FF25-92188C001363", name: "Chevrolet" },
+  { id: "ABB44346-2288-BBCC-0036-A3299D112474", name: "Ford" },
+  { id: "BCC55457-3399-CCDD-1147-B430AE223585", name: "Mitsubishi" },
+  { id: "CDD66568-44AA-DDEE-2258-C541BF334696", name: "Suzuki" },
+  { id: "DEE77679-55BB-EEFF-3369-D652C0445707", name: "Volkswagen" },
+];
 
 export default function EditServiceCenterProfile() {
   const [activeTab, setActiveTab] = useState("general");
@@ -26,11 +54,9 @@ export default function EditServiceCenterProfile() {
     closedDays: "",
   });
 
-  const [services, setServices] = useState([]);
-  const [newService, setNewService] = useState("");
-
-  const [brands, setBrands] = useState([]);
-  const [newBrand, setNewBrand] = useState("");
+  // Selected IDs (sets for O(1) toggle)
+  const [selectedServiceIds, setSelectedServiceIds] = useState(new Set());
+  const [selectedBrandIds, setSelectedBrandIds] = useState(new Set());
 
   const [pricing, setPricing] = useState({
     min: "",
@@ -79,8 +105,14 @@ export default function EditServiceCenterProfile() {
             .join(" • "),
           closedDays: (d.operatingHours || []).filter((h) => h.isClosed).map((h) => h.day).join(", "),
         });
-        setServices(d.serviceTypes || []);
-        setBrands(d.carBrands || []);
+        // serviceTypes / carBrands from API come as name strings — match against our static list to get IDs
+        const apiServiceNames = (d.serviceTypes || []).map(s => typeof s === 'string' ? s.toLowerCase() : (s.name || '').toLowerCase());
+        const apiServiceIds = ALL_SERVICE_TYPES.filter(st => apiServiceNames.includes(st.name.toLowerCase())).map(st => st.id);
+        setSelectedServiceIds(new Set(apiServiceIds));
+
+        const apiBrandNames = (d.carBrands || []).map(b => typeof b === 'string' ? b.toLowerCase() : (b.name || '').toLowerCase());
+        const apiBrandIds = ALL_CAR_BRANDS.filter(cb => apiBrandNames.includes(cb.name.toLowerCase())).map(cb => cb.id);
+        setSelectedBrandIds(new Set(apiBrandIds));
         if (d.photos?.length) {
           setPhotos(
             d.photos.map((url, i) => ({
@@ -105,39 +137,32 @@ export default function EditServiceCenterProfile() {
         description: generalInfo.description,
         numServiceBays: parseInt(generalInfo.bays, 10) || undefined,
       });
+      // Persist service types and car brands
+      await serviceCentersService.updateServiceTypes([...selectedServiceIds]);
+      await serviceCentersService.updateCarBrands([...selectedBrandIds]);
       triggerToast("Business profile saved successfully", "success");
     } catch (err) {
       triggerToast(err.message || "Failed to save", "warning");
     }
   };
 
-  // Add Service Tag
-  const handleAddService = () => {
-    if (newService.trim() && !services.includes(newService.trim())) {
-      setServices([...services, newService.trim()]);
-      setNewService("");
-      triggerToast(`Added service: ${newService.trim()}`, "info");
-    }
+  const toggleServiceId = (id) => {
+    setSelectedServiceIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
-  const handleRemoveService = (serviceToRemove) => {
-    setServices(services.filter(s => s !== serviceToRemove));
-    triggerToast(`Removed service: ${serviceToRemove}`, "info");
+  const toggleBrandId = (id) => {
+    setSelectedBrandIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
-  // Add Brand Tag
-  const handleAddBrand = () => {
-    if (newBrand.trim() && !brands.includes(newBrand.trim())) {
-      setBrands([...brands, newBrand.trim()]);
-      setNewBrand("");
-      triggerToast(`Added support for ${newBrand.trim()}`, "info");
-    }
-  };
-
-  const handleRemoveBrand = (brandToRemove) => {
-    setBrands(brands.filter(b => b !== brandToRemove));
-    triggerToast(`Removed support for ${brandToRemove}`, "info");
-  };
+  // (service / brand management is now handled via toggleServiceId / toggleBrandId)
 
   // Add Part Simple
   const handleAddPart = () => {
@@ -843,64 +868,66 @@ export default function EditServiceCenterProfile() {
                 <h2 className="section-title">
                   <i className="fa-solid fa-wrench"></i> Services Offered
                 </h2>
-                <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>
-                  Currently Selected Services
-                </label>
-                <div className="tags-container">
-                  {services.map(s => (
-                    <span key={s} className="pill-tag">
-                      {s}
-                      <button type="button" onClick={() => handleRemoveService(s)}>×</button>
-                    </span>
+                <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>
+                  Select all service types your workshop provides. Changes are saved when you click "Save Business Profile".
+                </p>
+                <div className="tags-container" style={{ gap: 10 }}>
+                  {ALL_SERVICE_TYPES.map(st => (
+                    <label key={st.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
+                      border: `1.5px solid ${selectedServiceIds.has(st.id) ? '#E8272A' : '#E2E8F0'}`,
+                      background: selectedServiceIds.has(st.id) ? '#FEF2F2' : '#fff',
+                      fontWeight: 700, fontSize: 13,
+                      color: selectedServiceIds.has(st.id) ? '#E8272A' : '#334155',
+                      transition: 'all 0.15s',
+                      userSelect: 'none',
+                    }}>
+                      <input
+                        type="checkbox"
+                        style={{ display: 'none' }}
+                        checked={selectedServiceIds.has(st.id)}
+                        onChange={() => toggleServiceId(st.id)}
+                      />
+                      {selectedServiceIds.has(st.id) ? '✓ ' : ''}{st.name}
+                    </label>
                   ))}
-                  {services.length === 0 && <span style={{fontSize: '13px', color: '#94A3B8'}}>No services listed yet.</span>}
                 </div>
-
-                <div className="add-tag-wrapper" style={{ marginBottom: '32px' }}>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    style={{ flex: 1 }} 
-                    placeholder="e.g. Wheel alignment, Painting, Transmission fluid" 
-                    value={newService}
-                    onChange={(e) => setNewService(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddService())}
-                  />
-                  <button type="button" className="btn-add-tag" onClick={handleAddService}>
-                    <i className="fa-solid fa-plus"></i> Add Service
-                  </button>
-                </div>
+                <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 8 }}>
+                  {selectedServiceIds.size} service{selectedServiceIds.size !== 1 ? 's' : ''} selected
+                </p>
 
                 <h2 className="section-title" style={{ marginTop: '40px' }}>
                   <i className="fa-solid fa-car"></i> Car Brands Serviced
                 </h2>
-                <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>
-                  Specialized Manufacturers
-                </label>
-                <div className="tags-container">
-                  {brands.map(b => (
-                    <span key={b} className="pill-tag brand">
-                      {b}
-                      <button type="button" onClick={() => handleRemoveBrand(b)}>×</button>
-                    </span>
+                <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>
+                  Select the car brands your mechanics are certified to work on.
+                </p>
+                <div className="tags-container" style={{ gap: 10 }}>
+                  {ALL_CAR_BRANDS.map(cb => (
+                    <label key={cb.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
+                      border: `1.5px solid ${selectedBrandIds.has(cb.id) ? '#1E40AF' : '#E2E8F0'}`,
+                      background: selectedBrandIds.has(cb.id) ? '#EFF6FF' : '#fff',
+                      fontWeight: 700, fontSize: 13,
+                      color: selectedBrandIds.has(cb.id) ? '#1E40AF' : '#334155',
+                      transition: 'all 0.15s',
+                      userSelect: 'none',
+                    }}>
+                      <input
+                        type="checkbox"
+                        style={{ display: 'none' }}
+                        checked={selectedBrandIds.has(cb.id)}
+                        onChange={() => toggleBrandId(cb.id)}
+                      />
+                      {selectedBrandIds.has(cb.id) ? '✓ ' : ''}{cb.name}
+                    </label>
                   ))}
-                  {brands.length === 0 && <span style={{fontSize: '13px', color: '#94A3B8'}}>No brands selected.</span>}
                 </div>
-
-                <div className="add-tag-wrapper" style={{ marginBottom: '32px' }}>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    style={{ flex: 1 }} 
-                    placeholder="e.g. Nissan, Chevrolet, Audi" 
-                    value={newBrand}
-                    onChange={(e) => setNewBrand(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddBrand())}
-                  />
-                  <button type="button" className="btn-add-tag" onClick={handleAddBrand}>
-                    <i className="fa-solid fa-plus"></i> Add Brand
-                  </button>
-                </div>
+                <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 8, marginBottom: 32 }}>
+                  {selectedBrandIds.size} brand{selectedBrandIds.size !== 1 ? 's' : ''} selected
+                </p>
 
                 <h2 className="section-title" style={{ marginTop: '40px' }}>
                   <i className="fa-solid fa-tags"></i> Pricing & Spare Parts
