@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getMe } from "@/lib/api/usersService";
+import { getMe, usersService } from "@/lib/api/usersService";
 import {
   serviceCentersService,
   getServiceCenterItems,
@@ -204,7 +204,7 @@ function ServiceCenters({ centers }) {
                 </div>
                 <div style={{ ...row(0), justifyContent: "space-between", borderTop: "1px solid #f3f4f6", paddingTop: 10 }}>
                   <span>
-                    <span style={{ color: "#f59e0b", fontSize: 11 }}>{"★".repeat(c.stars || 5)}{"☆".repeat(5 - (c.stars || 5))}</span>
+                    <span style={{ color: "#f59e0b", fontSize: 11 }}>{"★".repeat(Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}{"☆".repeat(5 - Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}</span>
                     <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 3 }}>{c.rating} ({c.reviews})</span>
                   </span>
                   <span style={{ fontSize: 13, fontWeight: 900, color: R }}>{c.price}</span>
@@ -347,6 +347,7 @@ export default function AutoriaHomePage() {
   const [aiMatches, setAiMatches] = useState([]);
   const [aiInterpreted, setAiInterpreted] = useState(null);
   const [aiError, setAiError] = useState("");
+  const [saveStatus, setSaveStatus] = useState(""); // "" | "saving" | "saved" | "error"
 
   const handleGetLocation = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
@@ -354,11 +355,25 @@ export default function AutoriaHomePage() {
       return;
     }
     setGettingLocation(true);
+    setSaveStatus("");
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setAiLat(position.coords.latitude.toFixed(6));
-        setAiLng(position.coords.longitude.toFixed(6));
+      async (position) => {
+        const lat = position.coords.latitude.toFixed(6);
+        const lng = position.coords.longitude.toFixed(6);
+        setAiLat(lat);
+        setAiLng(lng);
         setGettingLocation(false);
+
+        // Save to user profile persistently
+        try {
+          setSaveStatus("saving");
+          await usersService.setMyLocation(parseFloat(lat), parseFloat(lng));
+          setSaveStatus("saved");
+          setTimeout(() => setSaveStatus(""), 4000);
+        } catch (err) {
+          console.warn("Failed to sync location to profile:", err);
+          setSaveStatus("error");
+        }
       },
       (error) => {
         console.warn("Location acquisition failed: " + (error?.message || "Unknown error"));
@@ -416,6 +431,10 @@ export default function AutoriaHomePage() {
       .then(res => {
         if (res?.data?.fullName) {
           setUser({ name: res.data.fullName });
+        }
+        if (res?.data?.latitude && res?.data?.longitude) {
+          setAiLat(String(res.data.latitude));
+          setAiLng(String(res.data.longitude));
         }
       })
       .catch(() => setUser(null));
@@ -524,6 +543,23 @@ export default function AutoriaHomePage() {
                   <i className="fa-solid fa-location-crosshairs" style={{ color: "#E8272A" }}></i> {gettingLocation ? "Locating..." : "Get My Location"}
                 </button>
               </div>
+
+              {saveStatus && (
+                <div style={{ 
+                  fontSize: "12px", 
+                  fontWeight: 700, 
+                  color: saveStatus === "saved" ? "#10B981" : saveStatus === "saving" ? "#3B82F6" : "#EF4444",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginTop: "-8px",
+                  marginLeft: "2px"
+                }}>
+                  {saveStatus === "saving" && <><i className="fa-solid fa-spinner fa-spin" style={{ color: "#3B82F6" }}></i> Saving location to your profile...</>}
+                  {saveStatus === "saved" && <><i className="fa-solid fa-circle-check" style={{ color: "#10B981" }}></i> ✓ Saved to profile persistently!</>}
+                  {saveStatus === "error" && <><i className="fa-solid fa-circle-exclamation" style={{ color: "#EF4444" }}></i> Sync failed — using locally only</>}
+                </div>
+              )}
 
               {/* Radius slider */}
               <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>

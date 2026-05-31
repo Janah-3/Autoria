@@ -8,6 +8,8 @@ import userService from "@/lib/userService";
 import { adminService } from "@/lib/api/adminService";
 import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
 import { sparePartsService } from "@/lib/sparePartsService";
+import { reportsService } from "@/lib/api/reportsService";
+import { contactUsService } from "@/lib/api/contactUsService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -68,6 +70,36 @@ export default function AdminDashboard() {
   const [sparePartsIncludeInactive, setSparePartsIncludeInactive] = useState(true);
   
   const [showAddPartModal, setShowAddPartModal] = useState(false);
+
+  // User Reports State
+  const [reportsList, setReportsList] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState("");
+  const [reportsStatusFilter, setReportsStatusFilter] = useState("Pending"); // "Pending", "UnderReview", "Resolved", "Dismissed"
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportResolutionNote, setReportResolutionNote] = useState("");
+  const [submittingResolution, setSubmittingResolution] = useState(false);
+
+  // Contact Us Messages State
+  const [contactMessagesList, setContactMessagesList] = useState([]);
+  const [contactMessagesLoading, setContactMessagesLoading] = useState(false);
+  const [contactMessagesError, setContactMessagesError] = useState("");
+  const [contactMessagesFilter, setContactMessagesFilter] = useState("pending"); // "all", "pending", "resolved"
+  const [selectedContactMessage, setSelectedContactMessage] = useState(null);
+  const [showContactMessageModal, setShowContactMessageModal] = useState(false);
+  const [contactResolutionNote, setContactResolutionNote] = useState("");
+  const [submittingContactResolution, setSubmittingContactResolution] = useState(false);
+
+  // Pending Service Center Verification Modal State
+  const [selectedPendingCenter, setSelectedPendingCenter] = useState(null);
+  const [showPendingCenterModal, setShowPendingCenterModal] = useState(false);
+
+  // Live Service Center Moderation States
+  const [centersList, setCentersList] = useState([]);
+  const [centersLoading, setCentersLoading] = useState(false);
+  const [centerVerificationFilter, setCenterVerificationFilter] = useState("Pending");
+
   const [newPartData, setNewPartData] = useState({
     name: "",
     category: "Brake Pads",
@@ -97,42 +129,37 @@ export default function AdminDashboard() {
   }, [router]);
 
 
-  // Detailed Mock Data
-  const [featuredData, setFeaturedData] = useState([
-    { id: 1, name: "AutoCare Nasr City", loc: "Cairo · German cars specialist", expires: "31 Mar 2026", daysLeft: 15, progress: 50, price: "2,400", type: "30-day slot", status: "Active" },
-    { id: 2, name: "TopGear Workshop", loc: "Cairo · AC specialist", expires: "19 Mar 2026", daysLeft: 3, progress: 90, price: "2,400", type: "30-day slot", status: "Expiring soon" },
-    { id: 3, name: "Precision Auto Works", loc: "Zamalek · Luxury cars", expires: "10 Apr 2026", daysLeft: 25, progress: 17, price: "1,200", type: "15-day slot", status: "Active" },
-  ]);
+  // Live and empty states (preventing flash of mock/fake data on load)
+  const [urgentReportsList, setUrgentReportsList] = useState([]);
 
-  const [reviewsData, setReviewsData] = useState([
-    { id: 1, user: "Karim Adel", initials: "KA", target: "TopGear Workshop", date: "14 Mar 2026", time: "2 hr ago", rating: 5, text: "This place is absolutely amazing, best service I've ever had in my entire life. Every single mechanic was incredibly professional and the prices were unbelievably cheap.", flag: "This review seems fake — no booking history found.", status: "Flagged - Fake review" },
-    { id: 2, user: "Nour Salah", initials: "NS", target: "ElMasry Auto Center", date: "13 Mar 2026", time: "5 hr ago", rating: 1, text: "Terrible experience, the staff were rude and used inappropriate language.", flag: "Review contains offensive language.", status: "Flagged - Offensive" },
-  ]);
-
-  const [reportsData, setReportsData] = useState([
-    { id: 1, priority: "High", type: "Fake review", entity: "TopGear Workshop", reporter: "Karim Adel", time: "2 hr ago", status: "Open" },
-    { id: 2, priority: "High", type: "Abusive behavior", entity: "ElMasry Auto Center", reporter: "Sara M.", time: "5 hr ago", status: "Open" },
-    { id: 3, priority: "Medium", type: "Misleading pricing", entity: "Cairo Motors Service", reporter: "Nour Salah", time: "Yesterday", status: "Open" },
-    { id: 4, priority: "Medium", type: "No-show by mechanic", entity: "Hassan K.", reporter: "Tarek Fouad", time: "2 days ago", status: "Open" },
-  ]);
-
-  const [verificationQueue, setVerificationQueue] = useState([
-    { id: 1, name: "Al Faris Auto", city: "Cairo", date: "12 Mar" },
-    { id: 2, name: "QuickFix Heliopolis", city: "Cairo", date: "12 Mar" },
-  ]);
+  const [verificationQueue, setVerificationQueue] = useState([]);
 
   const [metrics, setMetrics] = useState(null);
 
   const fetchPendingCenters = () => {
     serviceCentersService.getPending()
       .then((res) => {
+        const rawItems = res?.data?.items ?? res?.data ?? (Array.isArray(res) ? res : []);
         const items = getServiceCenterItems(res);
         if (items.length > 0) {
-          setVerificationQueue(items.map(c => ({
+          setVerificationQueue(items.map((c, index) => ({
             id: c.id,
             name: c.name,
             city: c.governorate || c.city || "Cairo",
-            date: c.submittedAt ? new Date(c.submittedAt).toLocaleDateString() : "12 Mar"
+            date: c.submittedAt || rawItems[index]?.submittedAt || rawItems[index]?.SubmittedAt 
+              ? new Date(c.submittedAt || rawItems[index]?.submittedAt || rawItems[index]?.SubmittedAt).toLocaleDateString() 
+              : "12 Mar",
+            raw: {
+              ...rawItems[index],
+              ...c,
+              documents: rawItems[index]?.documents ?? rawItems[index]?.Documents ?? [],
+              commercialRegNo: rawItems[index]?.commercialRegNo ?? rawItems[index]?.CommercialRegNo ?? "",
+              taxCardNo: rawItems[index]?.taxCardNo ?? rawItems[index]?.TaxCardNo ?? "",
+              ownerNationalId: rawItems[index]?.ownerNationalId ?? rawItems[index]?.OwnerNationalId ?? "",
+              yearEstablished: rawItems[index]?.yearEstablished ?? rawItems[index]?.YearEstablished ?? 1900,
+              numServiceBays: rawItems[index]?.numServiceBays ?? rawItems[index]?.NumServiceBays ?? 1,
+              description: rawItems[index]?.description ?? rawItems[index]?.Description ?? ""
+            }
           })));
         } else {
           setVerificationQueue([]);
@@ -144,24 +171,197 @@ export default function AdminDashboard() {
   const fetchMetrics = () => {
     adminService.getDashboard()
       .then((res) => {
-        if (res?.data?.metrics) {
-          setMetrics(res.data.metrics);
+        const m = res?.data?.metrics || res?.data?.Metrics || res?.Data?.metrics || res?.Data?.Metrics || res?.metrics || res?.Metrics;
+        if (m) {
+          setMetrics({
+            totalUsers: m.totalUsers ?? m.TotalUsers ?? 0,
+            bookingsThisMonth: m.bookingsThisMonth ?? m.BookingsThisMonth ?? 0,
+            activeCenters: m.activeCenters ?? m.ActiveCenters ?? 0,
+            avgRating: m.avgServiceCenterRating ?? m.AvgServiceCenterRating ?? m.avgRating ?? m.AvgRating ?? 4.3
+          });
         }
       })
       .catch(() => {});
+  };
+
+  const fetchAllCenters = () => {
+    setCentersLoading(true);
+    serviceCentersService.getAll()
+      .then((res) => {
+        const items = getServiceCenterItems(res);
+        const rawItems = res?.data?.items ?? res?.data ?? (Array.isArray(res) ? res : []);
+        setCentersList(items.map((c, index) => ({
+          ...c,
+          raw: {
+            ...rawItems[index],
+            ...c,
+            documents: rawItems[index]?.documents ?? rawItems[index]?.Documents ?? [],
+            commercialRegNo: rawItems[index]?.commercialRegNo ?? rawItems[index]?.CommercialRegNo ?? "",
+            taxCardNo: rawItems[index]?.taxCardNo ?? rawItems[index]?.TaxCardNo ?? "",
+            ownerNationalId: rawItems[index]?.ownerNationalId ?? rawItems[index]?.OwnerNationalId ?? "",
+            yearEstablished: rawItems[index]?.yearEstablished ?? rawItems[index]?.YearEstablished ?? 1900,
+            numServiceBays: rawItems[index]?.numServiceBays ?? rawItems[index]?.NumServiceBays ?? 1,
+            description: rawItems[index]?.description ?? rawItems[index]?.Description ?? ""
+          }
+        })));
+      })
+      .catch(() => {})
+      .finally(() => setCentersLoading(false));
+  };
+
+  const fetchReports = (statusValue = reportsStatusFilter) => {
+    setReportsLoading(true);
+    setReportsError("");
+    
+    let statusParam = undefined;
+    if (statusValue === "Pending") statusParam = 0;
+    else if (statusValue === "UnderReview") statusParam = 1;
+    else if (statusValue === "Resolved") statusParam = 2;
+    else if (statusValue === "Dismissed") statusParam = 3;
+
+    reportsService.getAll({ Status: statusParam, Page: 1, PageSize: 50 })
+      .then((res) => {
+        const items = res?.data?.items ?? res?.data ?? [];
+        setReportsList(Array.isArray(items) ? items : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load reports:", err);
+        setReportsError(err.message || "Failed to load reports from backend");
+      })
+      .finally(() => {
+        setReportsLoading(false);
+      });
+  };
+
+  const handleViewReport = (id) => {
+    reportsService.getById(id)
+      .then((res) => {
+        if (res?.data) {
+          setSelectedReport(res.data);
+          setReportResolutionNote(res.data.resolutionNote || "");
+          setShowReportModal(true);
+        } else if (res) {
+          setSelectedReport(res);
+          setReportResolutionNote(res.resolutionNote || "");
+          setShowReportModal(true);
+        }
+      })
+      .catch((err) => {
+        alert("Failed to load report details: " + err.message);
+      });
+  };
+
+  const handleResolveReport = async (id, note) => {
+    setSubmittingResolution(true);
+    try {
+      await reportsService.resolve(id, note || "Resolved by Admin");
+      alert("Report resolved successfully!");
+      setShowReportModal(false);
+      fetchReports();
+      fetchUrgentReports();
+    } catch (err) {
+      alert("Failed to resolve report: " + err.message);
+    } finally {
+      setSubmittingResolution(false);
+    }
+  };
+
+  const handleDismissReport = async (id, note) => {
+    setSubmittingResolution(true);
+    try {
+      await reportsService.dismiss(id, note || "Dismissed by Admin");
+      alert("Report dismissed successfully!");
+      setShowReportModal(false);
+      fetchReports();
+      fetchUrgentReports();
+    } catch (err) {
+      alert("Failed to dismiss report: " + err.message);
+    } finally {
+      setSubmittingResolution(false);
+    }
+  };
+
+  const fetchContactMessages = (filterValue = contactMessagesFilter) => {
+    setContactMessagesLoading(true);
+    setContactMessagesError("");
+    
+    let params = {};
+    if (filterValue === "pending") params.isResolved = "false";
+    else if (filterValue === "resolved") params.isResolved = "true";
+
+    contactUsService.getAdminMessages(params)
+      .then((res) => {
+        const items = res?.data?.items ?? res?.data ?? res ?? [];
+        setContactMessagesList(Array.isArray(items) ? items : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load contact messages:", err);
+        setContactMessagesError(err.message || "Failed to load messages from backend");
+      })
+      .finally(() => {
+        setContactMessagesLoading(false);
+      });
+  };
+
+  const fetchUrgentReports = () => {
+    reportsService.getAll({ Status: 0, Page: 1, PageSize: 5 })
+      .then((res) => {
+        const items = res?.data?.items ?? res?.data ?? [];
+        setUrgentReportsList(Array.isArray(items) ? items : []);
+      })
+      .catch((err) => {
+        console.error("Failed to load urgent reports:", err);
+      });
+  };
+
+  const handleViewContactMessage = (msg) => {
+    setSelectedContactMessage(msg);
+    setContactResolutionNote(msg.adminNotes || msg.AdminNotes || "");
+    setShowContactMessageModal(true);
+  };
+
+  const handleResolveContactMessage = async (id, note) => {
+    setSubmittingContactResolution(true);
+    try {
+      await contactUsService.resolveMessage(id, note || "Resolved by Admin");
+      alert("Contact message marked as resolved successfully!");
+      setShowContactMessageModal(false);
+      fetchContactMessages();
+    } catch (err) {
+      alert("Failed to resolve message: " + err.message);
+    } finally {
+      setSubmittingContactResolution(false);
+    }
   };
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
       fetchPendingCenters();
       fetchMetrics();
+      fetchReports();
+      fetchContactMessages();
+      fetchUrgentReports();
+      fetchAllCenters();
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "Admin") {
+      fetchReports();
+    }
+  }, [reportsStatusFilter]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "Admin") {
+      fetchContactMessages();
+    }
+  }, [contactMessagesFilter]);
 
   const handleApprove = async (id) => {
     try {
       await serviceCentersService.approve(id);
       fetchPendingCenters();
+      fetchAllCenters();
       fetchMetrics();
       alert("Center approved successfully!");
     } catch (err) {
@@ -175,6 +375,7 @@ export default function AdminDashboard() {
     try {
       await serviceCentersService.reject(id, reason);
       fetchPendingCenters();
+      fetchAllCenters();
       fetchMetrics();
       alert("Center rejected successfully!");
     } catch (err) {
@@ -361,7 +562,7 @@ export default function AdminDashboard() {
         .back-link { transition: background 0.2s ease; }
         .back-link:hover { background: #f5f5f5 !important; }
       `}</style>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reviews: reviewsData.length, reports: reportsData.length, featured: featuredData.length, users: usersList.length, spareParts: sparePartsList.length }} colors={COLORS} />
+      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reports: reportsList.filter(r => r.status === 0 || r.status === "Pending").length, users: usersList.length, spareParts: sparePartsList.length, contacts: contactMessagesList.filter(m => !m.isResolved && !m.IsResolved).length }} colors={COLORS} />
 
       <main style={{ flex: 1, padding: "40px", maxWidth: "1600px" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
@@ -371,7 +572,6 @@ export default function AdminDashboard() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
             <div style={{ display: "flex", gap: "8px" }}>
-              <button className="admin-btn" style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontWeight: 700, fontSize: "12px" }}>Quick Add</button>
               <Link href="/" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
                 <span>←</span> Back to Website
               </Link>
@@ -397,11 +597,11 @@ export default function AdminDashboard() {
                   minWidth: "160px", overflow: "hidden", zIndex: 1000
                 }}>
                   <Link href="/admin" style={{ display: "block", padding: "10px 16px", color: COLORS.text, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
-                    🔑 Admin Dashboard
+                     Admin Dashboard
                   </Link>
                   <div style={{ borderTop: `1px solid ${COLORS.border}` }} />
                   <Link href="/logout" style={{ display: "block", padding: "10px 16px", color: COLORS.primary, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
-                    🚪 Log Out
+                     Log Out <span className="logout-arrow">→</span>
                   </Link>
                 </div>
               )}
@@ -420,51 +620,104 @@ export default function AdminDashboard() {
               <StatCard label="Avg. Platform Rating" value={metrics?.avgRating !== undefined ? String(metrics.avgRating) : "4.3"} trend="Stable" />
             </div>
 
-            {/* Quick Actions / Shortcuts */}
-            <div style={{ background: COLORS.white, padding: "20px", borderRadius: "16px", border: `1px solid ${COLORS.border}`, display: "flex", gap: "32px", alignItems: "center" }}>
-              <div style={{ fontSize: "14px", fontWeight: 800, color: COLORS.textLight }}>QUICK ACTIONS:</div>
-              <div style={{ display: "flex", gap: "12px" }}>
-                <button onClick={() => setActiveTab("Center verification")} style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Verify Centers ({verificationQueue.length})</button>
-                <button onClick={() => setActiveTab("Featured listings")} style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Add Featured</button>
-                <button onClick={() => setActiveTab("Review moderation")} style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, padding: "10px 20px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Moderate Reviews</button>
+            {/* Premium Welcome Banner */}
+            <div style={{ 
+              background: "linear-gradient(135deg, #E8272A 0%, #B81C1F 100%)", 
+              padding: "40px", 
+              borderRadius: "20px", 
+              color: "#ffffff",
+              boxShadow: "0 10px 30px rgba(232, 39, 42, 0.15)",
+              position: "relative",
+              overflow: "hidden",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center"
+            }}>
+              {/* Subtle abstract background graphics */}
+              <div style={{
+                position: "absolute",
+                top: "-20%",
+                right: "-10%",
+                width: "300px",
+                height: "300px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.05)",
+                pointerEvents: "none"
+              }} />
+              <div style={{
+                position: "absolute",
+                bottom: "-30%",
+                right: "10%",
+                width: "200px",
+                height: "200px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.03)",
+                pointerEvents: "none"
+              }} />
+
+              <div style={{ position: "relative", zIndex: 1 }}>
+                <h2 style={{ fontSize: "28px", fontWeight: 900, margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>Welcome Back, {adminName || "Admin"}! 👋</h2>
+                <p style={{ fontSize: "15px", opacity: 0.9, margin: 0, maxWidth: "600px", lineHeight: "1.6" }}>
+                  Here is what's happening on Autoria today. You have <strong style={{ textDecoration: "underline" }}>{verificationQueue.length} pending service centers</strong> waiting for verification. Keep the directory verified and pristine!
+                </p>
               </div>
+
+              {/* Dynamic Action Trigger from the banner */}
+              {verificationQueue.length > 0 && (
+                <button 
+                  onClick={() => setActiveTab("Center verification")} 
+                  className="admin-btn"
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    background: "#ffffff",
+                    color: "#E8272A",
+                    border: "none",
+                    padding: "14px 28px",
+                    borderRadius: "12px",
+                    fontSize: "14px",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    whiteSpace: "nowrap",
+                    transition: "transform 0.2s, opacity 0.2s"
+                  }}
+                >
+                  Verify Centers Now <span style={{ fontSize: "16px" }}>→</span>
+                </button>
+              )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px" }}>
-              {/* Recent Reviews Summary */}
-              <Card title="Latest Flagged Reviews" badge={`${reviewsData.length} new`} actionText="View all" onAction={() => setActiveTab("Review moderation")}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  {reviewsData.slice(0, 2).map(rev => (
-                    <div key={rev.id} style={{ padding: "12px", borderRadius: "8px", border: `1px solid ${COLORS.border}` }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                        <span style={{ fontWeight: 800, fontSize: "13px" }}>{rev.user}</span>
-                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 800 }}>{rev.status}</span>
-                      </div>
-                      <p style={{ fontSize: "12px", color: COLORS.textLight, margin: "0 0 8px 0", fontStyle: "italic" }}>"{rev.text.slice(0, 80)}..."</p>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: COLORS.primary }}>Reason: {rev.flag.slice(0, 40)}</div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              
+            <div>
               <Card title="Urgent Reports" badge="Action Required" actionText="Manage reports" onAction={() => setActiveTab("User reports")}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {reportsData.filter(r => r.priority === "High").map(rep => (
-                    <div key={rep.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: "#FFF1F1", borderRadius: "8px", border: `1px solid #FFDCDC` }}>
-                      <div>
-                        <div style={{ fontSize: "13px", fontWeight: 800 }}>{rep.type}</div>
-                        <div style={{ fontSize: "11px", color: COLORS.textLight }}>Target: {rep.entity}</div>
+                  {urgentReportsList.slice(0, 3).map(rep => {
+                    const targetTypeName = rep.targetType === 0 || rep.targetType === "ServiceCenter" ? "ServiceCenter" : (rep.targetType === 1 || rep.targetType === "Review" ? "Review" : "issue");
+                    const reasonName = rep.reason === 0 || rep.reason === "Spam" ? "Spam" : (rep.reason === 1 || rep.reason === "Inappropriate" ? "Inappropriate" : (rep.reason === 2 || rep.reason === "Fake" ? "Fake" : (rep.reason === 3 || rep.reason === "Offensive" ? "Offensive" : "Other")));
+                    return (
+                      <div key={rep.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: "#FFF1F1", borderRadius: "8px", border: `1px solid #FFDCDC` }}>
+                        <div>
+                          <div style={{ fontSize: "13px", fontWeight: 800 }}>{reasonName}</div>
+                          <div style={{ fontSize: "11px", color: COLORS.textLight }}>Target: {targetTypeName}</div>
+                        </div>
+                        <div style={{ color: COLORS.primary, fontWeight: 900, fontSize: "10px" }}>PENDING REPORT</div>
                       </div>
-                      <div style={{ color: COLORS.primary, fontWeight: 900, fontSize: "10px" }}>HIGH PRIORITY</div>
+                    );
+                  })}
+                  {urgentReportsList.length === 0 && (
+                    <div style={{ padding: "20px", textAlign: "center", color: COLORS.textLight, fontSize: "13px" }}>
+                      ✅ No pending reports at the moment.
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
             </div>
 
-            {/* Verification & Analytics Row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: "32px" }}>
+            {/* Verification Row */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
               <Card title="Pending Center Verifications" badge={`${verificationQueue.length} pending`}>
                 <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead style={{ background: COLORS.bg }}>
@@ -480,138 +733,28 @@ export default function AdminDashboard() {
                         <td style={{ padding: "14px 16px", fontSize: "13px", fontWeight: 700 }}>{c.name}</td>
                         <td style={{ padding: "14px 16px", fontSize: "12px" }}>{c.city}</td>
                         <td style={{ padding: "14px 16px" }}>
-                          <button onClick={() => handleApprove(c.id)} style={{ background: COLORS.success, color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>Verify Now</button>
+                          <button 
+                            onClick={() => {
+                              setSelectedPendingCenter(c);
+                              setShowPendingCenterModal(true);
+                            }} 
+                            style={{ background: COLORS.success, color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}
+                          >
+                            Verify Now
+                          </button>
                         </td>
                       </tr>
                     ))}
+                    {verificationQueue.length === 0 && (
+                      <tr>
+                        <td colSpan="3" style={{ padding: "30px", textAlign: "center", color: COLORS.textLight, fontSize: "13px" }}>
+                          ✅ No pending service centers to verify.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </Card>
-
-              <Card title="Analytics Snapshot">
-                <div style={{ textAlign: "center", padding: "10px 0" }}>
-                  <div style={{ fontSize: "12px", color: COLORS.textLight, marginBottom: "20px" }}>Booking Trend</div>
-                  <div style={{ display: "flex", alignItems: "flex-end", gap: "8px", height: "80px", justifyContent: "center" }}>
-                    {[30, 50, 40, 70, 60, 90, 85].map((h, i) => (
-                      <div key={i} style={{ flex: 1, background: i === 6 ? COLORS.primary : "#E5E7EB", height: `${h}%`, borderRadius: "4px 4px 0 0", minWidth: "15px" }} />
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: "24px", textAlign: "left" }}>
-                    <div>
-                      <div style={{ fontSize: "18px", fontWeight: 900 }}>487</div>
-                      <div style={{ fontSize: "10px", color: COLORS.success }}>↑ 12% Growth</div>
-                    </div>
-                    <div style={{ borderLeft: `1px solid ${COLORS.border}`, paddingLeft: "16px" }}>
-                      <div style={{ fontSize: "18px", fontWeight: 900 }}>312</div>
-                      <div style={{ fontSize: "10px", color: COLORS.textLight }}>New Customers</div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        
-        {activeTab === "Featured listings" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>Manage which service centers appear as featured across the platform.</p>
-              <button style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "13px" }}>+ Add featured listing</button>
-            </div>
-            
-            <div style={{ display: "flex", gap: "20px" }}>
-              <StatCard label="Active featured slots" value="6 / 8" trend="Healthy" trendUp />
-              <StatCard label="Expiring this week" value="2" trend="Action required" />
-              <StatCard label="Revenue this month" value="EGP 14,400" trend="↑ 15%" trendUp />
-              <StatCard label="Pending requests" value="3" trend="From last 24h" />
-            </div>
-
-            <div style={{ display: "flex", gap: "10px", margin: "10px 0" }}>
-              {["Active", "Pending requests (3)", "Expired"].map((t, i) => (
-                <button key={t} className="admin-btn" style={{ background: i === 0 ? "#E8F5E9" : "#fff", color: i === 0 ? COLORS.success : COLORS.textLight, border: `1px solid ${i === 0 ? COLORS.success : COLORS.border}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>{t}</button>
-              ))}
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {featuredData.map(item => (
-                <div key={item.id} style={{ background: COLORS.white, borderRadius: "16px", padding: "20px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "20px", position: "relative" }}>
-                  <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: "4px", background: item.progress > 80 ? COLORS.primary : "#FFB800", borderRadius: "0 4px 4px 0" }} />
-                  <div style={{ width: "60px", height: "60px", background: COLORS.bg, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>🏢</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
-                      <span style={{ fontSize: "16px", fontWeight: 800 }}>{item.name}</span>
-                      <span style={{ background: "#FEF3C7", color: "#D97706", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "4px" }}>⭐ Featured</span>
-                      <span style={{ color: item.daysLeft < 5 ? COLORS.primary : COLORS.success, fontSize: "11px", fontWeight: 700 }}>● {item.status}</span>
-                    </div>
-                    <div style={{ fontSize: "12px", color: COLORS.textLight }}>{item.loc} • Expires: {item.expires}</div>
-                    <div style={{ marginTop: "12px", width: "300px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontWeight: 700, marginBottom: "4px" }}>
-                        <span>{item.daysLeft} days remaining</span>
-                        <span>{item.progress}%</span>
-                      </div>
-                      <div style={{ height: "6px", background: "#E5E7EB", borderRadius: "3px", overflow: "hidden" }}>
-                        <div style={{ width: `${item.progress}%`, height: "100%", background: item.progress > 80 ? COLORS.primary : COLORS.success }} />
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: "16px", fontWeight: 900 }}>EGP {item.price}</div>
-                    <div style={{ fontSize: "10px", color: COLORS.textLight, marginBottom: "12px" }}>{item.type}</div>
-                    <div style={{ display: "flex", gap: "8px" }}>
-                      <button className="admin-btn" style={{ background: COLORS.success, color: "#fff", border: "none", padding: "8px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "12px" }}>Extend</button>
-                      <button className="admin-btn" style={{ background: "#fff", color: COLORS.primary, border: `1px solid ${COLORS.primary}`, padding: "8px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "12px" }}>Remove</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        
-        {activeTab === "Review moderation" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>Review flagged or pending content before it goes public.</p>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button style={{ background: "#E8F5E9", color: COLORS.success, border: `1px solid ${COLORS.success}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>Flagged ({reviewsData.length})</button>
-              {["Pending", "Approved", "Removed"].map(t => (<button key={t} style={{ background: "#fff", color: COLORS.textLight, border: `1px solid ${COLORS.border}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>{t}</button>))}
-            </div>
-            <div style={{ display: "flex", gap: "10px" }}>
-              <input placeholder="Search reviews..." style={{ flex: 1, padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px" }} />
-              <select style={{ padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px" }}><option>All centers</option></select>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {reviewsData.map(rev => (
-                <div key={rev.id} style={{ background: COLORS.white, borderRadius: "16px", padding: "24px", border: `1px solid ${COLORS.border}`, position: "relative" }}>
-                  <div style={{ position: "absolute", left: 0, top: "20%", bottom: "20%", width: "4px", background: COLORS.primary, borderRadius: "0 4px 4px 0" }} />
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
-                    <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                      <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#FEEBEB", color: COLORS.primary, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{rev.initials}</div>
-                      <div>
-                        <div style={{ fontSize: "14px", fontWeight: 800 }}>{rev.user}</div>
-                        <div style={{ fontSize: "11px", color: COLORS.textLight }}>{rev.target} · {rev.date}</div>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 800 }}>{rev.status}</span>
-                      <div style={{ fontSize: "11px", color: COLORS.textLight }}>{rev.time}</div>
-                    </div>
-                  </div>
-                  <div style={{ color: COLORS.warning, marginBottom: "8px" }}>{"★".repeat(rev.rating)}</div>
-                  <p style={{ fontSize: "14px", lineHeight: 1.6, margin: "0 0 16px 0" }}>"{rev.text}"</p>
-                  <div style={{ background: "#FFF4F4", border: `1px solid #FFDCDC`, padding: "12px 16px", borderRadius: "8px", marginBottom: "20px" }}>
-                    <div style={{ fontSize: "11px", color: COLORS.primary, fontWeight: 800, marginBottom: "4px" }}>Flag reason:</div>
-                    <div style={{ fontSize: "13px", color: "#333" }}>"{rev.flag}"</div>
-                  </div>
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <button className="admin-btn" style={{ flex: 1, background: COLORS.success, color: "#fff", border: "none", padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "12px" }}>Approve review</button>
-                    <button className="admin-btn" style={{ flex: 1, background: "#fff", color: COLORS.primary, border: `1px solid ${COLORS.primary}`, padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "12px" }}>Remove review</button>
-                    <button className="admin-btn" style={{ flex: 1, background: "#fff", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "12px" }}>View full profile</button>
-                    <button className="admin-btn" style={{ flex: 1, background: "#fff", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "12px" }}>Contact user</button>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -619,56 +762,140 @@ export default function AdminDashboard() {
         {/* User Reports */}
         {activeTab === "User reports" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>Manage reports submitted by users about service centers, mechanics, or other users.</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>Manage reports submitted by users about service centers, reviews, or issues.</p>
+            </div>
+            
             <div style={{ display: "flex", gap: "20px" }}>
-              <StatCard label="Open reports" value="5" trend="Moderate" trendUp={false} />
-              <StatCard label="Under review" value="8" trend="Processing" />
-              <StatCard label="Resolved this month" value="31" trend="↑ 12%" trendUp />
-              <StatCard label="Avg. resolution time" value="1.4d" trend="Healthy" trendUp />
+              <StatCard label="Open reports" value={reportsList.filter(r => r.status === 0 || r.status === "Pending" || r.status === 1 || r.status === "UnderReview").length.toString()} trend="Needs moderation" trendUp={false} />
+              <StatCard label="Resolved reports" value={reportsList.filter(r => r.status === 2 || r.status === "Resolved").length.toString()} trend="Addressed issues" trendUp />
+              <StatCard label="Dismissed reports" value={reportsList.filter(r => r.status === 3 || r.status === "Dismissed").length.toString()} trend="Archived items" />
+              <StatCard label="Total Reports" value={reportsList.length.toString()} trend="Platform items" />
             </div>
+
+            {/* Filter buttons */}
             <div style={{ display: "flex", gap: "10px" }}>
-              <button style={{ background: "#E8F5E9", color: COLORS.success, border: `1px solid ${COLORS.success}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>Open (5)</button>
-              {["Under review", "Resolved", "Dismissed"].map(t => (<button key={t} style={{ background: "#fff", color: COLORS.textLight, border: `1px solid ${COLORS.border}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>{t}</button>))}
+              {[
+                { value: "Pending", label: `Open (${reportsList.filter(r => r.status === 0 || r.status === "Pending").length})` },
+                { value: "UnderReview", label: `Under Review (${reportsList.filter(r => r.status === 1 || r.status === "UnderReview").length})` },
+                { value: "Resolved", label: `Resolved (${reportsList.filter(r => r.status === 2 || r.status === "Resolved").length})` },
+                { value: "Dismissed", label: `Dismissed (${reportsList.filter(r => r.status === 3 || r.status === "Dismissed").length})` }
+              ].map(statusTab => (
+                <button 
+                  key={statusTab.value} 
+                  onClick={() => setReportsStatusFilter(statusTab.value)}
+                  style={{ 
+                    background: reportsStatusFilter === statusTab.value ? "#FFF1F1" : "#fff", 
+                    color: reportsStatusFilter === statusTab.value ? COLORS.primary : COLORS.textLight, 
+                    border: `1px solid ${reportsStatusFilter === statusTab.value ? COLORS.primary : COLORS.border}`, 
+                    padding: "8px 24px", 
+                    borderRadius: "20px", 
+                    fontSize: "13px", 
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  {statusTab.label}
+                </button>
+              ))}
             </div>
-            <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead style={{ background: COLORS.bg }}>
-                  <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
-                    <th style={{ padding: "16px 24px" }}>PRIORITY</th>
-                    <th style={{ padding: "16px 24px" }}>REPORT TYPE</th>
-                    <th style={{ padding: "16px 24px" }}>REPORTED ENTITY</th>
-                    <th style={{ padding: "16px 24px" }}>REPORTED BY</th>
-                    <th style={{ padding: "16px 24px" }}>SUBMITTED</th>
-                    <th style={{ padding: "16px 24px" }}>STATUS</th>
-                    <th style={{ padding: "16px 24px" }}>ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportsData.map(rep => (
-                    <tr key={rep.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
-                      <td style={{ padding: "16px 24px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: 700 }}>
-                          <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: rep.priority === "High" ? COLORS.primary : (rep.priority === "Medium" ? "#FFB800" : "#28A745") }} />
-                          {rep.priority}
-                        </div>
-                      </td>
-                      <td style={{ padding: "16px 24px", fontSize: "14px", fontWeight: 700 }}>{rep.type}</td>
-                      <td style={{ padding: "16px 24px", fontSize: "13px" }}>{rep.entity}</td>
-                      <td style={{ padding: "16px 24px", fontSize: "13px" }}>{rep.reporter}</td>
-                      <td style={{ padding: "16px 24px", fontSize: "12px", color: COLORS.textLight }}>{rep.time}</td>
-                      <td style={{ padding: "16px 24px" }}>
-                        <span style={{ color: COLORS.primary, background: "#FFF1F1", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 800 }}>{rep.status}</span>
-                      </td>
-                      <td style={{ padding: "16px 24px" }}>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button className="admin-btn" style={{ background: "transparent", border: `1px solid ${COLORS.border}`, padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700 }}>Review</button>
-                          <button className="admin-btn" style={{ background: COLORS.success, color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700 }}>Resolve</button>
-                        </div>
-                      </td>
+
+            {reportsError && (
+              <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
+                ⚠️ Error: {reportsError}
+              </div>
+            )}
+
+            <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden", boxShadow: SHADOW }}>
+              {reportsLoading ? (
+                <div style={{ padding: "60px", textAlign: "center" }}>
+                  <div style={{ width: 30, height: 30, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", margin: "0 auto 16px" }} />
+                  <div style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading reports...</div>
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead style={{ background: COLORS.bg }}>
+                    <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
+                      <th style={{ padding: "16px 24px" }}>REASON</th>
+                      <th style={{ padding: "16px 24px" }}>TARGET TYPE</th>
+                      <th style={{ padding: "16px 24px" }}>REPORTER</th>
+                      <th style={{ padding: "16px 24px" }}>SUBMITTED DATE</th>
+                      <th style={{ padding: "16px 24px" }}>STATUS</th>
+                      <th style={{ padding: "16px 24px", textAlign: "right" }}>ACTIONS</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {reportsList
+                      .filter(r => {
+                        let matchesStatus = false;
+                        if (reportsStatusFilter === "Pending") matchesStatus = r.status === 0 || r.status === "Pending";
+                        else if (reportsStatusFilter === "UnderReview") matchesStatus = r.status === 1 || r.status === "UnderReview";
+                        else if (reportsStatusFilter === "Resolved") matchesStatus = r.status === 2 || r.status === "Resolved";
+                        else if (reportsStatusFilter === "Dismissed") matchesStatus = r.status === 3 || r.status === "Dismissed";
+                        return matchesStatus;
+                      })
+                      .map(rep => {
+                        const targetTypeName = rep.targetType === 0 || rep.targetType === "ServiceCenter" ? "ServiceCenter" : (rep.targetType === 1 || rep.targetType === "Review" ? "Review" : (rep.targetType === 2 || rep.targetType === "issue" ? "issue" : rep.targetType));
+                        const reasonName = rep.reason === 0 || rep.reason === "Spam" ? "Spam" : (rep.reason === 1 || rep.reason === "Inappropriate" ? "Inappropriate" : (rep.reason === 2 || rep.reason === "Fake" ? "Fake" : (rep.reason === 3 || rep.reason === "Offensive" ? "Offensive" : (rep.reason === 4 || rep.reason === "Other" ? "Other" : rep.reason))));
+                        return (
+                          <tr key={rep.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                            <td style={{ padding: "16px 24px" }}>
+                              <div style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{reasonName}</div>
+                            </td>
+                            <td style={{ padding: "16px 24px" }}>
+                              <span style={{ background: "#F1F5F9", color: "#475569", fontSize: "11px", fontWeight: 800, padding: "4px 8px", borderRadius: "4px" }}>
+                                {targetTypeName}
+                              </span>
+                            </td>
+                            <td style={{ padding: "16px 24px", fontSize: "13px", fontWeight: 600 }}>{rep.reporterName || "User"}</td>
+                            <td style={{ padding: "16px 24px", fontSize: "12px", color: COLORS.textLight }}>
+                              {rep.createdAt ? new Date(rep.createdAt).toLocaleDateString() : "—"}
+                            </td>
+                            <td style={{ padding: "16px 24px" }}>
+                              <span style={{ 
+                                color: rep.status === 0 || rep.status === "Pending" ? COLORS.primary : (rep.status === 2 || rep.status === "Resolved" ? COLORS.success : COLORS.textLight), 
+                                background: rep.status === 0 || rep.status === "Pending" ? "#FFF1F1" : (rep.status === 2 || rep.status === "Resolved" ? "#E8F5E9" : "#F3F4F6"), 
+                                padding: "4px 8px", 
+                                borderRadius: "4px", 
+                                fontSize: "11px", 
+                                fontWeight: 800 
+                              }}>
+                                {rep.status === 0 || rep.status === "Pending" ? "Pending" : (rep.status === 1 || rep.status === "UnderReview" ? "UnderReview" : (rep.status === 2 || rep.status === "Resolved" ? "Resolved" : (rep.status === 3 || rep.status === "Dismissed" ? "Dismissed" : rep.status)))}
+                              </span>
+                            </td>
+                            <td style={{ padding: "16px 24px", textAlign: "right" }}>
+                              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                                <button 
+                                  onClick={() => handleViewReport(rep.id)}
+                                  className="admin-btn" 
+                                  style={{ background: "transparent", border: `1px solid ${COLORS.border}`, padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, cursor: "pointer" }}
+                                >
+                                  Review Details
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {reportsList.filter(r => {
+                      let matchesStatus = false;
+                      if (reportsStatusFilter === "Pending") matchesStatus = r.status === 0 || r.status === "Pending";
+                      else if (reportsStatusFilter === "UnderReview") matchesStatus = r.status === 1 || r.status === "UnderReview";
+                      else if (reportsStatusFilter === "Resolved") matchesStatus = r.status === 2 || r.status === "Resolved";
+                      else if (reportsStatusFilter === "Dismissed") matchesStatus = r.status === 3 || r.status === "Dismissed";
+                      return matchesStatus;
+                    }).length === 0 && (
+                      <tr>
+                        <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>🚩</div>
+                          <div style={{ fontWeight: 800 }}>No reports found</div>
+                          <div style={{ fontSize: "12px" }}>There are no {reportsStatusFilter.toLowerCase()} reports at this moment.</div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         )}
@@ -680,63 +907,191 @@ export default function AdminDashboard() {
             
             <div style={{ display: "flex", gap: "20px" }}>
               <StatCard label="Pending Requests" value={verificationQueue.length.toString()} trend="Needs review" trendUp={false} />
-              <StatCard label="Verified Centers" value="184" trend="↑ 4 this week" trendUp />
-              <StatCard label="Rejected / Blocked" value="12" trend="Manual review" />
-              <StatCard label="Total Centers" value="196" trend="Overall growth" trendUp />
+              <StatCard label="Verified Centers" value={centersList.filter(c => c.approvalStatus === 1 || c.approvalStatus === "Approved" || c.ApprovalStatus === 1 || c.ApprovalStatus === "Approved").length.toString()} trend="Active centers" trendUp={true} />
+              <StatCard label="Rejected Centers" value={centersList.filter(c => c.approvalStatus === 2 || c.approvalStatus === "Rejected" || c.ApprovalStatus === 2 || c.ApprovalStatus === "Rejected").length.toString()} trend="Failed verification" />
+              <StatCard label="Total Registered" value={centersList.length.toString()} trend="Platform workshops" trendUp={true} />
             </div>
 
             <div style={{ display: "flex", gap: "10px" }}>
-              <button style={{ background: "#E8F5E9", color: COLORS.success, border: `1px solid ${COLORS.success}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>Pending Requests ({verificationQueue.length})</button>
-              {["Verified Centers", "Rejected", "Blocked"].map(t => (<button key={t} style={{ background: "#fff", color: COLORS.textLight, border: `1px solid ${COLORS.border}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>{t}</button>))}
+              {[
+                { value: "Pending", label: `Pending Requests (${verificationQueue.length})` },
+                { value: "Verified", label: `Verified Centers (${centersList.filter(c => c.approvalStatus === 1 || c.approvalStatus === "Approved" || c.ApprovalStatus === 1 || c.ApprovalStatus === "Approved").length})` },
+                { value: "Rejected", label: `Rejected (${centersList.filter(c => c.approvalStatus === 2 || c.approvalStatus === "Rejected" || c.ApprovalStatus === 2 || c.ApprovalStatus === "Rejected").length})` }
+              ].map(subTab => (
+                <button 
+                  key={subTab.value}
+                  onClick={() => setCenterVerificationFilter(subTab.value)}
+                  style={{ 
+                    background: centerVerificationFilter === subTab.value ? "#E8F5E9" : "#fff", 
+                    color: centerVerificationFilter === subTab.value ? COLORS.success : COLORS.textLight, 
+                    border: `1px solid ${centerVerificationFilter === subTab.value ? COLORS.success : COLORS.border}`, 
+                    padding: "8px 24px", 
+                    borderRadius: "20px", 
+                    fontSize: "13px", 
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  {subTab.label}
+                </button>
+              ))}
             </div>
 
             <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead style={{ background: COLORS.bg }}>
-                  <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
-                    <th style={{ padding: "16px 24px" }}>CENTER DETAILS</th>
-                    <th style={{ padding: "16px 24px" }}>CITY / LOCATION</th>
-                    <th style={{ padding: "16px 24px" }}>SUBMITTED</th>
-                    <th style={{ padding: "16px 24px" }}>DOCS STATUS</th>
-                    <th style={{ padding: "16px 24px" }}>ACTIONS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {verificationQueue.map(item => (
-                    <tr key={item.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
-                      <td style={{ padding: "20px 24px" }}>
-                        <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "4px" }}>{item.name}</div>
-                        <div style={{ fontSize: "11px", color: COLORS.primary, fontWeight: 700 }}>Full-Service Workshop</div>
-                      </td>
-                      <td style={{ padding: "20px 24px", fontSize: "13px" }}>{item.city}</td>
-                      <td style={{ padding: "20px 24px", fontSize: "12px", color: COLORS.textLight }}>{item.date} · 10:30 AM</td>
-                      <td style={{ padding: "20px 24px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: COLORS.success }}></span>
-                          <span style={{ fontSize: "12px", fontWeight: 700, color: COLORS.text }}>3/3 Files Uploaded</span>
-                        </div>
-                        <div style={{ fontSize: "10px", color: COLORS.textLight, marginTop: "4px" }}>Trade License, Tax ID, ID</div>
-                      </td>
-                      <td style={{ padding: "20px 24px" }}>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button className="admin-btn" style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, padding: "8px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}>View Docs</button>
-                          <button onClick={() => handleApprove(item.id)} className="admin-btn" style={{ background: COLORS.success, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}>Approve</button>
-                          <button onClick={() => handleReject(item.id)} className="admin-btn" style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}>Reject</button>
-                        </div>
-                      </td>
+              {centersLoading && centersList.length === 0 ? (
+                <div style={{ padding: "60px", textAlign: "center" }}>
+                  <div style={{ width: 30, height: 30, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 16px" }} />
+                  <div style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading centers...</div>
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead style={{ background: COLORS.bg }}>
+                    <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
+                      <th style={{ padding: "16px 24px" }}>CENTER DETAILS</th>
+                      <th style={{ padding: "16px 24px" }}>CITY / LOCATION</th>
+                      <th style={{ padding: "16px 24px" }}>STATUS DETAIL</th>
+                      <th style={{ padding: "16px 24px" }}>DOCS STATUS</th>
+                      <th style={{ padding: "16px 24px" }}>ACTIONS</th>
                     </tr>
-                  ))}
-                  {verificationQueue.length === 0 && (
-                    <tr>
-                      <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                        <div style={{ fontSize: "40px", marginBottom: "10px" }}>✅</div>
-                        <div style={{ fontWeight: 800 }}>No pending requests</div>
-                        <div style={{ fontSize: "12px" }}>All service center registrations have been processed.</div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {centerVerificationFilter === "Pending" && verificationQueue.map(item => (
+                      <tr key={item.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                        <td style={{ padding: "20px 24px" }}>
+                          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "4px" }}>{item.name}</div>
+                          <div style={{ fontSize: "11px", color: COLORS.primary, fontWeight: 700 }}>Full-Service Workshop</div>
+                        </td>
+                        <td style={{ padding: "20px 24px", fontSize: "13px" }}>{item.city}</td>
+                        <td style={{ padding: "20px 24px", fontSize: "12px", color: COLORS.textLight }}>{item.date} · 10:30 AM</td>
+                        <td style={{ padding: "20px 24px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: COLORS.success }}></span>
+                            <span style={{ fontSize: "12px", fontWeight: 700, color: COLORS.text }}>3/3 Files Uploaded</span>
+                          </div>
+                          <div style={{ fontSize: "10px", color: COLORS.textLight, marginTop: "4px" }}>Trade License, Tax ID, ID</div>
+                        </td>
+                        <td style={{ padding: "20px 24px" }}>
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <button 
+                              onClick={() => {
+                                setSelectedPendingCenter(item);
+                                setShowPendingCenterModal(true);
+                              }}
+                              className="admin-btn" 
+                              style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, padding: "8px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}
+                            >
+                              View Docs
+                            </button>
+                            <button onClick={() => handleApprove(item.id)} className="admin-btn" style={{ background: COLORS.success, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}>Approve</button>
+                            <button onClick={() => handleReject(item.id)} className="admin-btn" style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}>Reject</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {centerVerificationFilter === "Verified" && centersList
+                      .filter(c => c.approvalStatus === 1 || c.approvalStatus === "Approved" || c.ApprovalStatus === 1 || c.ApprovalStatus === "Approved")
+                      .map(item => (
+                        <tr key={item.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                          <td style={{ padding: "20px 24px" }}>
+                            <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "4px" }}>{item.name}</div>
+                            <div style={{ fontSize: "11px", color: COLORS.success, fontWeight: 700 }}>Verified & Active</div>
+                          </td>
+                          <td style={{ padding: "20px 24px", fontSize: "13px" }}>{item.city}</td>
+                          <td style={{ padding: "20px 24px", fontSize: "12px", color: COLORS.textLight }}>Approved</td>
+                          <td style={{ padding: "20px 24px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: COLORS.success }}></span>
+                              <span style={{ fontSize: "12px", fontWeight: 700, color: COLORS.success }}>Active Workshop</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "20px 24px" }}>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button 
+                                onClick={() => {
+                                  setSelectedPendingCenter(item);
+                                  setShowPendingCenterModal(true);
+                                }}
+                                className="admin-btn" 
+                                style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, padding: "8px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}
+                              >
+                                View Details
+                              </button>
+                              <button onClick={() => handleReject(item.id)} className="admin-btn" style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}>Reject / Revoke</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+
+                    {centerVerificationFilter === "Rejected" && centersList
+                      .filter(c => c.approvalStatus === 2 || c.approvalStatus === "Rejected" || c.ApprovalStatus === 2 || c.ApprovalStatus === "Rejected")
+                      .map(item => (
+                        <tr key={item.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                          <td style={{ padding: "20px 24px" }}>
+                            <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "4px" }}>{item.name}</div>
+                            <div style={{ fontSize: "11px", color: COLORS.primary, fontWeight: 700 }}>Rejected / Suspended</div>
+                          </td>
+                          <td style={{ padding: "20px 24px", fontSize: "13px" }}>{item.city}</td>
+                          <td style={{ padding: "20px 24px", fontSize: "12.5px", color: COLORS.textLight }} title={item.raw?.rejectionReason || item.raw?.RejectionReason}>
+                            Reason: {item.raw?.rejectionReason || item.raw?.RejectionReason || "No reason given"}
+                          </td>
+                          <td style={{ padding: "20px 24px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: COLORS.primary }}></span>
+                              <span style={{ fontSize: "12px", fontWeight: 700, color: COLORS.primary }}>Rejected Application</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "20px 24px" }}>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button 
+                                onClick={() => {
+                                  setSelectedPendingCenter(item);
+                                  setShowPendingCenterModal(true);
+                                }}
+                                className="admin-btn" 
+                                style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, padding: "8px 12px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}
+                              >
+                                View Details
+                              </button>
+                              <button onClick={() => handleApprove(item.id)} className="admin-btn" style={{ background: COLORS.success, color: "#fff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "11px", fontWeight: 800 }}>Approve / Verify</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+
+                    {/* Empty states */}
+                    {centerVerificationFilter === "Pending" && verificationQueue.length === 0 && (
+                      <tr>
+                        <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>✅</div>
+                          <div style={{ fontWeight: 800 }}>No pending requests</div>
+                          <div style={{ fontSize: "12px" }}>All service center registrations have been processed.</div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {centerVerificationFilter === "Verified" && centersList.filter(c => c.approvalStatus === 1 || c.approvalStatus === "Approved" || c.ApprovalStatus === 1 || c.ApprovalStatus === "Approved").length === 0 && (
+                      <tr>
+                        <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>🛡️</div>
+                          <div style={{ fontWeight: 800 }}>No verified centers yet</div>
+                          <div style={{ fontSize: "12px" }}>Approved centers will appear in this list.</div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {centerVerificationFilter === "Rejected" && centersList.filter(c => c.approvalStatus === 2 || c.approvalStatus === "Rejected" || c.ApprovalStatus === 2 || c.ApprovalStatus === "Rejected").length === 0 && (
+                      <tr>
+                        <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>🚩</div>
+                          <div style={{ fontWeight: 800 }}>No rejected centers</div>
+                          <div style={{ fontSize: "12px" }}>Suspended or rejected centers will appear in this list.</div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
 
             <div style={{ background: "#F1F5F9", padding: "16px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1288,8 +1643,565 @@ export default function AdminDashboard() {
                  </div>
                </div>
              )}
-           </div>
+            </div>
+         )}
+
+        {/* Contact Messages View */}
+        {activeTab === "Contact Messages" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>View, moderate, and resolve support/inquiry messages submitted by users.</p>
+            </div>
+            
+            <div style={{ display: "flex", gap: "20px" }}>
+              <StatCard label="Pending Messages" value={contactMessagesList.filter(m => !m.isResolved && !m.IsResolved).length.toString()} trend="Requires response" trendUp={false} />
+              <StatCard label="Resolved Messages" value={contactMessagesList.filter(m => m.isResolved || m.IsResolved).length.toString()} trend="Closed support" trendUp />
+              <StatCard label="Total Messages" value={contactMessagesList.length.toString()} trend="All inquiries" />
+              <StatCard label="System SLA" value="100%" trend="Active backend" trendUp />
+            </div>
+
+            {/* Filter controls */}
+            <div style={{ display: "flex", gap: "6px" }}>
+              {[
+                { value: "all", label: `All Inquiries (${contactMessagesList.length})` },
+                { value: "pending", label: `Pending (${contactMessagesList.filter(m => !m.isResolved && !m.IsResolved).length})` },
+                { value: "resolved", label: `Resolved (${contactMessagesList.filter(m => m.isResolved || m.IsResolved).length})` }
+              ].map(tab => (
+                <button 
+                  key={tab.value}
+                  onClick={() => setContactMessagesFilter(tab.value)}
+                  style={{ 
+                    background: contactMessagesFilter === tab.value ? "#FFF1F1" : "#fff", 
+                    color: contactMessagesFilter === tab.value ? COLORS.primary : COLORS.textLight, 
+                    border: `1px solid ${contactMessagesFilter === tab.value ? COLORS.primary : COLORS.border}`, 
+                    padding: "8px 24px", 
+                    borderRadius: "20px", 
+                    fontSize: "13px", 
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {contactMessagesError && (
+              <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
+                ⚠️ Error: {contactMessagesError}
+              </div>
+            )}
+
+            <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden", boxShadow: SHADOW }}>
+              {contactMessagesLoading ? (
+                <div style={{ padding: "60px", textAlign: "center" }}>
+                  <div style={{ width: 30, height: 30, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 16px" }} />
+                  <div style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading messages...</div>
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead style={{ background: COLORS.bg }}>
+                    <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
+                      <th style={{ padding: "16px 24px" }}>SENDER DETAILS</th>
+                      <th style={{ padding: "16px 24px" }}>SUBJECT</th>
+                      <th style={{ padding: "16px 24px" }}>MESSAGE PREVIEW</th>
+                      <th style={{ padding: "16px 24px" }}>SUBMITTED DATE</th>
+                      <th style={{ padding: "16px 24px" }}>STATUS</th>
+                      <th style={{ padding: "16px 24px", textAlign: "right" }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contactMessagesList.map(msg => {
+                      const initials = msg.fullName
+                        ? msg.fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+                        : "U";
+                      const isMsgResolved = msg.isResolved || msg.IsResolved;
+                      return (
+                        <tr key={msg.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                          <td style={{ padding: "16px 24px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                              <div style={{ 
+                                width: "36px", 
+                                height: "36px", 
+                                borderRadius: "50%", 
+                                background: isMsgResolved ? "#F3F4F6" : "#FEEBEB", 
+                                color: isMsgResolved ? "#9CA3AF" : COLORS.primary, 
+                                display: "flex", 
+                                alignItems: "center", 
+                                justifyContent: "center", 
+                                fontWeight: 800,
+                                fontSize: "13px"
+                              }}>
+                                {initials}
+                              </div>
+                              <div>
+                                <div style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{msg.fullName || "User"}</div>
+                                <div style={{ fontSize: "11px", color: COLORS.textLight }}>{msg.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: "16px 24px", fontSize: "13px", fontWeight: 700, color: COLORS.text }}>
+                            {msg.subject || "No Subject"}
+                          </td>
+                          <td style={{ padding: "16px 24px", fontSize: "13px", color: COLORS.textLight, maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {msg.message}
+                          </td>
+                          <td style={{ padding: "16px 24px", fontSize: "12px", color: COLORS.textLight }}>
+                            {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : "—"}
+                          </td>
+                          <td style={{ padding: "16px 24px" }}>
+                            <span style={{ 
+                              color: isMsgResolved ? COLORS.success : COLORS.primary, 
+                              background: isMsgResolved ? "#E8F5E9" : "#FFF1F1", 
+                              padding: "4px 8px", 
+                              borderRadius: "4px", 
+                              fontSize: "11px", 
+                              fontWeight: 800 
+                            }}>
+                              {isMsgResolved ? "Resolved" : "Pending"}
+                            </span>
+                          </td>
+                          <td style={{ padding: "16px 24px", textAlign: "right" }}>
+                            <button 
+                              onClick={() => handleViewContactMessage(msg)}
+                              className="admin-btn" 
+                              style={{ background: "transparent", border: `1px solid ${COLORS.border}`, padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, cursor: "pointer" }}
+                            >
+                              Review & Reply
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {contactMessagesList.length === 0 && (
+                      <tr>
+                        <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>✉️</div>
+                          <div style={{ fontWeight: 800 }}>No messages found</div>
+                          <div style={{ fontSize: "12px" }}>There are no {contactMessagesFilter} support inquiries currently.</div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         )}
+
+      {/* User Report Details Modal Overlay */}
+      {showReportModal && selectedReport && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "600px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>🚩 Report Moderation Details</h3>
+              <button 
+                onClick={() => setShowReportModal(false)}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Top Meta info */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: COLORS.bg, padding: "16px", borderRadius: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Reporter</div>
+                  <div style={{ fontSize: "14px", fontWeight: 800 }}>{selectedReport.reporterName || "Platform User"}</div>
+                  <div style={{ fontSize: "10px", color: COLORS.textLight }}>ID: {selectedReport.reporterId || "—"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Submitted On</div>
+                  <div style={{ fontSize: "14px", fontWeight: 700 }}>
+                    {selectedReport.createdAt ? new Date(selectedReport.createdAt).toLocaleString() : "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Target & Reason */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Target Type</label>
+                  <div>
+                    <span style={{ background: "#F1F5F9", color: "#475569", fontSize: "12px", fontWeight: 800, padding: "6px 12px", borderRadius: "6px", display: "inline-block" }}>
+                      {selectedReport.targetType === 0 || selectedReport.targetType === "ServiceCenter" ? "ServiceCenter" : (selectedReport.targetType === 1 || selectedReport.targetType === "Review" ? "Review" : (selectedReport.targetType === 2 || selectedReport.targetType === "issue" ? "issue" : selectedReport.targetType))}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Reason</label>
+                  <div>
+                    <span style={{ background: "#FFF1F1", color: COLORS.primary, fontSize: "12px", fontWeight: 800, padding: "6px 12px", borderRadius: "6px", display: "inline-block" }}>
+                      {selectedReport.reason === 0 || selectedReport.reason === "Spam" ? "Spam" : (selectedReport.reason === 1 || selectedReport.reason === "Inappropriate" ? "Inappropriate" : (selectedReport.reason === 2 || selectedReport.reason === "Fake" ? "Fake" : (selectedReport.reason === 3 || selectedReport.reason === "Offensive" ? "Offensive" : (selectedReport.reason === 4 || selectedReport.reason === "Other" ? "Other" : selectedReport.reason))))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Target ID */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Target Entity ID</label>
+                <div style={{ fontSize: "13px", fontWeight: 600, fontFamily: "monospace", background: COLORS.bg, padding: "10px 14px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, wordBreak: "break-all" }}>
+                  {selectedReport.targetId}
+                </div>
+              </div>
+
+              {/* Details / Explanation */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Details Provided</label>
+                <div style={{ fontSize: "13.5px", background: COLORS.bg, padding: "12px 16px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, minHeight: "60px", color: COLORS.text, whiteSpace: "pre-wrap" }}>
+                  {selectedReport.details || <span style={{ color: COLORS.textLight, fontStyle: "italic" }}>No additional details provided.</span>}
+                </div>
+              </div>
+
+              {/* Status information */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "8px 0" }}>
+                <span style={{ fontSize: "13px", fontWeight: 700 }}>Current Moderation Status:</span>
+                <span style={{ 
+                  color: selectedReport.status === 0 || selectedReport.status === "Pending" ? COLORS.primary : (selectedReport.status === 2 || selectedReport.status === "Resolved" ? COLORS.success : COLORS.textLight), 
+                  background: selectedReport.status === 0 || selectedReport.status === "Pending" ? "#FFF1F1" : (selectedReport.status === 2 || selectedReport.status === "Resolved" ? "#E8F5E9" : "#F3F4F6"), 
+                  padding: "4px 10px", 
+                  borderRadius: "6px", 
+                  fontSize: "12px", 
+                  fontWeight: 800 
+                }}>
+                  {selectedReport.status === 0 || selectedReport.status === "Pending" ? "Pending" : (selectedReport.status === 1 || selectedReport.status === "UnderReview" ? "Under Review" : (selectedReport.status === 2 || selectedReport.status === "Resolved" ? "Resolved" : (selectedReport.status === 3 || selectedReport.status === "Dismissed" ? "Dismissed" : selectedReport.status)))}
+                </span>
+              </div>
+
+              {/* Resolution Input / Display */}
+              <div style={{ borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <label style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text }}>Resolution Action & Notes</label>
+                
+                {(selectedReport.status === 0 || selectedReport.status === "Pending" || selectedReport.status === 1 || selectedReport.status === "UnderReview") ? (
+                  <>
+                    <textarea 
+                      value={reportResolutionNote}
+                      onChange={(e) => setReportResolutionNote(e.target.value)}
+                      placeholder="Enter resolution notes or actions taken to resolve/dismiss this report..."
+                      rows="3"
+                      style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", fontFamily: "inherit", width: "100%" }}
+                    />
+                    <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
+                      <button 
+                        type="button" 
+                        disabled={submittingResolution}
+                        onClick={() => handleDismissReport(selectedReport.id, reportResolutionNote)}
+                        style={{ flex: 1, background: "#F1F5F9", color: "#475569", border: `1px solid ${COLORS.border}`, padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer", opacity: submittingResolution ? 0.6 : 1 }}
+                      >
+                        {submittingResolution ? "Processing..." : "Dismiss Report"}
+                      </button>
+                      <button 
+                        type="button"
+                        disabled={submittingResolution}
+                        onClick={() => handleResolveReport(selectedReport.id, reportResolutionNote)}
+                        style={{ flex: 1, background: COLORS.primary, color: "#fff", border: "none", padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer", opacity: submittingResolution ? 0.6 : 1 }}
+                      >
+                        {submittingResolution ? "Processing..." : "Resolve & Fix"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ background: "#F8F9FA", padding: "14px", borderRadius: "10px", border: `1.5px solid ${COLORS.border}` }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "8px", fontSize: "11px", color: COLORS.textLight }}>
+                      <div>Reviewed By: {selectedReport.reviewerName || "System Admin"}</div>
+                      <div style={{ textAlign: "right" }}>Action Date: {selectedReport.reviewedAt ? new Date(selectedReport.reviewedAt).toLocaleDateString() : "—"}</div>
+                    </div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.text }}>
+                      <strong>Resolution Note:</strong> {selectedReport.resolutionNote || "None provided."}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Message Details Modal Overlay */}
+      {showContactMessageModal && selectedContactMessage && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "600px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>✉️ Support Inquiry Details</h3>
+              <button 
+                onClick={() => setShowContactMessageModal(false)}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Sender Metadata */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: COLORS.bg, padding: "16px", borderRadius: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Sender Name</div>
+                  <div style={{ fontSize: "14px", fontWeight: 800 }}>{selectedContactMessage.fullName || "Platform User"}</div>
+                  <div style={{ fontSize: "11px", color: COLORS.textLight }}>{selectedContactMessage.email}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Submitted Date</div>
+                  <div style={{ fontSize: "14px", fontWeight: 700 }}>
+                    {selectedContactMessage.createdAt ? new Date(selectedContactMessage.createdAt).toLocaleString() : "—"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Subject */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Inquiry Subject</label>
+                <div style={{ fontSize: "15px", fontWeight: 800, color: COLORS.text, background: COLORS.bg, padding: "10px 14px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}` }}>
+                  {selectedContactMessage.subject || "No Subject"}
+                </div>
+              </div>
+
+              {/* Message Details */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Message Description</label>
+                <div style={{ fontSize: "13.5px", background: COLORS.bg, padding: "12px 16px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, minHeight: "80px", color: COLORS.text, whiteSpace: "pre-wrap" }}>
+                  {selectedContactMessage.message}
+                </div>
+              </div>
+
+              {/* Status information */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "8px 0" }}>
+                <span style={{ fontSize: "13px", fontWeight: 700 }}>Resolution Status:</span>
+                <span style={{ 
+                  color: (selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? COLORS.success : COLORS.primary, 
+                  background: (selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? "#E8F5E9" : "#FFF1F1", 
+                  padding: "4px 10px", 
+                  borderRadius: "6px", 
+                  fontSize: "12px", 
+                  fontWeight: 800 
+                }}>
+                  {(selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? "Resolved" : "Pending Support"}
+                </span>
+              </div>
+
+              {/* Resolution Input / Display */}
+              <div style={{ borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <label style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text }}>Resolution Action & Admin Notes</label>
+                
+                {!(selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? (
+                  <>
+                    <textarea 
+                      value={contactResolutionNote}
+                      onChange={(e) => setContactResolutionNote(e.target.value)}
+                      placeholder="Enter resolution notes, actions taken, or instructions sent to the user..."
+                      rows="3"
+                      style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", fontFamily: "inherit", width: "100%" }}
+                    />
+                    <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
+                      <button 
+                        type="button" 
+                        disabled={submittingContactResolution}
+                        onClick={() => handleResolveContactMessage(selectedContactMessage.id, contactResolutionNote)}
+                        style={{ flex: 1, background: COLORS.primary, color: "#fff", border: "none", padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer", opacity: submittingContactResolution ? 0.6 : 1 }}
+                      >
+                        {submittingContactResolution ? "Resolving Inbound..." : "Mark as Resolved"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ background: "#F8F9FA", padding: "14px", borderRadius: "10px", border: `1.5px solid ${COLORS.border}` }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "8px", fontSize: "11px", color: COLORS.textLight }}>
+                      <div>Status: Closed Ticket</div>
+                      <div style={{ textAlign: "right" }}>Resolved Successfully</div>
+                    </div>
+                    <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.text }}>
+                      <strong>Resolution Note:</strong> {selectedContactMessage.adminNotes || selectedContactMessage.AdminNotes || "None provided."}
+                    </div>
+                  </div>
+                )}
+              </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {/* Pending Service Center Details Modal Overlay */}
+      {showPendingCenterModal && selectedPendingCenter && (() => {
+        const raw = selectedPendingCenter.raw || {};
+        const docs = raw.documents || raw.Documents || [];
+        const getDocUrl = (type) => {
+          const doc = docs.find(d => 
+            (d.documentType || d.DocumentType || "").toLowerCase() === type.toLowerCase()
+          );
+          return doc?.fileUrl || doc?.FileUrl || null;
+        };
+        const nationalIdUrl = getDocUrl("NationalId") || getDocUrl("OwnerNationalId");
+        const commercialRegUrl = getDocUrl("CommercialReg");
+        const taxCardUrl = getDocUrl("TaxCard");
+
+        return (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+            <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "750px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+                <h3 style={{ fontSize: "18px", fontWeight: 850, color: COLORS.text, margin: 0 }}>🛡️ Service Center Verification Request</h3>
+                <button 
+                  onClick={() => setShowPendingCenterModal(false)}
+                  style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                
+                {/* Center Title Card */}
+                <div style={{ background: "linear-gradient(135deg, #FFF5F5 0%, #FFF1F1 100%)", padding: "20px", borderRadius: "16px", border: `1.5px solid #FFDCDC` }}>
+                  <div style={{ fontSize: "20px", fontWeight: 900, color: COLORS.text, marginBottom: "4px" }}>{raw.name || selectedPendingCenter.name}</div>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
+                    <span style={{ background: COLORS.primary, color: "#fff", fontSize: "11px", fontWeight: 800, padding: "4px 10px", borderRadius: "6px" }}>
+                      {raw.type === 0 || raw.type === "Maintenance" ? "Maintenance Center" : (raw.type === 1 || raw.type === "PartsStore" ? "Parts Store" : "Hybrid Center")}
+                    </span>
+                    <span style={{ color: COLORS.textLight, fontSize: "12.5px", fontWeight: 600 }}>
+                      📍 {raw.district ? `${raw.district}, ` : ""}{raw.governorate || selectedPendingCenter.city}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Info Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                  
+                  {/* Left Column - Business Info */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 800, color: COLORS.primary, borderBottom: `1px solid ${COLORS.border}`, paddingBottom: "4px" }}>BUSINESS PROFILE</div>
+                    
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>BUSINESS EMAIL</div>
+                      <div style={{ fontSize: "13.5px", fontWeight: 600, color: COLORS.text }}>{raw.businessEmail || raw.BusinessEmail || "—"}</div>
+                    </div>
+                    
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>BUSINESS PHONE</div>
+                      <div style={{ fontSize: "13.5px", fontWeight: 600, color: COLORS.text }}>{raw.phone || raw.Phone || "—"}</div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      <div>
+                        <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>ESTABLISHED</div>
+                        <div style={{ fontSize: "13.5px", fontWeight: 600, color: COLORS.text }}>{raw.yearEstablished || raw.YearEstablished || "—"}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>SERVICE BAYS</div>
+                        <div style={{ fontSize: "13.5px", fontWeight: 600, color: COLORS.text }}>{raw.numServiceBays || raw.NumServiceBays || "—"}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>STREET ADDRESS</div>
+                      <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.text }}>{raw.streetAddress || raw.StreetAddress || "—"}</div>
+                    </div>
+                  </div>
+
+                  {/* Right Column - Legal & Owner */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 800, color: COLORS.primary, borderBottom: `1px solid ${COLORS.border}`, paddingBottom: "4px" }}>LEGAL & REPRESENTATIVE</div>
+                    
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>OWNER / REPRESENTATIVE</div>
+                      <div style={{ fontSize: "13.5px", fontWeight: 600, color: COLORS.text }}>{raw.ownerFullName || raw.OwnerFullName || "—"}</div>
+                    </div>
+                    
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>OWNER NATIONAL ID</div>
+                      <div style={{ fontSize: "13.5px", fontWeight: 600, fontFamily: "monospace" }}>{raw.ownerNationalId || raw.OwnerNationalId || "—"}</div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>COMMERCIAL REGISTRATION NO.</div>
+                      <div style={{ fontSize: "13.5px", fontWeight: 600, fontFamily: "monospace" }}>{raw.commercialRegNo || raw.CommercialRegNo || "—"}</div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>TAX CARD NO.</div>
+                      <div style={{ fontSize: "13.5px", fontWeight: 600, fontFamily: "monospace" }}>{raw.taxCardNo || raw.TaxCardNo || "—"}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Documents Section */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px" }}>
+                  <div style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text }}>UPLOADED LEGAL DOCUMENTS</div>
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                    {/* Commercial Reg Card */}
+                    <div style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: "10px", padding: "14px", display: "flex", flexDirection: "column", gap: "10px", background: commercialRegUrl ? "#F8F9FA" : "#FFF1F1" }}>
+                      <div style={{ fontSize: "11.5px", fontWeight: 800, color: COLORS.text }}>Commercial Registry</div>
+                      {commercialRegUrl ? (
+                        <a href={commercialRegUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: COLORS.primary, fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+                          📄 View Document →
+                        </a>
+                      ) : (
+                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>⚠️ File Missing</span>
+                      )}
+                    </div>
+
+                    {/* Tax Card Card */}
+                    <div style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: "10px", padding: "14px", display: "flex", flexDirection: "column", gap: "10px", background: taxCardUrl ? "#F8F9FA" : "#FFF1F1" }}>
+                      <div style={{ fontSize: "11.5px", fontWeight: 800, color: COLORS.text }}>Tax Card ID</div>
+                      {taxCardUrl ? (
+                        <a href={taxCardUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: COLORS.primary, fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+                          📄 View Document →
+                        </a>
+                      ) : (
+                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>⚠️ File Missing</span>
+                      )}
+                    </div>
+
+                    {/* Owner National ID Card */}
+                    <div style={{ border: `1.5px solid ${COLORS.border}`, borderRadius: "10px", padding: "14px", display: "flex", flexDirection: "column", gap: "10px", background: nationalIdUrl ? "#F8F9FA" : "#FFF1F1" }}>
+                      <div style={{ fontSize: "11.5px", fontWeight: 800, color: COLORS.text }}>Owner National ID</div>
+                      {nationalIdUrl ? (
+                        <a href={nationalIdUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: COLORS.primary, fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+                          📄 View Document →
+                        </a>
+                      ) : (
+                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>⚠️ File Missing</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description Box */}
+                {raw.description && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#F8F9FA", padding: "12px 16px", borderRadius: "10px", border: `1px solid ${COLORS.border}` }}>
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>BUSINESS DESCRIPTION</div>
+                    <div style={{ fontSize: "12.5px", color: COLORS.text, lineHeight: 1.4 }}>"{raw.description}"</div>
+                  </div>
+                )}
+
+                {/* Action Footer */}
+                <div style={{ display: "flex", gap: "12px", borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "20px", justifyContent: "flex-end" }}>
+                  <button 
+                    onClick={() => {
+                      handleReject(selectedPendingCenter.id);
+                      setShowPendingCenterModal(false);
+                    }}
+                    style={{ background: "#FFF1F1", border: `1.5px solid ${COLORS.primary}`, color: COLORS.primary, padding: "10px 24px", borderRadius: "8px", fontWeight: 800, fontSize: "13px", cursor: "pointer" }}
+                  >
+                    Reject Application
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      handleApprove(selectedPendingCenter.id);
+                      setShowPendingCenterModal(false);
+                    }}
+                    style={{ background: COLORS.success, color: "#fff", border: "none", padding: "10px 28px", borderRadius: "8px", fontWeight: 800, fontSize: "13px", cursor: "pointer" }}
+                  >
+                    Approve & Verify Center
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       </main>
     </div>
   );

@@ -245,7 +245,7 @@ function CenterCard({ c }) {
 
         <div style={{ borderTop: "1px solid #f3f4f6", paddingTop: 11, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <span style={{ color: "#f59e0b", fontSize: 12 }}>{"★".repeat(Math.round(c.stars))}{"☆".repeat(5 - Math.round(c.stars))}</span>
+            <span style={{ color: "#f59e0b", fontSize: 12 }}>{"★".repeat(Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}{"☆".repeat(5 - Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}</span>
             <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 4 }}>{c.rating} ({c.reviews})</span>
           </div>
           <span style={{ fontSize: 12, fontWeight: 900, color: R }}>{c.price}</span>
@@ -471,8 +471,8 @@ export default function ServiceCentersPage() {
       c.tags.some(t => t.toLowerCase().includes(activeQuery))
     );
     if (activeLocation) list = list.filter(c =>
-      c.loc.toLowerCase().includes(activeLocation) ||
-      c.city.toLowerCase().includes(activeLocation)
+      (c.loc || "").toLowerCase().includes(activeLocation) ||
+      (c.city || "").toLowerCase().includes(activeLocation)
     );
 
 

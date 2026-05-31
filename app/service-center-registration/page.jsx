@@ -583,13 +583,12 @@ export default function ServiceCenterRegistration() {
             {steps.map((s) => (
               <div
                 key={s.n}
-                className={`step-node ${
-                  currentStep === s.n
+                className={`step-node ${currentStep === s.n
                     ? "active"
                     : currentStep > s.n
-                    ? "completed"
-                    : ""
-                }`}
+                      ? "completed"
+                      : ""
+                  }`}
               >
                 <div className="step-circle">
                   {currentStep > s.n ? "✓" : s.n}
@@ -831,8 +830,8 @@ export default function ServiceCenterRegistration() {
 
                   {[
                     { key: "commercialReg", label: "Commercial registry (السجل التجاري)" },
-                    { key: "taxCard",        label: "Tax card (البطاقة الضريبية)" },
-                    { key: "nationalId",     label: "Owner national ID (بطاقة الرقم القومي)" },
+                    { key: "taxCard", label: "Tax card (البطاقة الضريبية)" },
+                    { key: "nationalId", label: "Owner national ID (بطاقة الرقم القومي)" },
                   ].map(({ key, label }) => (
                     <div className="upload-row" key={key}>
                       <label className="form-label" style={{ fontSize: 13, marginBottom: 6, display: "block" }}>

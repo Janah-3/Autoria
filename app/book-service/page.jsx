@@ -28,6 +28,17 @@ function getSlotId(slot) {
   return slot?.id ?? slot?.timeSlotId ?? slot?.TimeSlotId ?? null;
 }
 
+const DB_SERVICE_TYPES_FALLBACK = [
+  { id: "ED392799-AC48-4DF4-A43B-4067838C5782", name: "Body Work" },
+  { id: "5E7AE718-406E-4040-A99B-79975A468B04", name: "Suspension" },
+  { id: "C0E62C6E-3BC1-4BF8-A6A4-7AC7CBF2E00D", name: "AC Repair" },
+  { id: "1CE0FE70-1308-4FB2-B1CD-8B0E326ECBBD", name: "Brakes" },
+  { id: "2F85B94E-C7A6-4FE3-8C62-C464EBC021B6", name: "Tires" },
+  { id: "8E4EC0D1-4940-43D7-B809-D4F38111375E", name: "Oil Change" },
+  { id: "07109B5A-5EFA-4234-A84B-EB5EFB32A877", name: "Electrical" },
+  { id: "09014C26-42D5-4742-8119-F33BB2B94D2D", name: "Engine Diagnostics" }
+];
+
 export default function BookServicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,10 +50,12 @@ export default function BookServicePage() {
   const [selectedCarId, setSelectedCarId] = useState("");
   const [selectedServiceCenterId, setSelectedServiceCenterId] = useState(serviceCenterFromUrl);
   const [serviceCenters, setServiceCenters] = useState([]);
+  const [dbServiceTypes, setDbServiceTypes] = useState(DB_SERVICE_TYPES_FALLBACK);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [formData, setFormData] = useState({
     serviceType: "",
+    serviceTypeId: "",
     carBrand: "",
     carModel: "",
     carYear: "",
@@ -64,10 +77,11 @@ export default function BookServicePage() {
           return;
         }
 
-        const [carsResponse, centersResponse, meResponse] = await Promise.all([
+        const [carsResponse, centersResponse, meResponse, serviceTypesRes] = await Promise.all([
           getAllCars(),
           serviceCentersService.getAll(),
           getMe().catch(() => null),
+          serviceCentersService.getServiceTypes().catch(() => []),
         ]);
 
         if (cancelled) return;
@@ -88,6 +102,12 @@ export default function BookServicePage() {
 
         const centers = getServiceCenterItems(centersResponse);
         setServiceCenters(centers);
+
+        if (serviceTypesRes?.data && serviceTypesRes.data.length > 0) {
+          setDbServiceTypes(serviceTypesRes.data);
+        } else if (Array.isArray(serviceTypesRes) && serviceTypesRes.length > 0) {
+          setDbServiceTypes(serviceTypesRes);
+        }
 
         if (!serviceCenterFromUrl && centers.length === 1) {
           setSelectedServiceCenterId(centers[0].id);
@@ -146,6 +166,14 @@ export default function BookServicePage() {
   const selectedCenter = serviceCenters.find(
     (center) => String(center.id) === String(selectedServiceCenterId)
   );
+
+  const centerServiceTypes = selectedCenter
+    ? dbServiceTypes.filter((type) =>
+        selectedCenter.serviceTypes?.some(
+          (name) => name.toLowerCase() === type.name.toLowerCase()
+        )
+      )
+    : [];
 
   const nextStep = (e) => {
     if (e) {
@@ -209,9 +237,27 @@ export default function BookServicePage() {
         : new Date().toISOString();
 
       const payload = {
+        // PascalCase keys for .NET case-sensitive JSON deserialization
+        CarId: selectedCarId,
+        ServiceCenterId: selectedServiceCenterId,
+        TimeSlotId: formData.timeSlotId || undefined,
+        ServiceTypeId: formData.serviceTypeId || undefined,
+        ServiceType: formData.serviceType,
+        CarBrand: formData.carBrand,
+        CarModel: formData.carModel || "Unknown",
+        CarYear: parseInt(formData.carYear, 10) || null,
+        AppointmentDate: formData.date,
+        Date: formData.date,
+        CustomerName: formData.name,
+        Phone: formData.phone,
+        Notes: formData.notes || "",
+        Status: "Pending",
+
+        // camelCase keys for standard JS/JSON compatibility
         carId: selectedCarId,
         serviceCenterId: selectedServiceCenterId,
         timeSlotId: formData.timeSlotId || undefined,
+        serviceTypeId: formData.serviceTypeId || undefined,
         serviceType: formData.serviceType,
         carBrand: formData.carBrand,
         carModel: formData.carModel || "Unknown",
@@ -333,15 +379,29 @@ export default function BookServicePage() {
                   <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Service Type</label>
                   <select
                     value={formData.serviceType}
-                    onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
+                    onChange={(e) => {
+                      const selectedName = e.target.value;
+                      const matchedType = dbServiceTypes.find(
+                        (t) => t.name.toLowerCase() === selectedName.toLowerCase()
+                      );
+                      setFormData((prev) => ({
+                        ...prev,
+                        serviceType: selectedName,
+                        serviceTypeId: matchedType ? (matchedType.id || matchedType.Id || "") : "",
+                      }));
+                    }}
                     style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
                   >
                     <option value="">Select a service</option>
-                    <option value="Oil Change">Oil Change</option>
-                    <option value="Brake Repair">Brake Repair</option>
-                    <option value="AC Maintenance">AC Maintenance</option>
-                    <option value="Engine Diagnostics">Engine Diagnostics</option>
-                    <option value="Full Maintenance">Full Maintenance</option>
+                    {centerServiceTypes.length > 0 ? (
+                      centerServiceTypes.map((t) => (
+                        <option key={t.id || t.Id} value={t.name}>{t.name}</option>
+                      ))
+                    ) : (
+                      ["Oil Change", "Brakes", "AC Repair", "Tires", "Body Work", "Suspension", "Electrical", "Engine Diagnostics"].map((name) => (
+                        <option key={name} value={name}>{name}</option>
+                      ))
+                    )}
                   </select>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>

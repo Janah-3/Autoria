@@ -192,22 +192,9 @@ export default function SparePartDetailsPage() {
             <div style={{ fontSize: "32px", fontWeight: "bold", color: COLORS.primary, marginBottom: "15px" }}>
               <span style={{ fontSize: "16px" }}>EGP</span> {availability?.length > 0 ? Math.min(...availability.map(a => a.price || Infinity)) : "N/A"}
             </div>
-            
-            <button 
-              onClick={() => {
-                if (availability.length > 0) {
-                  setReserveModalOpen(true);
-                } else {
-                  alert("This part is currently out of stock.");
-                }
-              }}
-              style={{ width: "100%", background: COLORS.primary, color: "#fff", border: "none", padding: "15px", borderRadius: "10px", fontWeight: "bold", fontSize: "16px", cursor: "pointer", marginBottom: "10px" }}
-            >
-              Reserve Now
-            </button>
-            <button style={{ width: "100%", background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", fontWeight: "bold", cursor: "pointer" }}>
-              ♡ Save to Wishlist
-            </button>
+            <div style={{ fontSize: "13px", color: COLORS.textLight, lineHeight: "1.5", padding: "12px", background: "#F8F9FA", borderRadius: "8px", border: `1px solid ${COLORS.border}` }}>
+              💡 <strong>How to Reserve:</strong> Select one of the verified workshops from the list below.
+            </div>
           </div>
 
           <div style={{ background: "#fff", padding: "20px", borderRadius: "15px", border: `1px solid ${COLORS.border}` }}>
@@ -216,10 +203,39 @@ export default function SparePartDetailsPage() {
             {availability?.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                 {availability.map((av, index) => (
-                  <div key={index} style={{ borderBottom: index < availability.length - 1 ? `1px solid ${COLORS.border}` : "none", paddingBottom: "12px" }}>
-                    <div style={{ fontWeight: "bold", fontSize: "14px", color: COLORS.text }}>{av.serviceCenterName || "Verified Service Center"}</div>
-                    <div style={{ fontSize: "12px", color: COLORS.textLight, marginTop: "2px" }}>Price: <span style={{ color: COLORS.primary, fontWeight: "bold" }}>EGP {av.price}</span></div>
-                    <div style={{ fontSize: "11px", color: COLORS.success, marginTop: "4px" }}>✓ In Stock ({av.quantity || "Available"})</div>
+                  <div key={index} style={{ 
+                    borderBottom: index < availability.length - 1 ? `1px solid ${COLORS.border}` : "none", 
+                    paddingBottom: "12px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "10px"
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: "bold", fontSize: "14px", color: COLORS.text }}>{av.serviceCenterName || "Verified Service Center"}</div>
+                      <div style={{ fontSize: "12px", color: COLORS.textLight, marginTop: "2px" }}>Price: <span style={{ color: COLORS.primary, fontWeight: "bold" }}>EGP {av.price}</span></div>
+                      <div style={{ fontSize: "11px", color: COLORS.success, marginTop: "4px" }}>✓ In Stock ({av.quantity || "Available"})</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedCenter(av);
+                        setQuantity(1);
+                        setReserveModalOpen(true);
+                      }}
+                      style={{
+                        background: COLORS.primary,
+                        color: "#fff",
+                        border: "none",
+                        padding: "8px 16px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: "700",
+                        cursor: "pointer",
+                        transition: "background 0.2s"
+                      }}
+                    >
+                      Reserve
+                    </button>
                   </div>
                 ))}
               </div>

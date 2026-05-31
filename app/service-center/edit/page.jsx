@@ -26,6 +26,11 @@ export default function EditServiceCenterProfile() {
     closedDays: "",
   });
 
+  // Workshop GPS Location States
+  const [scLat, setScLat] = useState("");
+  const [scLng, setScLng] = useState("");
+  const [scLocStatus, setScLocStatus] = useState(""); // "" | "capturing" | "captured" | "error"
+
   const [services, setServices] = useState([]);
   const [newService, setNewService] = useState("");
 
@@ -79,6 +84,10 @@ export default function EditServiceCenterProfile() {
             .join(" • "),
           closedDays: (d.operatingHours || []).filter((h) => h.isClosed).map((h) => h.day).join(", "),
         });
+        if (d.latitude && d.longitude) {
+          setScLat(String(d.latitude));
+          setScLng(String(d.longitude));
+        }
         setServices(d.serviceTypes || []);
         setBrands(d.carBrands || []);
         if (d.photos?.length) {
@@ -95,19 +104,52 @@ export default function EditServiceCenterProfile() {
       .finally(() => setProfileLoading(false));
   }, []);
 
+  const handleCaptureScLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setScLocStatus("capturing");
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setScLat(position.coords.latitude.toFixed(6));
+        setScLng(position.coords.longitude.toFixed(6));
+        setScLocStatus("captured");
+        setTimeout(() => setScLocStatus(""), 4000);
+      },
+      (error) => {
+        console.warn("Capture failed:", error);
+        setScLocStatus("error");
+        alert("Failed to acquire location: " + (error?.message || "Permission denied"));
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  };
+
   // Handlers
   const handleSave = async (e) => {
     e.preventDefault();
     try {
+      // Step 1: Update main profile
       await serviceCentersService.updateMy({
         name: generalInfo.name,
         phone: contactInfo.phone,
         description: generalInfo.description,
         numServiceBays: parseInt(generalInfo.bays, 10) || undefined,
       });
-      triggerToast("Business profile saved successfully", "success");
+
+      // Step 2: Update GPS Map Location in backend if coordinates are set
+      if (scLat && scLng) {
+        await serviceCentersService.setMyLocation({
+          latitude: parseFloat(scLat),
+          longitude: parseFloat(scLng),
+          address: contactInfo.address || "Workshop address"
+        });
+      }
+
+      triggerToast("Business profile & GPS location saved successfully", "success");
     } catch (err) {
-      triggerToast(err.message || "Failed to save", "warning");
+      triggerToast(err.message || "Failed to save profile", "warning");
     }
   };
 
@@ -832,6 +874,71 @@ export default function EditServiceCenterProfile() {
                       onChange={(e) => setContactInfo({ ...contactInfo, closedDays: e.target.value })}
                       required
                     />
+                  </div>
+
+                  <div className="form-group full" style={{ marginTop: '24px', borderTop: '1px solid #E2E8F0', paddingTop: '24px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <i className="fa-solid fa-map-location-dot" style={{ color: '#E8272A' }}></i> GPS Map Location Coordinates
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#64748B', marginBottom: '16px', lineHeight: 1.5 }}>
+                      Ensure your workshop's precise physical Latitude and Longitude coordinates are stored accurately. These coordinate vectors allow nearby users to find and match your service center when requesting emergency roadside assistance or searching for close-by workshops.
+                    </p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '16px', alignItems: 'end' }}>
+                      <div className="form-group">
+                        <label className="form-label">GPS Latitude Coordinate</label>
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          placeholder="e.g. 30.0626" 
+                          value={scLat} 
+                          onChange={(e) => setScLat(e.target.value)} 
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">GPS Longitude Coordinate</label>
+                        <input 
+                          type="text" 
+                          className="form-input" 
+                          placeholder="e.g. 31.3397" 
+                          value={scLng} 
+                          onChange={(e) => setScLng(e.target.value)} 
+                        />
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={handleCaptureScLocation}
+                        disabled={scLocStatus === "capturing"}
+                        className="btn-add-tag" 
+                        style={{ height: '48px', padding: '0 20px', background: '#F1F5F9', border: '1.5px solid #CBD5E1', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        {scLocStatus === "capturing" ? (
+                          <>
+                            <i className="fa-solid fa-spinner fa-spin" style={{ color: '#E8272A' }}></i> Capturing...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-location-crosshairs" style={{ color: '#E8272A' }}></i> Capture GPS Location
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {scLocStatus && (
+                      <div style={{ 
+                        fontSize: '12.5px', 
+                        fontWeight: 700, 
+                        color: scLocStatus === 'captured' ? '#10B981' : scLocStatus === 'capturing' ? '#3B82F6' : '#EF4444',
+                        marginTop: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        {scLocStatus === 'capturing' && <><i className="fa-solid fa-spinner fa-spin"></i> Fetching coordinates from device GPS...</>}
+                        {scLocStatus === 'captured' && <><i className="fa-solid fa-circle-check"></i> ✓ Captured successfully! Click "Save Business Profile" below to sync with database.</>}
+                        {scLocStatus === 'error' && <><i className="fa-solid fa-triangle-exclamation"></i> GPS Capture Failed. Please write coordinates manually.</>}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

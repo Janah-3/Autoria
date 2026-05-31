@@ -1,14 +1,15 @@
 "use client";
 
+import Link from "next/link";
+
 export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }) {
   const menuItems = [
     { id: "Dashboard", icon: "📊" },
     { id: "Center verification", icon: "🛡️", badge: badges.verification },
-    { id: "Review moderation", icon: "⭐", badge: badges.reviews },
     { id: "User reports", icon: "🚩", badge: badges.reports },
-    { id: "Featured listings", icon: "💎", badge: badges.featured },
     { id: "User management", icon: "👥", badge: badges.users },
     { id: "Spare Parts", icon: "📦", badge: badges.spareParts },
+    { id: "Contact Messages", icon: "✉️", badge: badges.contacts },
   ];
 
   return (
@@ -59,10 +60,31 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
       </div>
 
       <div style={{ padding: "0 16px", marginTop: "auto" }}>
-        <div style={{ padding: "16px", background: colors.bg, borderRadius: "16px", textAlign: "center" }}>
-          <div style={{ fontSize: "12px", fontWeight: 700, marginBottom: "4px" }}>Need help?</div>
+        <div style={{ 
+          padding: "16px", 
+          background: "#FFF1F1", 
+          borderRadius: "16px", 
+          border: "1px solid #FFDCDC", 
+          textAlign: "center" 
+        }}>
+          <div style={{ fontSize: "12px", fontWeight: 800, color: colors.primary, marginBottom: "4px" }}>Need help?</div>
           <div style={{ fontSize: "11px", color: colors.textLight, marginBottom: "12px" }}>Contact system support</div>
-          <button style={{ width: "100%", background: "#fff", border: `1px solid ${colors.border}`, padding: "8px", borderRadius: "8px", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>Open Tickets</button>
+          <Link href="/contact-us" style={{ textDecoration: "none", display: "block" }}>
+            <button style={{ 
+              width: "100%", 
+              background: colors.primary, 
+              color: "#fff", 
+              border: "none", 
+              padding: "8px", 
+              borderRadius: "8px", 
+              fontSize: "11px", 
+              fontWeight: 800, 
+              cursor: "pointer",
+              transition: "opacity 0.2s" 
+            }}>
+              Contact Us
+            </button>
+          </Link>
         </div>
       </div>
     </aside>

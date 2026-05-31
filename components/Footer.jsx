@@ -59,8 +59,8 @@ export default function Footer() {
             <h4 style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "20px", color: "#FFF" }}>Support</h4>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
               {[
-                { name: "About Us", href: "#" },
-                { name: "Contact Us", href: "#" }
+                { name: "About Us", href: "/about-us" },
+                { name: "Contact Us", href: "/contact-us" }
               ].map(link => (
                 <li key={link.name}>
                   <a href={link.href} style={{ color: COLORS.textLight, fontSize: "12px", textDecoration: "none", transition: "0.2s" }}>{link.name}</a>

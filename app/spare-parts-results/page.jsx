@@ -85,8 +85,15 @@ const PartCard = ({ part }) => {
         </div>
         
         <div style={{ display: "flex", gap: "8px", margin: "15px 0 0" }}>
-          <button style={{ flex: 1, background: COLORS.primary, color: "#FFF", border: "none", padding: "10px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>Reserve</button>
-          <button style={{ flex: 1, background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}>Details</button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/spare-parts-details/${part.id}`);
+            }}
+            style={{ flex: 1, background: COLORS.primary, color: "#FFF", border: "none", padding: "10px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
+          >
+            View Details
+          </button>
         </div>
       </div>
     </div>
@@ -122,7 +129,7 @@ function ResultsContent() {
         };
         const data = await sparePartsService.getSpareParts(query);
         
-        // Filter by category if any selected
+        // Filter by category 
         if (selectedCategories.length > 0) {
           const filtered = data.filter(item => 
             selectedCategories.includes(item.category) || 
@@ -141,7 +148,7 @@ function ResultsContent() {
     fetchParts();
   }, [searchParams, selectedCategories]);
 
-  // Sync state with URL change
+  
   useEffect(() => {
     setQ(searchParams.get("q") || "");
     setBrand(searchParams.get("brand") || "");
