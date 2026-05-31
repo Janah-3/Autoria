@@ -13,6 +13,9 @@ namespace Autoria.features.ServiceCenter.Commands.CreateServiceCenter
     string OwnerNationalId,
     string OwnerFullName,
     int NumServiceBays,
+    string? District,
+    string? Gvernorate ,
+    string? Address ,
     ServiceCenterType Type
 );
 }

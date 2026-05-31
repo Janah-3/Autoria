@@ -29,9 +29,10 @@ namespace Autoria.features.ServiceCenter.Entities
         public DateTime CreatedAt { get; set; }
         public string? RejectionReason { get; set; }
         public bool IsDeleted { get; set; } = false;
-
-        public Point? Location { get; set; }
+        public string? District { get; set; }
+        public string? Gvernorate { get; set; }
         public string? Address { get; set; }
+        public Point? Location { get; set; }
 
         public double Rating { get; set; }
 

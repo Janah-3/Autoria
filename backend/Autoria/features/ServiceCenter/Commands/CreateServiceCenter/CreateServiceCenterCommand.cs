@@ -15,6 +15,9 @@ namespace Autoria.features.ServiceCenter.Commands.CreateServiceCenter
      string OwnerNationalId,
      string OwnerFullName,
      int NumServiceBays,
-     ServiceCenterType Type
+      string? District,
+     string? Governorate ,
+     string? Address,
+    ServiceCenterType Type
  ) : IRequest<Guid>;
 }

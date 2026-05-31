@@ -12,5 +12,13 @@ public class ServiceCenterConfiguration : IEntityTypeConfiguration<ServiceCenter
             .WithMany()
             .HasForeignKey(sc => sc.UserId)
             .OnDelete(DeleteBehavior.NoAction);
+        builder.Property(x => x.District)
+       .IsRequired(false);
+
+        builder.Property(x => x.Gvernorate)
+               .IsRequired(false);
+
+        builder.Property(x => x.Address)
+               .IsRequired(false);
     }
 }

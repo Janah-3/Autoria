@@ -52,6 +52,9 @@ namespace Autoria.features.ServiceCenter
                 request.OwnerNationalId,
                 request.OwnerFullName,
                 request.NumServiceBays,
+                request.Gvernorate,
+                request.District,
+                request.Address,
                 request.Type
             ));
 
@@ -231,10 +234,17 @@ namespace Autoria.features.ServiceCenter
 
 
         [HttpPut("my/location")]
-        //[Authorize(Roles = Roles.ServiceCenterOwner)]
-        public async Task<IActionResult> UpdateLocation(Guid id, [FromBody] UpdateServiceCenterLocationRequest request)
+        public async Task<IActionResult> UpdateLocation([FromBody] UpdateServiceCenterLocationRequest request)
         {
-            await _mediator.Send(new UpdateServiceCenterLocationCommand(id, request.Latitude, request.Longitude, request.Address));
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+            await _mediator.Send(new UpdateServiceCenterLocationCommand(
+                userId,
+                request.Latitude,
+                request.Longitude,
+                request.Governorate,
+                request.District,
+                request.Address
+            ));
             return Success("Location updated successfully");
         }
 

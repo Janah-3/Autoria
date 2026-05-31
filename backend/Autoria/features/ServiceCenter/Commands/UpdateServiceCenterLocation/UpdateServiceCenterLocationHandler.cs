@@ -11,35 +11,31 @@ namespace Autoria.features.ServiceCenter.Commands.UpdateServiceCenterLocation
     public class UpdateServiceCenterLocationHandler : IRequestHandler<UpdateServiceCenterLocationCommand, Unit>
     {
         private readonly AppDbContext _context;
-        private readonly ICurrentUserService _currentUserService;
         private readonly GeometryFactory _geometryFactory;
 
         public UpdateServiceCenterLocationHandler(
-            AppDbContext context,
-            ICurrentUserService currentUserService)
+            AppDbContext context)
         {
             _context = context;
-            _currentUserService = currentUserService;
             _geometryFactory = NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
         }
 
         public async Task<Unit> Handle(UpdateServiceCenterLocationCommand request, CancellationToken cancellationToken)
         {
-
-            var userId = _currentUserService.GetUserId();
-
             var serviceCenter = await _context.ServiceCenters
-               .FirstOrDefaultAsync(sc => sc.UserId == userId, cancellationToken)
-               ?? throw new NotFoundException("Service center not found");
-
-            if (serviceCenter.ApprovalStatus != shared.Enums.ApprovalStatus.Draft)
-                throw new BadRequestException("Location can only be updated while the service center is in draft");
+                .FirstOrDefaultAsync(sc => sc.UserId == request.UserId, cancellationToken)
+                    ?? throw new NotFoundException("Service center not found");
 
             serviceCenter.Location = _geometryFactory.CreatePoint(
-                new Coordinate(request.Longitude, request.Latitude)); // X = lng, Y = lat
+     new Coordinate(
+         request.Longitude,
+         request.Latitude
+     )
+ );
 
+            serviceCenter.Gvernorate = request.Governorate;
+            serviceCenter.District = request.District;
             serviceCenter.Address = request.Address;
-
             await _context.SaveChangesAsync(cancellationToken);
             return Unit.Value;
         }

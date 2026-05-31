@@ -1,6 +1,7 @@
 ﻿using Autoria.features.ServiceCenter.Entities;
 using Autoria.Infrastructure.Identity.entities;
 using Autoria.Infrastructure.Persistence.Seeding.Seeds;
+using Autoria.Infrastructure.Persistence.Seeding.Seeds.Autoria.Infrastructure.Persistence.Seeders;
 using Autoria.shared.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -63,6 +64,10 @@ namespace Autoria.Infrastructure.Persistence.Seeding
 
                 // 3. Seed Complex Features
                 await new ServiceCenterSeeder(_context, _userManager).SeedAsync();
+                await new operatingHours_TimeSlotsSeeder(_context).SeedAsync();
+                await new InventorySeeder(_context).SeedAsync();
+                await new SparePartSeeder(_context).SeedAsync();
+
             }
             catch (Exception ex)
             {
