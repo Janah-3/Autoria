@@ -243,6 +243,12 @@ export default function ServiceCenterRegistration() {
       if (!location.address.trim())  e.address  = "Street address is required";
     }
     if (step === 3) {
+      if (selectedServiceIds.size === 0)
+        errs.services = "Please select at least one service type";
+      if (selectedBrandIds.size === 0)
+        errs.brands = "Please select at least one car brand";
+    }
+    if (step === 4) {
       if (!docFiles.commercialReg || !docFiles.taxCard || !docFiles.nationalId)
         e.documents = "All three documents are required";
     }
