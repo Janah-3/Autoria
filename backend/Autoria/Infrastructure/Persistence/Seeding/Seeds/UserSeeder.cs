@@ -82,7 +82,39 @@ namespace Autoria.Infrastructure.Persistence.Seeding.Seeds
                         );
                     }
                 }
+                // ================= SEEDED ADMIN WITH FIXED ID =================
+                if (await _userManager.FindByEmailAsync("systemadmin@autoria.com") == null)
+                {
+                    var admin = new User
+                    {
+                        Id = "741eab40-d744-4821-90df-36ef8802c341",
+                        UserName = "systemadmin",
+                        FullName = "System Administrator",
+                        Email = "systemadmin@autoria.com",
+                        IsBanned = false,
+                        Created_At = DateTime.Now,
+                        PhoneNumber = "01000000000",
+                        EmailConfirmed = true
+                    };
 
+                    var result = await _userManager.CreateAsync(admin, "Password@123");
+
+                    if (!result.Succeeded)
+                    {
+                        throw new Exception(
+                            $"Failed to create fixed admin: {string.Join(", ", result.Errors.Select(e => e.Description))}"
+                        );
+                    }
+
+                    var roleResult = await _userManager.AddToRoleAsync(admin, Roles.Admin);
+
+                    if (!roleResult.Succeeded)
+                    {
+                        throw new Exception(
+                            $"Failed to add admin role: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}"
+                        );
+                    }
+                }
                 // ================= SERVICE CENTER OWNER =================
                 if (await _userManager.FindByEmailAsync("jana3@gmail.com") == null)
                 {
