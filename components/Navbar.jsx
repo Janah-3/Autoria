@@ -11,6 +11,8 @@ const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 export default function Navbar({ user: initialUser }) {
   const [user, setUser] = useState(initialUser || null);
   const [dashboardUrl, setDashboardUrl] = useState("/user-dashboard");
+  const [profileUrl, setProfileUrl] = useState("/user-profile");
+  const [userRole, setUserRole] = useState("User");
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const toggleDropdown = (e) => {
@@ -30,13 +32,20 @@ export default function Navbar({ user: initialUser }) {
     const cachedName = localStorage.getItem("userName");
     
     if (cachedToken) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser({ name: cachedName || "User" });
       if (cachedRole === "Admin") {
         setDashboardUrl("/admin");
+        setProfileUrl("/admin");
+        setUserRole("Admin");
       } else if (cachedRole === "ServiceCenter" || cachedRole === "Center" || cachedRole === "ServiceCenterOwner") {
         setDashboardUrl("/service-center");
+        setProfileUrl("/service-center/edit");
+        setUserRole("ServiceCenter");
       } else {
         setDashboardUrl("/user-dashboard");
+        setProfileUrl("/user-profile");
+        setUserRole("User");
       }
     }
 
@@ -50,10 +59,16 @@ export default function Navbar({ user: initialUser }) {
           localStorage.setItem("userRole", role);
           if (role === "Admin") {
             setDashboardUrl("/admin");
+            setProfileUrl("/admin");
+            setUserRole("Admin");
           } else if (role === "ServiceCenter" || role === "Center" || role === "ServiceCenterOwner") {
             setDashboardUrl("/service-center");
+            setProfileUrl("/service-center/edit");
+            setUserRole("ServiceCenter");
           } else {
             setDashboardUrl("/user-dashboard");
+            setProfileUrl("/user-profile");
+            setUserRole("User");
           }
         }
       } catch (error) {
@@ -157,8 +172,7 @@ export default function Navbar({ user: initialUser }) {
         <div style={row(20)}>
           {[
             ["Home", "/"], 
-            ["Services", "/search-results"], 
-            ["Spare Parts", "/spare-parts-search"]
+            ...(userRole === "User" || !user ? [["Services", "/search-results"], ["Spare Parts", "/spare-parts-search"]] : []),
           ].map(([l, h]) => (
             <Link key={l} href={h} className="nav-link" style={{ color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", display: "inline-block" }}>{l}</Link>
           ))}
@@ -217,10 +231,15 @@ export default function Navbar({ user: initialUser }) {
               </div>
 
               <div className={`profile-dropdown ${dropdownOpen ? "open" : ""}`}>
+                <Link href={profileUrl} className="dropdown-item" style={{ borderBottom: "1.5px solid #f0f0f0" }}>
+                  {userRole === "Admin" ? "🔑 Admin Panel" :
+                   userRole === "ServiceCenter" ? "🏪 Edit Profile" :
+                   "👤 My Profile"}
+                </Link>
                 <Link href={dashboardUrl} className="dropdown-item" style={{ borderBottom: "1.5px solid #f0f0f0" }}>
-                  {dashboardUrl.includes("admin") ? "🔑 Admin Panel" : 
-                   dashboardUrl.includes("booking-requests") ? "📋 Partner Dashboard" : 
-                   "👤 My Dashboard"}
+                  {userRole === "Admin" ? "📊 Admin Dashboard" :
+                   userRole === "ServiceCenter" ? "📋 My Dashboard" :
+                   "🏠 My Dashboard"}
                 </Link>
                 <Link href="/logout" className="dropdown-item logout">
                   Log Out <span className="logout-arrow">→</span>

@@ -42,9 +42,9 @@ export default function EditServiceCenterProfile() {
   const [generalInfo, setGeneralInfo] = useState({
     name: "",
     established: "",
-    bays: "",
     description: "",
   });
+  const [centerId, setCenterId] = useState("");
 
   const [contactInfo, setContactInfo] = useState({
     phone: "",
@@ -92,9 +92,9 @@ export default function EditServiceCenterProfile() {
         setGeneralInfo({
           name: d.name || "",
           established: String(d.yearEstablished || ""),
-          bays: String(d.numServiceBays || ""),
           description: d.description || "",
         });
+        setCenterId(d.id || d.Id || "");
         setContactInfo({
           phone: d.phone || "",
           whatsapp: d.phone || "",
@@ -135,7 +135,6 @@ export default function EditServiceCenterProfile() {
         name: generalInfo.name,
         phone: contactInfo.phone,
         description: generalInfo.description,
-        numServiceBays: parseInt(generalInfo.bays, 10) || undefined,
       });
       // Persist service types and car brands
       await serviceCentersService.updateServiceTypes([...selectedServiceIds]);
@@ -297,10 +296,31 @@ export default function EditServiceCenterProfile() {
           border-color: #94A3B8;
           transform: translateY(-1px);
         }
+        .live-view-btn {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #fff;
+          text-decoration: none;
+          background: #E8272A;
+          border: none;
+          padding: 9px 20px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 12px rgba(232,39,42,0.3);
+        }
+        .live-view-btn:hover {
+          background: #B81C1F;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(232,39,42,0.4);
+        }
 
         /* Banner Hero */
         .edit-hero {
-          background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #B81C1F 100%);
+          background: linear-gradient(135deg, #460203 0%, #920406 50%, #B81C1F 100%);
           padding: 56px 5%;
           color: white;
           position: relative;
@@ -452,9 +472,9 @@ export default function EditServiceCenterProfile() {
           transform: translateY(-1px);
         }
         .pill-tag.brand {
-          background: #EFF6FF;
-          border-color: #BFDBFE;
-          color: #1E40AF;
+          background: #FEF2F2;
+          border-color: #FCA5A5;
+          color: #E8272A;
         }
         .pill-tag.brand:hover {
           border-color: #EF4444;
@@ -609,8 +629,8 @@ export default function EditServiceCenterProfile() {
         .btn-remove:hover { background: #FCA5A5; color: #991B1B; }
         
         .inventory-hint-card {
-          background: #EFF6FF;
-          border: 1px solid #BFDBFE;
+          background: #FEF2F2;
+          border: 1px solid #FCA5A5;
           border-radius: 14px;
           padding: 20px;
           margin-bottom: 28px;
@@ -621,13 +641,13 @@ export default function EditServiceCenterProfile() {
         }
         .inventory-hint-card p {
           font-size: 13.5px;
-          color: #1E40AF;
+          color: #E8272A;
           font-weight: 500;
           line-height: 1.5;
         }
         .inventory-hint-card p i { margin-right: 8px; font-size: 16px; }
         .btn-manage-inv {
-          background: #1E40AF;
+          background: #E8272A;
           color: white;
           text-decoration: none;
           padding: 10px 20px;
@@ -636,10 +656,10 @@ export default function EditServiceCenterProfile() {
           font-weight: 700;
           white-space: nowrap;
           transition: all 0.2s;
-          box-shadow: 0 4px 6px rgba(30, 64, 175, 0.1);
+          box-shadow: 0 4px 6px rgba(232, 39, 42, 0.1);
         }
         .btn-manage-inv:hover {
-          background: #1D4ED8;
+          background: #B81C1F;
           transform: translateY(-1px);
         }
 
@@ -699,20 +719,29 @@ export default function EditServiceCenterProfile() {
         }`} style={{
           color: 
             toastType === "success" ? "#10B981" :
-            toastType === "info" ? "#3B82F6" : "#F59E0B",
+            toastType === "info" ? "#E8272A" : "#F59E0B",
           fontSize: "18px"
         }}></i>
         <span style={{ fontSize: "14px", fontWeight: 700 }}>{toastMessage}</span>
       </div>
 
       <nav className="top-nav">
-        <Link href="/" className="logo">
+        <Link href="/service-center" className="logo">
           AUTO<span>RIA</span>
         </Link>
         <div className="nav-right">
           <Link href="/service-center" className="back-btn">
-            <i className="fa-solid fa-eye"></i> Live View Profile
+            <i className="fa-solid fa-arrow-left"></i> Dashboard
           </Link>
+          {centerId ? (
+            <Link href={`/service-center-profile/${centerId}`} className="live-view-btn">
+              <i className="fa-solid fa-eye"></i> Live View
+            </Link>
+          ) : (
+            <span className="live-view-btn" style={{ opacity: 0.5, cursor: "not-allowed", pointerEvents: "none" }}>
+              <i className="fa-solid fa-eye"></i> Live View
+            </span>
+          )}
         </div>
       </nav>
 
@@ -774,16 +803,6 @@ export default function EditServiceCenterProfile() {
                       className="form-input" 
                       value={generalInfo.established} 
                       onChange={(e) => setGeneralInfo({ ...generalInfo, established: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Number of Active Service Bays</label>
-                    <input 
-                      type="number" 
-                      className="form-input" 
-                      value={generalInfo.bays} 
-                      onChange={(e) => setGeneralInfo({ ...generalInfo, bays: e.target.value })}
                       required
                     />
                   </div>
@@ -869,7 +888,7 @@ export default function EditServiceCenterProfile() {
                   <i className="fa-solid fa-wrench"></i> Services Offered
                 </h2>
                 <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>
-                  Select all service types your workshop provides. Changes are saved when you click "Save Business Profile".
+                  Select all service types your workshop provides. Changes are saved when you click &ldquo;Save Business Profile&rdquo;.
                 </p>
                 <div className="tags-container" style={{ gap: 10 }}>
                   {ALL_SERVICE_TYPES.map(st => (
@@ -908,10 +927,10 @@ export default function EditServiceCenterProfile() {
                     <label key={cb.id} style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
-                      border: `1.5px solid ${selectedBrandIds.has(cb.id) ? '#1E40AF' : '#E2E8F0'}`,
-                      background: selectedBrandIds.has(cb.id) ? '#EFF6FF' : '#fff',
+                      border: `1.5px solid ${selectedBrandIds.has(cb.id) ? '#E8272A' : '#E2E8F0'}`,
+                      background: selectedBrandIds.has(cb.id) ? '#FEF2F2' : '#fff',
                       fontWeight: 700, fontSize: 13,
-                      color: selectedBrandIds.has(cb.id) ? '#1E40AF' : '#334155',
+                      color: selectedBrandIds.has(cb.id) ? '#E8272A' : '#334155',
                       transition: 'all 0.15s',
                       userSelect: 'none',
                     }}>

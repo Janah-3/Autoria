@@ -68,8 +68,8 @@ export default function MyReviewsPage() {
       `}</style>
 
       <nav className="top-nav">
-        <Link href="/user-dashboard" className="logo">Autoria</Link>
-        <Link href="/user-dashboard" className="nav-back">
+        <Link href="/service-center" className="logo">Autoria</Link>
+        <Link href="/service-center" className="nav-back">
           <i className="fa-solid fa-arrow-left"></i> Back to Dashboard
         </Link>
       </nav>
@@ -78,7 +78,7 @@ export default function MyReviewsPage() {
         <div className="page-header">
           <div>
             <h1 className="page-title">My Reviews</h1>
-            <p className="page-subtitle">Feedback you've left for service centers.</p>
+            <p className="page-subtitle">Feedback you&apos;ve left for service centers.</p>
           </div>
         </div>
 
@@ -106,7 +106,7 @@ export default function MyReviewsPage() {
                   </div>
                   
                   <div className="review-text">
-                    "{review.text}"
+                    &ldquo;{review.text}&rdquo;
                   </div>
 
                   {review.reply && (
@@ -115,7 +115,7 @@ export default function MyReviewsPage() {
                         <i className="fa-solid fa-reply" style={{color: '#10B981'}}></i> Response from {review.center}
                       </div>
                       <div className="reply-text">
-                        "{review.reply}"
+                        &ldquo;{review.reply}&rdquo;
                       </div>
                     </div>
                   )}
@@ -127,7 +127,7 @@ export default function MyReviewsPage() {
           <div className="empty-state">
             <i className="fa-regular fa-comment-dots empty-icon"></i>
             <h2 className="empty-title">No reviews yet</h2>
-            <p className="empty-desc">You haven't left any reviews for service centers. After your next booking, come back here to share your experience!</p>
+            <p className="empty-desc">You haven&apos;t left any reviews for service centers. After your next booking, come back here to share your experience!</p>
           </div>
         )}
       </main>

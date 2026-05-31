@@ -105,7 +105,7 @@ export default function ServiceCenterSettings() {
       `}</style>
 
       <nav className="top-nav">
-        <Link href="/user-dashboard" className="logo" style={{color: '#111827'}}>Autoria</Link>
+        <Link href="/service-center" className="logo" style={{color: '#111827'}}>Autoria</Link>
         <div className="nav-right">
           <Link href="/service-center" className="back-btn"><i className="fa-solid fa-eye"></i> View Profile</Link>
         </div>
@@ -114,7 +114,7 @@ export default function ServiceCenterSettings() {
       <div className="container">
         <div className="page-header">
           <h1 className="page-title">Account Settings</h1>
-          <p className="page-subtitle">Manage your service center's preferences, security, and notifications.</p>
+          <p className="page-subtitle">Manage your service center&apos;s preferences, security, and notifications.</p>
         </div>
 
         <div className="settings-card">

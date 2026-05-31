@@ -59,7 +59,7 @@ function LoginView() {
         roleNorm === "Center" ||
         roleNorm === "ServiceCenterOwner"
       ) {
-        window.location.href = "/booking-requests";
+        window.location.href = "/service-center";
       } else {
         window.location.href = "/user-dashboard";
       }
@@ -233,7 +233,7 @@ function LoginView() {
       <div className="container">
         <div className="left">
           <h1>Autoria</h1>
-          <h2>Your Car's Best Friend</h2>
+          <h2>Your Car&apos;s Best Friend</h2>
           <p>Book expert mechanics and find genuine spare parts in one place. Keep your car running like new.</p>
         </div>
         <div className="right">
@@ -271,7 +271,7 @@ function LoginView() {
               Forgot Password?
             </Link>
             <Link href="/signup" style={{ color: "#d42b2b", textAlign: "center", marginTop: "10px", display: "block", fontSize: "14px", fontWeight: "600", textDecoration: "none" }}>
-              Don't have an account? Signup
+              Don&apos;t have an account? Signup
             </Link>
           </form>
         </div>

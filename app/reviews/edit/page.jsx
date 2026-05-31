@@ -108,7 +108,7 @@ export default function EditReviewPage() {
       `}</style>
 
       <nav className="top-nav">
-        <Link href="/user-dashboard" className="logo">Autoria</Link>
+        <Link href="/service-center" className="logo">Autoria</Link>
         <Link href="/reviews" className="nav-back">
           <i className="fa-solid fa-arrow-left"></i> Back to My Reviews
         </Link>

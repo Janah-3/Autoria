@@ -23,12 +23,13 @@ const Sidebar = ({ active }) => (
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
         { id: "Dashboard", icon: "📊", path: "/service-center" },
+        { id: "Analytics", icon: "📈", path: "/service-center/analytics" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
         { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
         { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
         { id: "Reviews", icon: "⭐", path: "/reviews" },
-        { id: "Business profile", icon: "🏢", path: "/service-center" }
+        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{ 
@@ -210,7 +211,7 @@ export default function ServicesPricingPage() {
           visibility: visible;
         }
         .toast.warning { border-left-color: #F59E0B; }
-        .toast.info { border-left-color: #3B82F6; }
+        .toast.info { border-left-color: #E8272A; }
 
         /* Top Nav */
         .top-nav {
@@ -232,7 +233,7 @@ export default function ServicesPricingPage() {
 
         /* Banner Hero */
         .banner {
-          background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #B81C1F 100%);
+          background: linear-gradient(135deg, #460203 0%, #920406 50%, #B81C1F 100%);
           padding: 56px 40px;
           color: white;
         }
@@ -289,7 +290,7 @@ export default function ServicesPricingPage() {
         <i className={`fa-solid ${
           toast.type === "success" ? "fa-circle-check" : "fa-circle-info"
         }`} style={{
-          color: toast.type === "success" ? "#10B981" : "#3B82F6",
+          color: toast.type === "success" ? "#10B981" : "#E8272A",
           fontSize: "18px"
         }}></i>
         <span style={{ fontSize: "14px", fontWeight: 700 }}>{toast.message}</span>
@@ -371,9 +372,9 @@ export default function ServicesPricingPage() {
                 <label className="form-label">Supported Car Manufacturers</label>
                 <div className="tags-container">
                   {brands.map(b => (
-                    <span className="pill-tag" style={{ background: "#EFF6FF", borderColor: "#BFDBFE", color: "#1E40AF" }} key={b}>
+                    <span className="pill-tag" style={{ background: "#FEF2F2", borderColor: "#FCA5A5", color: "#E8272A" }} key={b}>
                       {b}
-                      <button type="button" style={{ color: "#1E40AF" }} onClick={() => handleRemoveBrand(b)}>×</button>
+                      <button type="button" style={{ color: "#E8272A" }} onClick={() => handleRemoveBrand(b)}>×</button>
                     </span>
                   ))}
                   {brands.length === 0 && <span style={{ fontSize: "13px", color: "#94A3B8" }}>No car brands selected. Click presets or add customized below.</span>}

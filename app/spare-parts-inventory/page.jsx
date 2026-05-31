@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { inventoryService } from "@/lib/api/inventoryService";
 import { sparePartsService } from "@/lib/api/sparePartsService";
+import { serviceCentersService } from "@/lib/api/serviceCentersService";
 
 export default function SparePartsInventory() {
   /* ──────────────────── State ──────────────────── */
@@ -33,6 +34,7 @@ export default function SparePartsInventory() {
 
   // Toast
   const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+  const [centerId, setCenterId] = useState(null);
 
   const triggerToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -41,9 +43,10 @@ export default function SparePartsInventory() {
 
   /* ──────────────────── Fetch inventory ──────────────────── */
   const fetchInventory = useCallback(async () => {
+    if (!centerId) return;
     try {
       setLoading(true);
-      const params = {};
+      const params = { serviceCenterId: centerId };
       if (availabilityFilter === "Available") params.isAvailable = "true";
       if (availabilityFilter === "Unavailable") params.isAvailable = "false";
 
@@ -64,9 +67,10 @@ export default function SparePartsInventory() {
     } finally {
       setLoading(false);
     }
-  }, [availabilityFilter]);
+  }, [availabilityFilter, centerId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInventory();
   }, [fetchInventory]);
 
@@ -79,6 +83,17 @@ export default function SparePartsInventory() {
         setSpareParts(list);
       })
       .catch(() => setSpareParts([]));
+
+    serviceCentersService.getMy()
+      .then((res) => {
+        const d = res?.data ?? res;
+        if (d && (d.id || d.Id)) {
+          setCenterId(d.id || d.Id);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load service center profile:", err);
+      });
   }, []);
 
   /* ──────────────────── Derived KPI ──────────────────── */
@@ -112,6 +127,7 @@ export default function SparePartsInventory() {
     setSubmitting(true);
     try {
       await inventoryService.addOrUpdateItem({
+        serviceCenterId: centerId,
         sparePartId: addForm.sparePartId,
         quantity: parseInt(addForm.quantity, 10),
         price: parseFloat(addForm.price),
@@ -144,6 +160,7 @@ export default function SparePartsInventory() {
   const handleSaveEdit = async (item) => {
     try {
       await inventoryService.addOrUpdateItem({
+        serviceCenterId: centerId,
         sparePartId: item.sparePartId,
         quantity: parseInt(editForm.quantity, 10),
         price: parseFloat(editForm.price),
@@ -162,6 +179,7 @@ export default function SparePartsInventory() {
   const handleToggleAvailability = async (item) => {
     try {
       await inventoryService.addOrUpdateItem({
+        serviceCenterId: centerId,
         sparePartId: item.sparePartId,
         quantity: item.quantity,
         price: item.price,
@@ -218,7 +236,7 @@ export default function SparePartsInventory() {
           visibility: visible;
         }
         .toast.warning { border-left-color: #F59E0B; }
-        .toast.info { border-left-color: #3B82F6; }
+        .toast.info { border-left-color: #E8272A; }
 
         /* Top Bar */
         .top-nav {
@@ -259,7 +277,7 @@ export default function SparePartsInventory() {
 
         /* Banner */
         .banner {
-          background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+          background: linear-gradient(135deg, #460203 0%, #920406 50%, #B81C1F 100%);
           padding: 44px 5%;
           color: white;
         }
@@ -321,7 +339,7 @@ export default function SparePartsInventory() {
           justify-content: center;
           font-size: 20px;
         }
-        .icon-blue { background: #EFF6FF; color: #3B82F6; }
+        .icon-blue { background: #FEF2F2; color: #E8272A; }
         .icon-green { background: #ECFDF5; color: #10B981; }
         .icon-amber { background: #FFFBEB; color: #F59E0B; }
         .icon-red { background: #FEF2F2; color: #EF4444; }
@@ -492,8 +510,8 @@ export default function SparePartsInventory() {
         }
 
         .brand-badge {
-          background: #EFF6FF;
-          color: #3B82F6;
+          background: #FEF2F2;
+          color: #E8272A;
           padding: 4px 10px;
           border-radius: 6px;
           font-size: 11.5px;
@@ -531,15 +549,15 @@ export default function SparePartsInventory() {
         .btn-edit {
           width: 36px; height: 36px;
           border-radius: 8px;
-          background: #EFF6FF;
+          background: #FEF2F2;
           border: none;
-          color: #3B82F6;
+          color: #E8272A;
           cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           font-size: 14px;
           transition: all 0.2s;
         }
-        .btn-edit:hover { background: #3B82F6; color: white; }
+        .btn-edit:hover { background: #E8272A; color: white; }
         .btn-save {
           width: 36px; height: 36px;
           border-radius: 8px;
@@ -617,7 +635,7 @@ export default function SparePartsInventory() {
         }`} style={{
           color: 
             toast.type === "success" ? "#10B981" :
-            toast.type === "info" ? "#3B82F6" : "#F59E0B",
+            toast.type === "info" ? "#E8272A" : "#F59E0B",
           fontSize: "18px"
         }}></i>
         <span style={{ fontSize: "14px", fontWeight: 700 }}>{toast.message}</span>

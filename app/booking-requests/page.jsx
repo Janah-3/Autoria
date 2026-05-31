@@ -26,12 +26,13 @@ const Sidebar = ({ active }) => (
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
         { id: "Dashboard", icon: "📊", path: "/service-center" },
+        { id: "Analytics", icon: "📈", path: "/service-center/analytics" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
         { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
         { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
         { id: "Reviews", icon: "⭐", path: "/reviews" },
-        { id: "Business profile", icon: "🏢", path: "/service-center" }
+        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{
