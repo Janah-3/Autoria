@@ -67,6 +67,15 @@ const CarCard = ({ car, handleSetDefault }) => {
         <div className="car-plate">{car.licensePlate}</div>
       </div>
 
+      <Link href={`/cars/details?id=${car.id || car.carId}`} style={{
+        display: "block", textAlign: "center", padding: "10px 16px",
+        borderTop: "1px solid var(--g100)", fontSize: 12, fontWeight: 700,
+        color: "var(--red)", textDecoration: "none", transition: "background 0.15s",
+        background: "var(--red-muted)",
+      }}>
+        🛣️ Mileage Tracking &amp; Details →
+      </Link>
+
       <div className="car-actions">
         <Link
           href={`/cars/edit-car?id=${car.id}`}

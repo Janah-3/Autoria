@@ -14,6 +14,7 @@ export default function Navbar({ user: initialUser }) {
   const [profileUrl, setProfileUrl] = useState("/user-profile");
   const [userRole, setUserRole] = useState("User");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
 
   const toggleDropdown = (e) => {
     e.stopPropagation();
@@ -42,6 +43,7 @@ export default function Navbar({ user: initialUser }) {
         setDashboardUrl("/service-center");
         setProfileUrl("/service-center/edit");
         setUserRole("ServiceCenter");
+        setIsPremium(localStorage.getItem("isPremium") === "true");
       } else {
         setDashboardUrl("/user-dashboard");
         setProfileUrl("/user-profile");
@@ -211,6 +213,9 @@ export default function Navbar({ user: initialUser }) {
                 style={{ ...row(8), cursor: "pointer", userSelect: "none" }}
               >
                 <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>{user.name}</span>
+                {userRole === "ServiceCenter" && isPremium && (
+                  <span style={{ background: "rgba(255,255,255,0.2)", color: "#FFD700", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 4, letterSpacing: "0.5px", border: "1px solid rgba(255,215,0,0.3)" }}>⭐ Premium</span>
+                )}
                 <div style={{ 
                   width: 32, 
                   height: 32, 
@@ -241,6 +246,19 @@ export default function Navbar({ user: initialUser }) {
                    userRole === "ServiceCenter" ? "📋 My Dashboard" :
                    "🏠 My Dashboard"}
                 </Link>
+                {userRole === "ServiceCenter" && (
+                  <>
+                    <Link href="/service-center/subscription" className="dropdown-item" style={{ borderBottom: "1.5px solid #f0f0f0" }}>
+                      💎 Subscription
+                    </Link>
+                    <Link href="/service-center/analytics" className="dropdown-item" style={{ borderBottom: "1.5px solid #f0f0f0" }}>
+                      📈 Analytics
+                    </Link>
+                    <Link href="/service-center/promotions" className="dropdown-item" style={{ borderBottom: "1.5px solid #f0f0f0" }}>
+                      📣 Promotions
+                    </Link>
+                  </>
+                )}
                 <Link href="/logout" className="dropdown-item logout">
                   Log Out <span className="logout-arrow">→</span>
                 </Link>

@@ -29,10 +29,11 @@ const Sidebar = ({ active }) => (
         { id: "Analytics", icon: "📈", path: "/service-center/analytics" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
-        { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
         { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
         { id: "Reviews", icon: "⭐", path: "/reviews" },
-        { id: "Business profile", icon: "🏢", path: "/service-center/edit" }
+        { id: "Business profile", icon: "🏢", path: "/service-center/edit" },
+        { id: "Subscription", icon: "💎", path: "/service-center/subscription" },
+        { id: "Promotions", icon: "📣", path: "/service-center/promotions" }
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{

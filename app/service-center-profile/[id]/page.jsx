@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { getMe } from "@/lib/api/usersService";
 import {
   serviceCentersService,
@@ -9,6 +10,8 @@ import {
   mapServiceCenterListItem,
 } from "@/lib/api/serviceCentersService";
 import Navbar from "@/components/Navbar";
+import { reportsService } from "@/lib/api/reportsService";
+import { premiumService } from "@/lib/api/premiumService";
 
 
 
@@ -31,6 +34,58 @@ export default function CenterProfilePage() {
   const [center, setCenter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+
+  // Inline Report States
+  const [reportDropdownOpen, setReportDropdownOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [details, setDetails] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: "", type: "success" });
+
+  const triggerToast = (message, type = "success") => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: "", type: "success" }), 4000);
+  };
+
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      triggerToast("You must be logged in to report this center", "error");
+      return;
+    }
+    if (!reason) {
+      triggerToast("Please select a reason for reporting", "error");
+      return;
+    }
+
+    setSubmittingReport(true);
+    try {
+      await reportsService.createReport({
+        targetType: "ServiceCenter",
+        targetId: center.id,
+        reason: reason,
+        details: details || "Submitted from inline report dropdown"
+      });
+
+      triggerToast("Report submitted successfully!", "success");
+      setReportDropdownOpen(false);
+      setReason("");
+      setDetails("");
+    } catch (err) {
+      triggerToast(err.message || "Failed to submit report", "error");
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
+  // ── Silent profile view tracking (fires once per visit) ────────────────
+  const viewTracked = useRef(false);
+  useEffect(() => {
+    if (params.id && !viewTracked.current) {
+      viewTracked.current = true;
+      premiumService.trackView(params.id).catch(() => {});
+    }
+  }, [params.id]);
 
   useEffect(() => {
     getMe()
@@ -201,10 +256,141 @@ export default function CenterProfilePage() {
                 Live preview — this is exactly how customers see your profile page.
               </p>
             </div>
+
+            {/* Report Button */}
+            <div style={{ marginTop: 16 }}>
+              <button 
+                onClick={() => setReportDropdownOpen(true)}
+                style={{
+                  width: "100%",
+                  background: R,
+                  color: "#fff",
+                  border: "none",
+                  padding: "12px",
+                  borderRadius: "12px",
+                  fontWeight: 800,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+                className="btn-hover"
+              >
+                Report
+              </button>
+            </div>
           </div>
         </div>
 
       </div>
+
+      {/* Floating Toast Alert */}
+      <div style={{
+        position: "fixed", top: 80, right: 24, zIndex: 99999, display: "flex", alignItems: "center", gap: 10,
+        padding: "16px 24px", borderRadius: 12, background: "#fff", border: `1.5px solid ${toast.type === "success" ? "#C3E6CB" : "#F5C6CB"}`,
+        boxShadow: "0 10px 25px rgba(0,0,0,0.08)", transform: toast.show ? "translateX(0)" : "translateX(120%)",
+        transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)", pointerEvents: "none"
+      }}>
+        <span style={{ fontSize: 18 }}>{toast.type === "success" ? "✅" : "❌"}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: toast.type === "success" ? "#155724" : "#721C24" }}>{toast.message}</span>
+      </div>
+
+      {/* Inline Dropdown Popup */}
+      {reportDropdownOpen && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999, backdropFilter: "blur(4px)"
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: "20px", padding: "30px", width: "420px",
+            boxShadow: "0 10px 35px rgba(0,0,0,0.15)", border: "1px solid #e5e7eb",
+            color: "#111"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <span>⚠️</span> Report Workshop
+              </h3>
+              <button 
+                onClick={() => setReportDropdownOpen(false)}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#9ca3af" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {!user ? (
+              <div style={{ textAlign: "center", padding: "20px 0" }}>
+                <span style={{ fontSize: 32 }}>🔒</span>
+                <h4 style={{ fontSize: 16, fontWeight: 700, marginTop: 12, marginBottom: 8 }}>Login Required</h4>
+                <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, marginBottom: 20 }}>
+                  You must be logged in to submit reports or complaints about workshop centers.
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <Link href="/login" style={{ flex: 1, textDecoration: "none", background: R, color: "#fff", padding: "10px", borderRadius: 8, fontWeight: 700, fontSize: 13, display: "inline-block", textAlign: "center" }}>Log In</Link>
+                  <button onClick={() => setReportDropdownOpen(false)} style={{ flex: 1, background: "#fff", color: "#111", border: "1px solid #e5e7eb", padding: "10px", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleReportSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <p style={{ fontSize: 13, color: "#6b7280", margin: 0, lineHeight: 1.5 }}>
+                  Reporting <strong>{center.name}</strong>. Please select the issue you faced:
+                </p>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 11, fontWeight: 800, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5 }}>Select Reason</label>
+                  <select
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    required
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: 13.5, outline: "none", background: "#fff" }}
+                  >
+                    <option value="">-- Choose Reason --</option>
+                    <option value="Spam">Spam / Misleading content</option>
+                    <option value="Inappropriate">Inappropriate behavior / Language</option>
+                    <option value="Fake">Fake profile / Misleading info</option>
+                    <option value="Offensive">Offensive or abusive content</option>
+                    <option value="Other">Other issue</option>
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <label style={{ fontSize: 11, fontWeight: 800, color: "#374151", textTransform: "uppercase", letterSpacing: 0.5 }}>Explain Details (Optional)</label>
+                  <textarea
+                    placeholder="Provide additional details to help our moderators review..."
+                    value={details}
+                    onChange={(e) => setDetails(e.target.value)}
+                    rows={4}
+                    maxLength={300}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #e5e7eb", fontSize: 13, outline: "none", fontFamily: "inherit", resize: "none" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setReportDropdownOpen(false)}
+                    style={{ flex: 1, background: "#f3f4f6", border: "none", padding: "11px", borderRadius: 8, fontWeight: 700, fontSize: 13, color: "#6b7280", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={submittingReport}
+                    style={{
+                      flex: 1, background: submittingReport ? RD : R, color: "#fff",
+                      border: "none", padding: "11px", borderRadius: 8, fontWeight: 800,
+                      fontSize: 13, cursor: submittingReport ? "not-allowed" : "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                    }}
+                  >
+                    {submittingReport ? "Submitting..." : "Submit"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

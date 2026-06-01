@@ -8,6 +8,7 @@ import userService from "@/lib/userService";
 import { adminService } from "@/lib/api/adminService";
 import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
 import { sparePartsService } from "@/lib/sparePartsService";
+import { reportsService } from "@/lib/api/reportsService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -109,12 +110,11 @@ export default function AdminDashboard() {
     { id: 2, user: "Nour Salah", initials: "NS", target: "ElMasry Auto Center", date: "13 Mar 2026", time: "5 hr ago", rating: 1, text: "Terrible experience, the staff were rude and used inappropriate language.", flag: "Review contains offensive language.", status: "Flagged - Offensive" },
   ]);
 
-  const [reportsData, setReportsData] = useState([
-    { id: 1, priority: "High", type: "Fake review", entity: "TopGear Workshop", reporter: "Karim Adel", time: "2 hr ago", status: "Open" },
-    { id: 2, priority: "High", type: "Abusive behavior", entity: "ElMasry Auto Center", reporter: "Sara M.", time: "5 hr ago", status: "Open" },
-    { id: 3, priority: "Medium", type: "Misleading pricing", entity: "Cairo Motors Service", reporter: "Nour Salah", time: "Yesterday", status: "Open" },
-    { id: 4, priority: "Medium", type: "No-show by mechanic", entity: "Hassan K.", reporter: "Tarek Fouad", time: "2 days ago", status: "Open" },
-  ]);
+  const [reportsList, setReportsList] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState("");
+  const [reportFilter, setReportFilter] = useState("Pending"); // "Pending", "Resolved", "Dismissed"
+  const [selectedReportForReview, setSelectedReportForReview] = useState(null);
 
   const [verificationQueue, setVerificationQueue] = useState([
     { id: 1, name: "Al Faris Auto", city: "Cairo", date: "12 Mar" },
@@ -151,10 +151,51 @@ export default function AdminDashboard() {
       .catch(() => {});
   };
 
+  const fetchReports = () => {
+    setReportsLoading(true);
+    setReportsError("");
+    reportsService.getAllReports()
+      .then((res) => {
+        const items = res?.data?.items ?? res?.items ?? [];
+        setReportsList(items);
+      })
+      .catch((err) => {
+        setReportsError(err.message || "Failed to fetch reports");
+      })
+      .finally(() => {
+        setReportsLoading(false);
+      });
+  };
+
+  const handleResolveReport = async (id) => {
+    const note = prompt("Enter resolution note:");
+    if (note === null) return;
+    try {
+      await reportsService.resolveReport(id, note || "Resolved");
+      alert("Report marked as resolved successfully!");
+      fetchReports();
+    } catch (err) {
+      alert("Failed to resolve report: " + err.message);
+    }
+  };
+
+  const handleDismissReport = async (id) => {
+    const note = prompt("Enter dismissal note:");
+    if (note === null) return;
+    try {
+      await reportsService.dismissReport(id, note || "Dismissed");
+      alert("Report marked as dismissed successfully!");
+      fetchReports();
+    } catch (err) {
+      alert("Failed to dismiss report: " + err.message);
+    }
+  };
+
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
       fetchPendingCenters();
       fetchMetrics();
+      fetchReports();
     }
   }, [currentUser]);
 
@@ -219,6 +260,12 @@ export default function AdminDashboard() {
       fetchUsers();
     }
   }, [currentUser, activeTab, userSearch, userRoleFilter, userBanFilter]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "Admin" && activeTab === "User reports") {
+      fetchReports();
+    }
+  }, [currentUser, activeTab]);
 
   const handleBanUser = (userId) => {
     if (!confirm("Are you sure you want to ban this user?")) return;
@@ -361,7 +408,7 @@ export default function AdminDashboard() {
         .back-link { transition: background 0.2s ease; }
         .back-link:hover { background: #f5f5f5 !important; }
       `}</style>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reviews: reviewsData.length, reports: reportsData.length, featured: featuredData.length, users: usersList.length, spareParts: sparePartsList.length }} colors={COLORS} />
+      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reviews: reviewsData.length, reports: reportsList.filter(r => (r.status ?? r.Status) === "Pending").length, featured: featuredData.length, users: usersList.length, spareParts: sparePartsList.length }} colors={COLORS} />
 
       <main style={{ flex: 1, padding: "40px", maxWidth: "1600px" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
@@ -450,15 +497,28 @@ export default function AdminDashboard() {
               
               <Card title="Urgent Reports" badge="Action Required" actionText="Manage reports" onAction={() => setActiveTab("User reports")}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  {reportsData.filter(r => r.priority === "High").map(rep => (
-                    <div key={rep.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: "#FFF1F1", borderRadius: "8px", border: `1px solid #FFDCDC` }}>
-                      <div>
-                        <div style={{ fontSize: "13px", fontWeight: 800 }}>{rep.type}</div>
-                        <div style={{ fontSize: "11px", color: COLORS.textLight }}>Target: {rep.entity}</div>
-                      </div>
-                      <div style={{ color: COLORS.primary, fontWeight: 900, fontSize: "10px" }}>HIGH PRIORITY</div>
+                  {reportsList
+                    .filter(r => (r.status ?? r.Status) === "Pending")
+                    .slice(0, 3)
+                    .map(rep => {
+                      const isHigh = rep.reason === "Offensive" || rep.reason === "Inappropriate";
+                      return (
+                        <div key={rep.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px", background: isHigh ? "#FFF1F1" : "#FFF8F2", borderRadius: "8px", border: `1px solid ${isHigh ? "#FFDCDC" : "#FFEBDC"}` }}>
+                          <div>
+                            <div style={{ fontSize: "13px", fontWeight: 800 }}>{rep.reason}</div>
+                            <div style={{ fontSize: "11px", color: COLORS.textLight }}>Target: {rep.targetType} ({rep.targetId.slice(0, 8)})</div>
+                          </div>
+                          <div style={{ color: isHigh ? COLORS.primary : "#D97706", fontWeight: 900, fontSize: "10px" }}>
+                            {isHigh ? "HIGH PRIORITY" : "MEDIUM PRIORITY"}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {reportsList.filter(r => (r.status ?? r.Status) === "Pending").length === 0 && (
+                    <div style={{ color: COLORS.textLight, fontSize: "13px", textAlign: "center", padding: "20px 0" }}>
+                      ✅ No open reports.
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
             </div>
@@ -621,15 +681,37 @@ export default function AdminDashboard() {
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>Manage reports submitted by users about service centers, mechanics, or other users.</p>
             <div style={{ display: "flex", gap: "20px" }}>
-              <StatCard label="Open reports" value="5" trend="Moderate" trendUp={false} />
-              <StatCard label="Under review" value="8" trend="Processing" />
-              <StatCard label="Resolved this month" value="31" trend="↑ 12%" trendUp />
-              <StatCard label="Avg. resolution time" value="1.4d" trend="Healthy" trendUp />
+              <StatCard label="Open reports" value={String(reportsList.filter(r => (r.status ?? r.Status) === "Pending").length)} trend="Action required" trendUp={false} />
+              <StatCard label="Resolved reports" value={String(reportsList.filter(r => (r.status ?? r.Status) === "Resolved").length)} trend="Platform health" trendUp />
+              <StatCard label="Dismissed reports" value={String(reportsList.filter(r => (r.status ?? r.Status) === "Dismissed").length)} trend="Stable" />
+              <StatCard label="Total Reports" value={String(reportsList.length)} trend="All records" />
             </div>
+            
             <div style={{ display: "flex", gap: "10px" }}>
-              <button style={{ background: "#E8F5E9", color: COLORS.success, border: `1px solid ${COLORS.success}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>Open (5)</button>
-              {["Under review", "Resolved", "Dismissed"].map(t => (<button key={t} style={{ background: "#fff", color: COLORS.textLight, border: `1px solid ${COLORS.border}`, padding: "8px 24px", borderRadius: "20px", fontSize: "13px", fontWeight: 700 }}>{t}</button>))}
+              {["Pending", "Resolved", "Dismissed"].map(filterVal => {
+                const isActive = reportFilter === filterVal;
+                const count = reportsList.filter(r => (r.status ?? r.Status) === filterVal).length;
+                return (
+                  <button 
+                    key={filterVal}
+                    onClick={() => setReportFilter(filterVal)}
+                    style={{
+                      background: isActive ? "#E8F5E9" : "#fff",
+                      color: isActive ? COLORS.success : COLORS.textLight,
+                      border: `1px solid ${isActive ? COLORS.success : COLORS.border}`,
+                      padding: "8px 24px",
+                      borderRadius: "20px",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {filterVal === "Pending" ? `Open (${count})` : `${filterVal} (${count})`}
+                  </button>
+                );
+              })}
             </div>
+
             <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead style={{ background: COLORS.bg }}>
@@ -644,29 +726,85 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {reportsData.map(rep => (
-                    <tr key={rep.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
-                      <td style={{ padding: "16px 24px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: 700 }}>
-                          <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: rep.priority === "High" ? COLORS.primary : (rep.priority === "Medium" ? "#FFB800" : "#28A745") }} />
-                          {rep.priority}
-                        </div>
-                      </td>
-                      <td style={{ padding: "16px 24px", fontSize: "14px", fontWeight: 700 }}>{rep.type}</td>
-                      <td style={{ padding: "16px 24px", fontSize: "13px" }}>{rep.entity}</td>
-                      <td style={{ padding: "16px 24px", fontSize: "13px" }}>{rep.reporter}</td>
-                      <td style={{ padding: "16px 24px", fontSize: "12px", color: COLORS.textLight }}>{rep.time}</td>
-                      <td style={{ padding: "16px 24px" }}>
-                        <span style={{ color: COLORS.primary, background: "#FFF1F1", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 800 }}>{rep.status}</span>
-                      </td>
-                      <td style={{ padding: "16px 24px" }}>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button className="admin-btn" style={{ background: "transparent", border: `1px solid ${COLORS.border}`, padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700 }}>Review</button>
-                          <button className="admin-btn" style={{ background: COLORS.success, color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700 }}>Resolve</button>
-                        </div>
+                  {reportsLoading ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: "32px", textAlign: "center", color: COLORS.textLight }}>
+                        Loading reports...
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    reportsList
+                      .filter(rep => (rep.status ?? rep.Status) === reportFilter)
+                      .map(rep => {
+                        const isHigh = rep.reason === "Offensive" || rep.reason === "Inappropriate";
+                        const priority = isHigh ? "High" : "Medium";
+                        const priorityColor = isHigh ? COLORS.primary : "#FFB800";
+                        
+                        const reportedEntity = `${rep.targetType} (${rep.targetId.slice(0, 8)})`;
+                        const reporterName = rep.reporterName && rep.reporterName !== "string" ? rep.reporterName : `User (${rep.reporterId.slice(0, 8)})`;
+                        const formattedTime = new Date(rep.createdAt).toLocaleDateString();
+
+                        return (
+                          <tr key={rep.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
+                            <td style={{ padding: "16px 24px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", fontWeight: 700 }}>
+                                <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: priorityColor }} />
+                                {priority}
+                              </div>
+                            </td>
+                            <td style={{ padding: "16px 24px", fontSize: "14px", fontWeight: 700 }}>{rep.reason}</td>
+                            <td style={{ padding: "16px 24px", fontSize: "13px" }}>{reportedEntity}</td>
+                            <td style={{ padding: "16px 24px", fontSize: "13px" }}>{reporterName}</td>
+                            <td style={{ padding: "16px 24px", fontSize: "12px", color: COLORS.textLight }}>{formattedTime}</td>
+                            <td style={{ padding: "16px 24px" }}>
+                              <span style={{ 
+                                color: rep.status === "Pending" ? COLORS.primary : (rep.status === "Resolved" ? COLORS.success : COLORS.textLight), 
+                                background: rep.status === "Pending" ? "#FFF1F1" : (rep.status === "Resolved" ? "#E7F5EA" : "#F1F3F5"), 
+                                padding: "4px 8px", borderRadius: "4px", fontSize: "11px", fontWeight: 800 
+                              }}>
+                                {rep.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: "16px 24px" }}>
+                              <div style={{ display: "flex", gap: "8px" }}>
+                                <button 
+                                  onClick={() => setSelectedReportForReview(rep)}
+                                  className="admin-btn" 
+                                  style={{ background: "transparent", border: `1px solid ${COLORS.border}`, padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                                >
+                                  Review
+                                </button>
+                                {rep.status === "Pending" && (
+                                  <>
+                                    <button 
+                                      onClick={() => handleResolveReport(rep.id)}
+                                      className="admin-btn" 
+                                      style={{ background: COLORS.success, color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                                    >
+                                      Resolve
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDismissReport(rep.id)}
+                                      className="admin-btn" 
+                                      style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+                                    >
+                                      Dismiss
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                  )}
+                  {!reportsLoading && reportsList.filter(rep => (rep.status ?? rep.Status) === reportFilter).length === 0 && (
+                    <tr>
+                      <td colSpan="7" style={{ padding: "48px", textAlign: "center", color: COLORS.textLight }}>
+                        No reports found in this category.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1288,8 +1426,110 @@ export default function AdminDashboard() {
                  </div>
                </div>
              )}
-           </div>
-        )}
+            </div>
+         )}
+
+      {/* Report Review Modal */}
+      {selectedReportForReview && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 9999, backdropFilter: "blur(4px)"
+        }}>
+          <div style={{
+            background: COLORS.white, borderRadius: "20px", padding: "30px", width: "550px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.2)", border: `1px solid ${COLORS.border}`,
+            color: COLORS.text, fontFamily: "'Inter', sans-serif"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 900 }}>Report Details</h3>
+              <button 
+                onClick={() => setSelectedReportForReview(null)}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", maxHeight: "400px", overflowY: "auto", paddingRight: "4px" }}>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Reported Entity</div>
+                <div style={{ fontSize: "14px", fontWeight: 800, marginTop: "4px" }}>
+                  {selectedReportForReview.targetType}
+                </div>
+                <div style={{ fontSize: "12px", fontFamily: "monospace", color: COLORS.textLight, background: "#F3F4F6", padding: "6px 10px", borderRadius: "6px", marginTop: "4px" }}>
+                  ID: {selectedReportForReview.targetId}
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Reporter</div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, marginTop: "4px" }}>
+                    {selectedReportForReview.reporterName && selectedReportForReview.reporterName !== "string" ? selectedReportForReview.reporterName : "Anonymous User"}
+                  </div>
+                  <div style={{ fontSize: "11px", color: COLORS.textLight, fontFamily: "monospace" }}>ID: {selectedReportForReview.reporterId?.slice(0, 8)}...</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Date Submitted</div>
+                  <div style={{ fontSize: "13px", fontWeight: 600, marginTop: "4px" }}>
+                    {new Date(selectedReportForReview.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Reason for Complaint</div>
+                <span style={{ display: "inline-block", background: "#FFF1F1", color: COLORS.primary, fontSize: "12px", fontWeight: 800, padding: "4px 10px", borderRadius: "6px", marginTop: "4px" }}>
+                  ⚠️ {selectedReportForReview.reason}
+                </span>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: "0.5px" }}>Details / Explanation</div>
+                <p style={{ fontSize: "13px", color: "#374151", lineHeight: 1.6, background: "#F9FAFB", padding: "12px 14px", borderRadius: "10px", border: `1px solid ${COLORS.border}`, marginTop: "4px" }}>
+                  "{selectedReportForReview.details || "No explanation provided."}"
+                </p>
+              </div>
+
+              {selectedReportForReview.status !== "Pending" && (
+                <div style={{ background: "#E8F5E9", border: "1px solid #C3E6CB", padding: "12px 14px", borderRadius: "10px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.success, textTransform: "uppercase", letterSpacing: "0.5px" }}>Resolution Status ({selectedReportForReview.status})</div>
+                  <p style={{ fontSize: "13px", color: "#1B5E20", fontWeight: 600, marginTop: "4px" }}>
+                    Note: "{selectedReportForReview.resolutionNote || "No note provided."}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
+              {(selectedReportForReview.status ?? selectedReportForReview.Status) === "Pending" ? (
+                <>
+                  <button 
+                    onClick={() => { handleResolveReport(selectedReportForReview.id); setSelectedReportForReview(null); }}
+                    style={{ flex: 1, background: COLORS.success, color: "#fff", border: "none", padding: "12px", borderRadius: "10px", fontWeight: 700, cursor: "pointer" }}
+                  >
+                    Resolve
+                  </button>
+                  <button 
+                    onClick={() => { handleDismissReport(selectedReportForReview.id); setSelectedReportForReview(null); }}
+                    style={{ flex: 1, background: COLORS.primary, color: "#fff", border: "none", padding: "12px", borderRadius: "10px", fontWeight: 700, cursor: "pointer" }}
+                  >
+                    Dismiss
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => setSelectedReportForReview(null)}
+                  style={{ flex: 1, background: "#F3F4F6", border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", fontWeight: 700, cursor: "pointer", color: COLORS.textLight }}
+                >
+                  Close
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </main>
     </div>
   );

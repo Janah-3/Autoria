@@ -2,9 +2,12 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { bookingsService, getBookingItems } from "@/lib/api/bookingsService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
+import { subscriptionService } from "@/lib/api/subscriptionService";
+import { premiumService } from "@/lib/api/premiumService";
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
 const R   = "#E8272A";
@@ -15,7 +18,7 @@ const WH  = "#FFFFFF";
 const TL  = "#6C757D";
 const ACT = "#FEEBEB";
 
-// ── Sidebar (same as dashboard) ──────────────────────────────────────────────
+// ── Sidebar (updated with subscription + promotions) ─────────────────────────
 const Sidebar = () => (
   <aside style={{ width: 240, background: WH, borderRight: `1px solid ${BRD}`, padding: "30px 0", height: "100vh", position: "sticky", top: 0, flexShrink: 0 }}>
     <div style={{ padding: "0 25px", marginBottom: 40 }}>
@@ -25,10 +28,11 @@ const Sidebar = () => (
         { id: "Analytics",        icon: "📈", path: "/service-center/analytics", active: true },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability",     icon: "📅", path: "/availability" },
-        { id: "Services & pricing",icon: "🏷️", path: "/service-center/services-pricing" },
         { id: "Spare parts",      icon: "⚙️", path: "/spare-parts-inventory" },
         { id: "Reviews",          icon: "⭐", path: "/reviews" },
         { id: "Business profile", icon: "🏢", path: "/service-center/edit" },
+        { id: "Subscription",     icon: "💎", path: "/service-center/subscription" },
+        { id: "Promotions",       icon: "📣", path: "/service-center/promotions" },
       ].map(item => (
         <Link href={item.path} key={item.id} style={{ textDecoration: "none" }}>
           <div style={{
@@ -137,24 +141,95 @@ function Skeleton({ w = "100%", h = 20, r = 8 }) {
   return <div style={{ width: w, height: h, borderRadius: r, background: "linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s infinite" }} />;
 }
 
+// ── Premium Upgrade CTA ───────────────────────────────────────────────────────
+function UpgradeCTA() {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      minHeight: "60vh", textAlign: "center", padding: 40,
+    }}>
+      <div style={{
+        background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)",
+        borderRadius: 24, padding: "48px 56px", maxWidth: 520, width: "100%",
+        color: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+        animation: "fadeIn 0.5s ease",
+      }}>
+        <div style={{ fontSize: 56, marginBottom: 16 }}>🔒</div>
+        <h2 style={{ fontSize: 26, fontWeight: 900, marginBottom: 12 }}>Premium Analytics</h2>
+        <p style={{ fontSize: 14, opacity: 0.7, lineHeight: 1.7, marginBottom: 28 }}>
+          Unlock detailed analytics, profile view tracking, booking trends, and customer insights.
+          Upgrade to Premium to access your full performance dashboard.
+        </p>
+        <Link href="/service-center/subscription">
+          <button style={{
+            background: R, color: "#fff", border: "none", padding: "16px 40px",
+            borderRadius: 14, fontWeight: 800, fontSize: 16, cursor: "pointer",
+            transition: "all 0.2s ease", boxShadow: "0 6px 20px rgba(232,39,42,0.3)",
+          }}>
+            ⭐ Upgrade to Premium
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
+  const router = useRouter();
   const [bookings, setBookings]   = useState([]);
   const [centerName, setCenterName] = useState("");
+  const [centerId, setCenterId] = useState(null);
   const [ownerName, setOwnerName] = useState("Partner");
   const [loading, setLoading]     = useState(true);
   const [period, setPeriod]       = useState("all"); // "week" | "month" | "all"
 
+  // Premium state
+  const [isPremium, setIsPremium] = useState(null); // null = loading
+  const [premiumAnalytics, setPremiumAnalytics] = useState(null);
+
   useEffect(() => {
-    Promise.all([
-      bookingsService.getServiceCenterBookings(),
-      serviceCentersService.getMy().catch(() => null),
-      getMe().catch(() => null),
-    ]).then(([bRes, cRes, meRes]) => {
-      setBookings(getBookingItems(bRes));
-      if (cRes?.data?.name) setCenterName(cRes.data.name);
-      if (meRes?.data?.fullName) setOwnerName(meRes.data.fullName);
-    }).finally(() => setLoading(false));
+    (async () => {
+      try {
+        const [bRes, cRes, meRes] = await Promise.all([
+          bookingsService.getServiceCenterBookings().catch(() => ({ data: [] })),
+          serviceCentersService.getMy().catch(() => null),
+          getMe().catch(() => null),
+        ]);
+
+        setBookings(getBookingItems(bRes));
+        const centerData = cRes?.data ?? cRes;
+        if (centerData?.name) setCenterName(centerData.name);
+        if (centerData?.Name) setCenterName(centerData.Name);
+        if (meRes?.data?.fullName) setOwnerName(meRes.data.fullName);
+
+        const id = centerData?.id ?? centerData?.Id;
+        setCenterId(id);
+
+        // Check premium status
+        if (id) {
+          const statusRes = await subscriptionService.getStatus(id).catch(() => null);
+          const premium = statusRes?.data?.isPremium ?? statusRes?.isPremium ?? false;
+          setIsPremium(premium);
+          localStorage.setItem("isPremium", premium ? "true" : "false");
+
+          // Load premium analytics if available
+          if (premium) {
+            const analyticsRes = await premiumService.getAnalytics(id).catch(() => null);
+            if (analyticsRes) {
+              setPremiumAnalytics(analyticsRes?.data || analyticsRes);
+            }
+          }
+        } else {
+          setIsPremium(false);
+        }
+      } catch (err) {
+        console.error("Analytics load error:", err);
+        setIsPremium(false);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   // ── Filter bookings by selected period ─────────────────────────────────────
@@ -218,6 +293,7 @@ export default function AnalyticsPage() {
     <div style={{ display: "flex", minHeight: "100vh", background: BG, fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         .period-btn { padding: 7px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: 1.5px solid ${BRD}; background: ${WH}; color: ${TL}; transition: all 0.15s; }
         .period-btn.active { background: ${R}; color: ${WH}; border-color: ${R}; }
@@ -228,133 +304,169 @@ export default function AnalyticsPage() {
 
       <main style={{ flex: 1, padding: "36px 40px", overflowY: "auto", maxWidth: 1100 }}>
 
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: TL, letterSpacing: "1.5px", marginBottom: 4 }}>ANALYTICS</div>
-            <h1 style={{ fontSize: 26, fontWeight: 900, color: "#1A1A1A", letterSpacing: -0.5 }}>
-              {centerName || "Performance Overview"}
-            </h1>
-            <p style={{ fontSize: 13, color: TL, marginTop: 4 }}>
-              Welcome back, {ownerName} — here&apos;s how your center is performing.
-            </p>
-          </div>
-          {/* Period selector */}
-          <div style={{ display: "flex", gap: 8 }}>
-            {[["all","All Time"],["month","This Month"],["week","This Week"]].map(([val, label]) => (
-              <button key={val} className={`period-btn${period === val ? " active" : ""}`} onClick={() => setPeriod(val)}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* ── Premium gate ─────────────────────────────────────────── */}
+        {!loading && isPremium === false && <UpgradeCTA />}
 
-        {/* KPI Row */}
-        <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-          {loading ? [1,2,3,4].map(i => (
-            <div key={i} style={{ flex: 1, minWidth: 140, background: WH, borderRadius: 16, padding: 24, border: `1px solid ${BRD}` }}>
-              <Skeleton h={12} w="60%" /><br/>
-              <Skeleton h={32} w="50%" /><br/>
-              <Skeleton h={12} w="80%" />
-            </div>
-          )) : (<>
-            <KpiCard label="Total Bookings"   value={stats.total}     icon="📋" color="#6366F1" sub="All recorded requests" />
-            <KpiCard label="Completed"        value={stats.completed} icon="✅" color="#10B981" sub={`${stats.completionRate}% completion rate`} />
-            <KpiCard label="Pending"          value={stats.pending}   icon="⏳" color="#F59E0B" sub="Awaiting your action" />
-            <KpiCard label="Cancellations"    value={stats.cancelled} icon="❌" color={R}        sub={`${stats.cancellationRate}% cancellation rate`} />
-          </>)}
-        </div>
-
-        {/* Middle row: chart + donut */}
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, marginBottom: 24 }}>
-
-          {/* Weekly trend bar chart */}
-          <Section title="Weekly Booking Trend" sub="Number of bookings per day of the week">
-            {loading ? <Skeleton h={80} /> : (
-              bookings.length === 0
-                ? <div style={{ textAlign: "center", color: TL, fontSize: 13, padding: "20px 0" }}>No booking data yet — chart will populate automatically.</div>
-                : <BarChart data={stats.weekTrend} color={R} />
-            )}
-          </Section>
-
-          {/* Status donut */}
-          <Section title="Booking Status" sub="Distribution by status">
-            {loading ? <Skeleton h={130} r={999} /> : (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-                {bookings.length === 0 ? (
-                  <div style={{ color: TL, fontSize: 13 }}>No data yet</div>
-                ) : (
-                  <>
-                    <DonutChart segments={stats.donut} />
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
-                      {stats.donut.map(seg => (
-                        <div key={seg.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: seg.color }} />
-                            <span style={{ fontSize: 12, color: TL, fontWeight: 600 }}>{seg.label}</span>
-                          </div>
-                          <span style={{ fontSize: 13, fontWeight: 800, color: "#1A1A1A" }}>{seg.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+        {/* ── Main analytics content (visible when loading or premium) */}
+        {(loading || isPremium) && (
+          <>
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 32 }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: TL, letterSpacing: "1.5px" }}>ANALYTICS</span>
+                  {isPremium && <span style={{ background: R, color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 4, letterSpacing: "0.5px" }}>PREMIUM</span>}
+                </div>
+                <h1 style={{ fontSize: 26, fontWeight: 900, color: "#1A1A1A", letterSpacing: -0.5 }}>
+                  {centerName || "Performance Overview"}
+                </h1>
+                <p style={{ fontSize: 13, color: TL, marginTop: 4 }}>
+                  Welcome back, {ownerName} — here&apos;s how your center is performing.
+                </p>
               </div>
-            )}
-          </Section>
-        </div>
-
-        {/* Top services */}
-        <Section
-          title="Top Requested Services"
-          sub="Most booked service types"
-          action={
-            <Link href="/service-center/services-pricing" style={{ fontSize: 12, fontWeight: 700, color: R, textDecoration: "none" }}>
-              Manage Pricing →
-            </Link>
-          }
-        >
-          {loading ? [1,2,3].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={14} w={`${70 - i * 15}%`} /></div>) : (
-            stats.topServices.length === 0 ? (
-              <div style={{ color: TL, fontSize: 13 }}>No service data yet.</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {stats.topServices.map((svc, i) => (
-                  <div key={i}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1A1A" }}>
-                        {i === 0 && <span style={{ color: R, marginRight: 6 }}>🏆</span>}{svc.name}
-                      </span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: R }}>{svc.count} <span style={{ fontSize: 11, color: TL, fontWeight: 500 }}>({svc.pct}%)</span></span>
-                    </div>
-                    <div style={{ height: 8, background: "#F1F5F9", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${svc.pct}%`, background: i === 0 ? R : `${R}88`, borderRadius: 4, transition: "width 0.6s ease" }} />
-                    </div>
-                  </div>
+              {/* Period selector */}
+              <div style={{ display: "flex", gap: 8 }}>
+                {[["all","All Time"],["month","This Month"],["week","This Week"]].map(([val, label]) => (
+                  <button key={val} className={`period-btn${period === val ? " active" : ""}`} onClick={() => setPeriod(val)}>
+                    {label}
+                  </button>
                 ))}
               </div>
-            )
-          )}
-        </Section>
+            </div>
 
-        {/* Quick links footer */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {[
-            { label: "📬 Manage Bookings",   href: "/booking-requests" },
-            { label: "🏷️ Services & Pricing", href: "/service-center/services-pricing" },
-            { label: "⚙️ Spare Parts",        href: "/spare-parts-inventory" },
-            { label: "⭐ Reviews",             href: "/reviews" },
-            { label: "🏢 Edit Profile",        href: "/service-center/edit" },
-          ].map(link => (
-            <Link key={link.href} href={link.href} style={{
-              padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-              background: WH, color: "#1A1A1A", border: `1px solid ${BRD}`,
-              textDecoration: "none", transition: "all 0.2s",
-            }}>
-              {link.label}
-            </Link>
-          ))}
-        </div>
+            {/* ── Premium analytics KPIs (from backend) ────────────── */}
+            {isPremium && premiumAnalytics && (
+              <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+                <KpiCard
+                  label="Profile Views"
+                  value={premiumAnalytics.totalProfileViews ?? premiumAnalytics.profileViews ?? "—"}
+                  icon="👁️" color="#8B5CF6"
+                  sub="Total views on your profile"
+                />
+                <KpiCard
+                  label="Total Bookings"
+                  value={premiumAnalytics.totalBookings ?? stats.total}
+                  icon="📋" color="#6366F1"
+                  sub={premiumAnalytics.bookingGrowth ? `${premiumAnalytics.bookingGrowth}% growth` : "All recorded"}
+                />
+                <KpiCard
+                  label="Completed"
+                  value={premiumAnalytics.completedBookings ?? stats.completed}
+                  icon="✅" color="#10B981"
+                  sub={`${premiumAnalytics.completionRate ?? stats.completionRate}% rate`}
+                />
+                <KpiCard
+                  label="Revenue"
+                  value={premiumAnalytics.revenue ? `EGP ${premiumAnalytics.revenue.toLocaleString()}` : "—"}
+                  icon="💰" color="#F59E0B"
+                  sub="Estimated earnings"
+                />
+              </div>
+            )}
+
+            {/* ── Standard booking KPI Row ─────────────────────────── */}
+            {(!premiumAnalytics || !isPremium) && (
+              <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
+                {loading ? [1,2,3,4].map(i => (
+                  <div key={i} style={{ flex: 1, minWidth: 140, background: WH, borderRadius: 16, padding: 24, border: `1px solid ${BRD}` }}>
+                    <Skeleton h={12} w="60%" /><br/>
+                    <Skeleton h={32} w="50%" /><br/>
+                    <Skeleton h={12} w="80%" />
+                  </div>
+                )) : (<>
+                  <KpiCard label="Total Bookings"   value={stats.total}     icon="📋" color="#6366F1" sub="All recorded requests" />
+                  <KpiCard label="Completed"        value={stats.completed} icon="✅" color="#10B981" sub={`${stats.completionRate}% completion rate`} />
+                  <KpiCard label="Pending"          value={stats.pending}   icon="⏳" color="#F59E0B" sub="Awaiting your action" />
+                  <KpiCard label="Cancellations"    value={stats.cancelled} icon="❌" color={R}        sub={`${stats.cancellationRate}% cancellation rate`} />
+                </>)}
+              </div>
+            )}
+
+            {/* Middle row: chart + donut */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, marginBottom: 24 }}>
+
+              {/* Weekly trend bar chart */}
+              <Section title="Weekly Booking Trend" sub="Number of bookings per day of the week">
+                {loading ? <Skeleton h={80} /> : (
+                  bookings.length === 0
+                    ? <div style={{ textAlign: "center", color: TL, fontSize: 13, padding: "20px 0" }}>No booking data yet — chart will populate automatically.</div>
+                    : <BarChart data={stats.weekTrend} color={R} />
+                )}
+              </Section>
+
+              {/* Status donut */}
+              <Section title="Booking Status" sub="Distribution by status">
+                {loading ? <Skeleton h={130} r={999} /> : (
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+                    {bookings.length === 0 ? (
+                      <div style={{ color: TL, fontSize: 13 }}>No data yet</div>
+                    ) : (
+                      <>
+                        <DonutChart segments={stats.donut} />
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+                          {stats.donut.map(seg => (
+                            <div key={seg.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <div style={{ width: 10, height: 10, borderRadius: "50%", background: seg.color }} />
+                                <span style={{ fontSize: 12, color: TL, fontWeight: 600 }}>{seg.label}</span>
+                              </div>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: "#1A1A1A" }}>{seg.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </Section>
+            </div>
+
+            {/* Top services */}
+            <Section title="Top Requested Services" sub="Most booked service types">
+              {loading ? [1,2,3].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={14} w={`${70 - i * 15}%`} /></div>) : (
+                stats.topServices.length === 0 ? (
+                  <div style={{ color: TL, fontSize: 13 }}>No service data yet.</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    {stats.topServices.map((svc, i) => (
+                      <div key={i}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1A1A" }}>
+                            {i === 0 && <span style={{ color: R, marginRight: 6 }}>🏆</span>}{svc.name}
+                          </span>
+                          <span style={{ fontSize: 13, fontWeight: 800, color: R }}>{svc.count} <span style={{ fontSize: 11, color: TL, fontWeight: 500 }}>({svc.pct}%)</span></span>
+                        </div>
+                        <div style={{ height: 8, background: "#F1F5F9", borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${svc.pct}%`, background: i === 0 ? R : `${R}88`, borderRadius: 4, transition: "width 0.6s ease" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </Section>
+
+            {/* Quick links footer */}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              {[
+                { label: "📬 Manage Bookings",   href: "/booking-requests" },
+                { label: "⚙️ Spare Parts",        href: "/spare-parts-inventory" },
+                { label: "⭐ Reviews",             href: "/reviews" },
+                { label: "🏢 Edit Profile",        href: "/service-center/edit" },
+                { label: "💎 Subscription",        href: "/service-center/subscription" },
+                { label: "📣 Promotions",          href: "/service-center/promotions" },
+              ].map(link => (
+                <Link key={link.href} href={link.href} style={{
+                  padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  background: WH, color: "#1A1A1A", border: `1px solid ${BRD}`,
+                  textDecoration: "none", transition: "all 0.2s",
+                }}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
 
       </main>
     </div>
