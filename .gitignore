@@ -363,4 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Ignore local development settings
+bin/
+obj/
 appsettings.Development.json
