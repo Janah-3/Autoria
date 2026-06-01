@@ -199,17 +199,20 @@ namespace Autoria.features.ServiceCenter
         [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> GetAll(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? search = null,
-        [FromQuery] ServiceCenterType? type = null,
-        [FromQuery] Guid? serviceTypeId = null,
-        [FromQuery] Guid? carBrandId = null,
-        [FromQuery] double? latitude = null,
-        [FromQuery] double? longitude = null)
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10,
+    [FromQuery] string? search = null,
+    [FromQuery] ServiceCenterType? type = null,
+    [FromQuery] Guid? serviceTypeId = null,
+    [FromQuery] Guid? carBrandId = null,
+    [FromQuery] double? latitude = null,
+    [FromQuery] double? longitude = null,
+    [FromQuery] string? governorate = null,
+    [FromQuery] double? minRating = null)
         {
             var result = await _mediator.Send(new GetAllServiceCentersQuery(
-                page, pageSize, search, type, serviceTypeId, carBrandId, latitude, longitude));
+                page, pageSize, search, type, serviceTypeId, carBrandId,
+                latitude, longitude, governorate, minRating));
 
             return Success(result);
         }

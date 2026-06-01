@@ -42,6 +42,16 @@ namespace Autoria.features.ServiceCenter.Querys.GetAllServiceCenters
                 query = query.Where(sc =>
                     sc.CarBrands.Any(cb => cb.CarBrandId == request.CarBrandId.Value));
 
+            // Filter by governorate
+            if (!string.IsNullOrWhiteSpace(request.Governorate))
+                query = query.Where(sc => sc.Gvernorate == request.Governorate);
+
+            // Filter by minimum rating
+            if (request.MinRating.HasValue)
+                query = query.Where(sc =>
+                    sc.Reviews.Any() &&
+                    sc.Reviews.Average(r => r.Rating) >= request.MinRating.Value);
+
             var totalCount = await query.CountAsync(cancellationToken);
 
             bool hasLocation = request.Latitude.HasValue && request.Longitude.HasValue;
@@ -54,18 +64,21 @@ namespace Autoria.features.ServiceCenter.Querys.GetAllServiceCenters
                     new Coordinate(request.Longitude!.Value, request.Latitude!.Value));
 
                 projectedQuery = query
-                    .OrderBy(sc => sc.Location == null)                    
-                    .ThenBy(sc => sc.Location!.Distance(userPoint))       
+                    .OrderBy(sc => sc.Location == null)
+                    .ThenBy(sc => sc.Location!.Distance(userPoint))
                     .Select(sc => new ServiceCenterSummaryDto
                     {
                         Id = sc.Id,
                         Name = sc.Name,
                         Address = sc.Address,
+                        Governorate = sc.Gvernorate,
                         Phone = sc.Phone,
                         Type = sc.Type,
                         CoverPhoto = sc.Photos.Select(p => p.PhotoUrl).FirstOrDefault(),
                         ServiceTypes = sc.ServiceTypes.Select(st => st.ServiceType.Name).ToList(),
-                        CarBrands = sc.CarBrands.Select(cb => cb.CarBrand.Name).ToList()
+                        CarBrands = sc.CarBrands.Select(cb => cb.CarBrand.Name).ToList(),
+                        AverageRating = sc.Reviews.Any() ? sc.Reviews.Average(r => r.Rating) : 0,
+                        ReviewCount = sc.Reviews.Count()
                     });
             }
             else
@@ -77,11 +90,14 @@ namespace Autoria.features.ServiceCenter.Querys.GetAllServiceCenters
                         Id = sc.Id,
                         Name = sc.Name,
                         Address = sc.Address,
+                        Governorate = sc.Gvernorate,
                         Phone = sc.Phone,
                         Type = sc.Type,
                         CoverPhoto = sc.Photos.Select(p => p.PhotoUrl).FirstOrDefault(),
                         ServiceTypes = sc.ServiceTypes.Select(st => st.ServiceType.Name).ToList(),
-                        CarBrands = sc.CarBrands.Select(cb => cb.CarBrand.Name).ToList()
+                        CarBrands = sc.CarBrands.Select(cb => cb.CarBrand.Name).ToList(),
+                        AverageRating = sc.Reviews.Any() ? sc.Reviews.Average(r => r.Rating) : 0,
+                        ReviewCount = sc.Reviews.Count()
                     });
             }
 

@@ -1,6 +1,7 @@
 ﻿using NetTopologySuite.Geometries;
 using Autoria.Infrastructure.Identity.entities;
 using Autoria.shared.Enums;
+using Autoria.features.Reviews.Entity;
 
 namespace Autoria.features.ServiceCenter.Entities
 {
@@ -44,5 +45,6 @@ namespace Autoria.features.ServiceCenter.Entities
         public ICollection<ServiceCenterCarBrand> CarBrands { get; set; } = new List<ServiceCenterCarBrand>();
         public ICollection<ServiceCenterDocument> Documents { get; set; } = new List<ServiceCenterDocument>();
         public ICollection<ServiceCenterPhoto> Photos { get; set; } = new List<ServiceCenterPhoto>();
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
     }
 }

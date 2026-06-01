@@ -14,8 +14,8 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne(r => r.ServiceCenter)
-            .WithMany()
-            .HasForeignKey(r => r.ServiceCenterId)
-            .OnDelete(DeleteBehavior.NoAction);
+     .WithMany(sc => sc.Reviews)
+     .HasForeignKey(r => r.ServiceCenterId)
+     .OnDelete(DeleteBehavior.NoAction);
     }
 }
