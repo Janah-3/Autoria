@@ -6,64 +6,188 @@ import { useRouter } from "next/navigation";
 import { getMe } from "@/lib/api/usersService";
 import { getAllCars, getCarItems } from "@/lib/api/carsService";
 import { getAllBookings } from "@/lib/api/bookingsService";
+import { paymentService } from "@/lib/api/paymentService";
 
 export default function UserDashboardPage() {
   const router = useRouter();
   const [cars, setCars] = useState([]);
   const [upcomingBookings, setUpcomingBookings] = useState([]);
+  const [paymentHistory, setPaymentHistory] = useState([]);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Checkout Modal State
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState("Visa"); // "Visa" | "Cash"
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Card details state
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const me = await getMe();
-        if (me?.data?.fullName) {
-          setUserName(me.data.fullName);
-        } else {
-          router.push("/login");
-          return;
+    if (upcomingBookings.length > 0 && typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const payId = params.get("payBookingId");
+      if (payId) {
+        const matched = upcomingBookings.find(b => String(b.id) === String(payId));
+        if (matched && matched.invoice && matched.invoice.status === "Pending") {
+          setSelectedInvoice(matched.invoice);
+          setShowCheckoutModal(true);
+          router.replace("/user-dashboard");
         }
-
-        const carsRes = await getAllCars();
-        setCars(
-          getCarItems(carsRes).map((car, i) => ({
-            id: car.id || i,
-            make: car.make,
-            model: car.model,
-            year: car.year,
-            license: car.licensePlate,
-            nextService: "—",
-          }))
-        );
-
-        const bookingsRes = await getAllBookings();
-        const items = bookingsRes.data || [];
-        setUpcomingBookings(
-          items
-            .filter((b) => b.status !== "Completed" && b.status !== "Cancelled")
-            .map((b, i) => ({
-              id: b.id || i,
-              center: b.serviceCenter?.name || b.serviceCenterName || "Service center",
-              service: b.service?.type || b.serviceType || "Service",
-              date: b.date || b.scheduledDate || "—",
-              time: b.timeSlot || b.time || "—",
-              status: b.status || "Pending",
-            }))
-        );
-      } catch (err) {
-        console.error("User dashboard:", err);
-        router.push("/login");
-      } finally {
-        setLoading(false);
       }
-    };
-    load();
+    }
+  }, [upcomingBookings, router]);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const me = await getMe();
+      if (me?.data?.fullName) {
+        setUserName(me.data.fullName);
+      } else {
+        router.push("/login");
+        return;
+      }
+
+      const carsRes = await getAllCars();
+      setCars(
+        getCarItems(carsRes).map((car, i) => ({
+          id: car.id || i,
+          make: car.make,
+          model: car.model,
+          year: car.year,
+          license: car.licensePlate,
+          nextService: "—",
+        }))
+      );
+
+      const bookingsRes = await getAllBookings();
+      const items = bookingsRes.data || [];
+
+      // Fetch invoice details dynamically in parallel for all bookings
+      const bookingsWithInvoices = await Promise.all(
+        items.map(async (b) => {
+          try {
+            const invRes = await paymentService.getInvoiceForBooking(b.id || b.Id);
+            if (invRes.success && invRes.data) {
+              return { ...b, invoice: invRes.data };
+            }
+          } catch (e) {
+            console.warn(e);
+          }
+          return b;
+        })
+      );
+
+      setUpcomingBookings(
+        bookingsWithInvoices
+          .filter((b) => b.status !== "Completed" && b.status !== "Cancelled")
+          .map((b, i) => ({
+            id: b.id || i,
+            center: b.serviceCenter?.name || b.serviceCenterName || "Service center",
+            service: b.service?.type || b.serviceType || "Service",
+            date: b.date || b.scheduledDate || "—",
+            time: b.timeSlot || b.time || "—",
+            status: b.status || "Pending",
+            invoice: b.invoice || null,
+          }))
+      );
+
+      // Fetch payment history
+      const historyRes = await paymentService.getMyHistory();
+      if (historyRes.success && historyRes.data) {
+        // Hydrate history transactions with invoice service center metadata
+        const invoicesStored = sessionStorage.getItem("mock_invoices") || "[]";
+        const invoices = JSON.parse(invoicesStored);
+
+        const hydrated = historyRes.data.map(tx => {
+          const inv = invoices.find(i => i.id === tx.invoiceId) || {};
+          return {
+            ...tx,
+            serviceCenterName: inv.serviceCenterName || "AutoCare Nasr City"
+          };
+        });
+        setPaymentHistory(hydrated);
+      }
+    } catch (err) {
+      console.error("User dashboard:", err);
+      router.push("/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
   }, []);
+
+  const handleOpenCheckout = (invoice) => {
+    setSelectedInvoice(invoice);
+    setPaymentMethod("Visa");
+    setCardNumber("");
+    setCardName("");
+    setCardExpiry("");
+    setCardCvv("");
+    setShowCheckoutModal(true);
+  };
+
+  const handleFormatCardNumber = (value) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || "";
+    const parts = [];
+
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length > 0) {
+      return parts.join(" ");
+    } else {
+      return v.replace(/(\d{4})/g, "$1 ").trim().substr(0, 19);
+    }
+  };
+
+  const handleFormatExpiry = (value) => {
+    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
+    if (v.length >= 2) {
+      return `${v.substr(0, 2)}/${v.substr(2, 2)}`;
+    }
+    return v;
+  };
+
+  const handleSubmitPayment = async (e) => {
+    e.preventDefault();
+    setCheckoutLoading(true);
+    try {
+      const res = await paymentService.payInvoice({
+        invoiceId: selectedInvoice.id,
+        method: paymentMethod,
+        cardToken: paymentMethod === "Visa" ? "mock_card_visa_token" : null
+      });
+
+      if (res.success) {
+        alert(res.data?.message || "Payment processed successfully!");
+        setShowCheckoutModal(false);
+        await loadDashboardData();
+      } else {
+        alert("Payment failed: " + res.message);
+      }
+    } catch (err) {
+      alert("Error processing payment: " + err.message);
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
     <div className="user-dashboard-layout">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       <style>{`
         * {
           box-sizing: border-box;
@@ -353,7 +477,6 @@ export default function UserDashboardPage() {
         }
       `}</style>
 
-
       <main className="main-content">
         <div className="topbar">
           <Link href="/" style={{
@@ -405,6 +528,9 @@ export default function UserDashboardPage() {
               <Link href="/cars/add-car" className="action-btn btn-secondary">
                 <i className="fa-solid fa-car-side"></i> Add a Vehicle
               </Link>
+              <Link href="/reservations" className="action-btn btn-secondary" style={{ background: "#FEEBEB", color: "#E8192C" }}>
+                <i className="fa-solid fa-box-open"></i> Part Reservations
+              </Link>
             </div>
           </div>
 
@@ -413,7 +539,6 @@ export default function UserDashboardPage() {
           )}
 
           <div className="sections-grid">
-
             <div className="section-panel">
               <div className="section-header">
                 <h2 className="section-title"><i className="fa-solid fa-car"></i> My Garage</h2>
@@ -439,7 +564,6 @@ export default function UserDashboardPage() {
               </div>
             </div>
 
-
             <div className="section-panel">
               <div className="section-header">
                 <h2 className="section-title"><i className="fa-solid fa-calendar-alt"></i> Upcoming Bookings</h2>
@@ -452,8 +576,33 @@ export default function UserDashboardPage() {
                       <h4>{booking.center}</h4>
                       <p>{booking.service} • {booking.date} at {booking.time}</p>
                     </div>
-                    <div className="status-badge">
-                      {booking.status}
+                    
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                      {booking.invoice ? (
+                        booking.invoice.status === "Paid" ? (
+                          <span style={{ background: "#D1FAE5", color: "#059669", padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 }}>
+                            Paid EGP {booking.invoice.totalAmount}
+                          </span>
+                        ) : booking.invoice.status === "AwaitingCashConfirmation" ? (
+                          <span style={{ background: "#FFF9DB", color: "#F59F00", padding: "6px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 }}>
+                            Cash Pending
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleFormatCardNumber && handleOpenCheckout(booking.invoice)}
+                            style={{ background: "#E8192C", color: "#fff", border: "none", padding: "6px 14px", borderRadius: "8px", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}
+                          >
+                            Pay EGP {booking.invoice.totalAmount}
+                          </button>
+                        )
+                      ) : (
+                        <div className="status-badge" style={{
+                          background: booking.status === "Pending" ? "#FFF9DB" : (booking.status === "Confirmed" ? "#D1FAE5" : "#F3F4F6"),
+                          color: booking.status === "Pending" ? "#F59F00" : (booking.status === "Confirmed" ? "#059669" : "#374151")
+                        }}>
+                          {booking.status}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -466,8 +615,236 @@ export default function UserDashboardPage() {
             </div>
           </div>
 
+          {/* Payment History Log */}
+          <div className="section-panel" style={{ marginTop: "32px" }}>
+            <div className="section-header">
+              <h2 className="section-title"><i className="fa-solid fa-receipt"></i> Payment History & Receipts</h2>
+              <span style={{ fontSize: "12px", color: "#6B7280", fontWeight: 600 }}>Log of completed invoice payments</span>
+            </div>
+            <div style={{ padding: "24px", overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #F3F4F6", color: "#6B7280", fontSize: "12px", fontWeight: 700, textTransform: "uppercase" }}>
+                    <th style={{ paddingBottom: "12px" }}>Receipt ID</th>
+                    <th style={{ paddingBottom: "12px" }}>Service Center</th>
+                    <th style={{ paddingBottom: "12px" }}>Method</th>
+                    <th style={{ paddingBottom: "12px" }}>Amount</th>
+                    <th style={{ paddingBottom: "12px" }}>Status</th>
+                    <th style={{ paddingBottom: "12px" }}>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentHistory.map((tx) => (
+                    <tr key={tx.id} style={{ borderBottom: "1px solid #F3F4F6", fontSize: "14px" }}>
+                      <td style={{ padding: "16px 0", fontWeight: 700, color: "#374151" }}>{tx.id.toUpperCase()}</td>
+                      <td style={{ padding: "16px 0" }}>{tx.serviceCenterName}</td>
+                      <td style={{ padding: "16px 0" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 600 }}>
+                          {tx.method === "Visa" ? "💳 Visa" : "💵 Cash"}
+                        </span>
+                      </td>
+                      <td style={{ padding: "16px 0", fontWeight: 700, color: "#E8192C" }}>EGP {tx.amount}</td>
+                      <td style={{ padding: "16px 0" }}>
+                        <span style={{
+                          background: tx.status === "Completed" ? "#D1FAE5" : (tx.status === "Refunded" ? "#FEE2E2" : "#FFF9DB"),
+                          color: tx.status === "Completed" ? "#059669" : (tx.status === "Refunded" ? "#EF4444" : "#F59F00"),
+                          padding: "4px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: 700
+                        }}>{tx.status}</span>
+                      </td>
+                      <td style={{ padding: "16px 0", color: "#6B7280" }}>{new Date(tx.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                  {paymentHistory.length === 0 && (
+                    <tr>
+                      <td colSpan="6" style={{ padding: "32px", textAlign: "center", color: "#6B7280" }}>
+                        No transactions recorded yet. Completed invoices will appear here.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </main>
+
+      {/* Checkout Modal with Premium animated Credit Card preview */}
+      {showCheckoutModal && selectedInvoice && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 2000, padding: "20px"
+        }}>
+          <div style={{
+            background: "#ffffff", borderRadius: "24px", width: "100%", maxWidth: "560px",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.15)", padding: "40px", position: "relative",
+            maxHeight: "90vh", overflowY: "auto"
+          }}>
+            <h2 style={{ fontSize: "22px", fontWeight: 900, marginBottom: "4px" }}>Secure Checkout</h2>
+            <p style={{ fontSize: "14px", color: "#6B7280", marginBottom: "24px" }}>
+              Service Center: <strong>{selectedInvoice.serviceCenterName}</strong>
+            </p>
+
+            <div style={{ background: "#F8FAFC", borderRadius: "12px", padding: "16px", marginBottom: "24px", border: "1px solid #E2E8F0" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", marginBottom: "12px", letterSpacing: "0.5px" }}>Invoice Breakdown</div>
+              {selectedInvoice.items?.map((item, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: "13.5px", margin: "6px 0" }}>
+                  <span style={{ color: "#334155" }}>{item.description} <span style={{ color: "#94A3B8" }}>x{item.quantity}</span></span>
+                  <span style={{ fontWeight: 700 }}>EGP {item.totalPrice}</span>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px dashed #CBD5E1", paddingTop: "12px", marginTop: "12px", fontSize: "15px", fontWeight: 800 }}>
+                <span>TOTAL DUE</span>
+                <span style={{ color: "#E8192C" }}>EGP {selectedInvoice.totalAmount}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitPayment}>
+              {/* Payment Method Selector */}
+              <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
+                <div 
+                  onClick={() => setPaymentMethod("Visa")}
+                  style={{
+                    flex: 1, padding: "14px", borderRadius: "12px", border: `2px solid ${paymentMethod === "Visa" ? "#E8192C" : "#E2E8F0"}`,
+                    background: paymentMethod === "Visa" ? "#FFF1F1" : "#fff", display: "flex", flexDirection: "column",
+                    alignItems: "center", cursor: "pointer", gap: "8px", transition: "all 0.2s"
+                  }}
+                >
+                  <span style={{ fontSize: "20px" }}>💳</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: paymentMethod === "Visa" ? "#E8192C" : "#334155" }}>Credit Card / Visa</span>
+                </div>
+                <div 
+                  onClick={() => setPaymentMethod("Cash")}
+                  style={{
+                    flex: 1, padding: "14px", borderRadius: "12px", border: `2px solid ${paymentMethod === "Cash" ? "#E8192C" : "#E2E8F0"}`,
+                    background: paymentMethod === "Cash" ? "#FFF1F1" : "#fff", display: "flex", flexDirection: "column",
+                    alignItems: "center", cursor: "pointer", gap: "8px", transition: "all 0.2s"
+                  }}
+                >
+                  <span style={{ fontSize: "20px" }}>💵</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: paymentMethod === "Cash" ? "#E8192C" : "#334155" }}>Cash Desk</span>
+                </div>
+              </div>
+
+              {paymentMethod === "Visa" && (
+                <>
+                  {/* Premium Credit Card Graphic Preview */}
+                  <div style={{
+                    background: "linear-gradient(135deg, #1E1E24 0%, #E8192C 100%)",
+                    width: "100%", height: "200px", borderRadius: "16px", padding: "24px", color: "#fff",
+                    display: "flex", flexDirection: "column", justifyContent: "space-between",
+                    boxShadow: "0 10px 25px rgba(232, 25, 44, 0.15)", position: "relative",
+                    overflow: "hidden", marginBottom: "24px"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <span style={{ fontSize: "20px", fontWeight: 900, fontStyle: "italic", letterSpacing: "-0.5px" }}>AUTORIA</span>
+                      <span style={{ fontSize: "11px", fontWeight: 700, background: "rgba(255,255,255,0.2)", padding: "4px 8px", borderRadius: "4px", letterSpacing: "1px" }}>CREDIT</span>
+                    </div>
+
+                    <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "2px", margin: "20px 0 10px", fontFamily: "monospace" }}>
+                      {cardNumber || "•••• •••• •••• ••••"}
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                      <div>
+                        <div style={{ fontSize: "9px", opacity: 0.6, textTransform: "uppercase", marginBottom: "2px" }}>Card Holder</div>
+                        <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase" }}>{cardName || "Your Name"}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "9px", opacity: 0.6, textTransform: "uppercase", marginBottom: "2px" }}>Expires</div>
+                        <div style={{ fontSize: "13px", fontWeight: 700 }}>{cardExpiry || "MM/YY"}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "9px", opacity: 0.6, textTransform: "uppercase", marginBottom: "2px" }}>CVV</div>
+                        <div style={{ fontSize: "13px", fontWeight: 700 }}>{cardCvv || "•••"}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Visa Form inputs */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>Card Number</label>
+                      <input
+                        placeholder="4000 1234 5678 9010"
+                        maxLength="19"
+                        value={cardNumber}
+                        onChange={(e) => setCardNumber(handleFormatCardNumber(e.target.value))}
+                        required
+                        style={{ padding: "12px 14px", borderRadius: "8px", border: "1.5px solid #CBD5E1", fontSize: "14px" }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>Cardholder Name</label>
+                      <input
+                        placeholder="JOHN DOE"
+                        value={cardName}
+                        onChange={(e) => setCardName(e.target.value.toUpperCase())}
+                        required
+                        style={{ padding: "12px 14px", borderRadius: "8px", border: "1.5px solid #CBD5E1", fontSize: "14px" }}
+                      />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>Expiry Date</label>
+                        <input
+                          placeholder="MM/YY"
+                          maxLength="5"
+                          value={cardExpiry}
+                          onChange={(e) => setCardExpiry(handleFormatExpiry(e.target.value))}
+                          required
+                          style={{ padding: "12px 14px", borderRadius: "8px", border: "1.5px solid #CBD5E1", fontSize: "14px" }}
+                        />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#64748B", textTransform: "uppercase" }}>CVV</label>
+                        <input
+                          placeholder="123"
+                          maxLength="3"
+                          type="password"
+                          value={cardCvv}
+                          onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/gi, ""))}
+                          required
+                          style={{ padding: "12px 14px", borderRadius: "8px", border: "1.5px solid #CBD5E1", fontSize: "14px" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {paymentMethod === "Cash" && (
+                <div style={{ background: "#F1F5F9", border: "1.5px solid #E2E8F0", borderRadius: "12px", padding: "20px", fontSize: "13.5px", color: "#475569", lineHeight: 1.5, marginBottom: "24px" }}>
+                  💡 <strong>Cash Desk Option:</strong> You can pay for this invoice directly in cash at the service center counter upon receiving your vehicle. The owner will confirm the receipt of cash to complete your checkout.
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  type="submit"
+                  disabled={checkoutLoading}
+                  style={{
+                    flex: 2, background: "#E8192C", color: "#fff", border: "none", padding: "14px",
+                    borderRadius: "10px", fontSize: "14px", fontWeight: 800, cursor: "pointer",
+                    opacity: checkoutLoading ? 0.7 : 1
+                  }}
+                >
+                  {checkoutLoading ? "Processing Payment..." : paymentMethod === "Visa" ? `Pay EGP ${selectedInvoice.totalAmount}` : "Confirm Cash Booking"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCheckoutModal(false)}
+                  style={{ flex: 1, background: "transparent", color: "#374151", border: "1px solid #E5E7EB", padding: "14px", borderRadius: "10px", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

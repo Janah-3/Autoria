@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import { bookingService, getBookingItems } from "@/lib/api/bookingsService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
-
-
+import { paymentService } from "@/lib/api/paymentService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -30,6 +29,7 @@ const Sidebar = ({ active }) => (
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
         { id: "Spare parts", icon: "⚙️", path: "/spare-parts-inventory" },
+        { id: "Part reservations", icon: "📦", path: "/reservations" },
         { id: "Reviews", icon: "⭐", path: "/reviews" },
         { id: "Business profile", icon: "🏢", path: "/service-center/edit" },
         { id: "Subscription", icon: "💎", path: "/service-center/subscription" },
@@ -52,7 +52,7 @@ const Sidebar = ({ active }) => (
   </aside>
 );
 
-const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => {
+const RequestCard = ({ request, onConfirm, onDecline, onCancel, onCreateInvoice, onConfirmCash, updateTrigger }) => {
   const customerName = request.customerName ?? request.CustomerName ?? "";
   const status = request.status ?? request.Status ?? "Pending";
   const carModel = request.carModel ?? request.CarModel ?? "";
@@ -62,6 +62,23 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => {
   const timeAgo = request.timeAgo ?? request.TimeAgo ?? "";
   const note = request.note ?? request.Note ?? "";
   const id = request.id ?? request.Id;
+
+  const [invoice, setInvoice] = useState(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
+
+  useEffect(() => {
+    setLoadingInvoice(true);
+    paymentService.getInvoiceForBooking(id)
+      .then(res => {
+        if (res.success && res.data) {
+          setInvoice(res.data);
+        } else {
+          setInvoice(null);
+        }
+      })
+      .catch(() => setInvoice(null))
+      .finally(() => setLoadingInvoice(false));
+  }, [id, status, updateTrigger]);
 
   return (
     <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: "16px", padding: "25px", marginBottom: "15px" }}>
@@ -78,6 +95,16 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => {
                 color: status === "Pending" ? COLORS.primary : (status === "Confirmed" ? COLORS.success : COLORS.textLight),
                 fontSize: "10px", fontWeight: 800, padding: "2px 10px", borderRadius: "10px"
               }}>{status}</span>
+
+              {invoice && (
+                <span style={{
+                  background: invoice.status === "Paid" ? "#E7F5EA" : (invoice.status === "AwaitingCashConfirmation" ? "#FFF9DB" : "#E8F5E9"),
+                  color: invoice.status === "Paid" ? COLORS.success : (invoice.status === "AwaitingCashConfirmation" ? "#F59F00" : COLORS.primary),
+                  fontSize: "10px", fontWeight: 800, padding: "2px 10px", borderRadius: "10px"
+                }}>
+                  Invoice: {invoice.status === "AwaitingCashConfirmation" ? "Awaiting Cash" : invoice.status} (EGP {invoice.totalAmount})
+                </span>
+              )}
             </div>
             <p style={{ fontSize: "13px", color: COLORS.textLight, marginTop: "4px" }}>
               {carModel} • {serviceType} • Requested: <span style={{ color: COLORS.text, fontWeight: 600 }}>{date}, {time}</span>
@@ -93,7 +120,7 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "10px" }}>
+      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
         {status === "Pending" ? (
           <>
             <button onClick={() => onConfirm(id)} style={{ background: COLORS.primary, color: "#FFF", border: "none", padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>Confirm</button>
@@ -101,7 +128,21 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => {
           </>
         ) : (
           status === "Confirmed" && (
-            <button onClick={() => onCancel(id)} style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Cancel booking</button>
+            <>
+              <button onClick={() => onCancel(id)} style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>Cancel booking</button>
+              
+              {!invoice && !loadingInvoice && (
+                <button onClick={() => onCreateInvoice(id, customerName)} style={{ background: COLORS.success, color: "#FFF", border: "none", padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+                  Create Invoice
+                </button>
+              )}
+
+              {invoice && invoice.status === "AwaitingCashConfirmation" && (
+                <button onClick={() => onConfirmCash(invoice.id)} style={{ background: "#F59F00", color: "#FFF", border: "none", padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>
+                  Confirm Cash Received
+                </button>
+              )}
+            </>
           )
         )}
         <button style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>View profile</button>
@@ -110,18 +151,21 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel }) => {
   );
 };
 
-const MOCK_REQUESTS = [
-  { id: "b1", customerName: "Ahmed Mostafa", status: "Pending", carModel: "Toyota Corolla 2021", serviceType: "Oil Change", date: "May 28, 2026", time: "10:00 AM", timeAgo: "10m ago", note: "Please check the front brake pads as well." },
-  { id: "b2", customerName: "Sara Khaled", status: "Confirmed", carModel: "Hyundai Tucson 2020", serviceType: "Brakes Repair", date: "May 29, 2026", time: "02:30 PM", timeAgo: "2h ago", note: "Using genuine Hyundai spare parts only please." },
-  { id: "b3", customerName: "Mohamed Hassan", status: "Pending", carModel: "Kia Sportage 2022", serviceType: "AC Maintenance", date: "May 30, 2026", time: "11:15 AM", timeAgo: "Yesterday", note: "AC is blowing warm air." }
-];
-
 export default function BookingRequestsPage() {
   const [requests, setRequests] = useState([]);
   const [filter, setFilter] = useState("All");
   const [loading, setLoading] = useState(true);
   const [centerName, setCenterName] = useState("AutoCare Nasr City");
   const [ownerName, setOwnerName] = useState("Mohamed Hassan");
+
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState("");
+  const [selectedClientName, setSelectedClientName] = useState("");
+  const [invoiceItems, setInvoiceItems] = useState([{ description: "", unitPrice: "", quantity: "1" }]);
+  const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     getMe()
@@ -141,20 +185,21 @@ export default function BookingRequestsPage() {
       })
       .catch(() => {});
 
-    const fetchBookings = async () => {
-      setLoading(true);
-      try {
-        const res = await bookingService.getServiceCenterBookings();
-        setRequests(getBookingItems(res));
-      } catch (error) {
-        console.error("Failed to load bookings:", error);
-        setRequests([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchBookings();
   }, []);
+
+  const fetchBookings = async () => {
+    setLoading(true);
+    try {
+      const res = await bookingService.getServiceCenterBookings();
+      setRequests(getBookingItems(res));
+    } catch (error) {
+      console.error("Failed to load bookings:", error);
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRequestStatus = (r) => r?.status ?? r?.Status ?? "Pending";
   const getRequestId = (r) => r?.id ?? r?.Id;
@@ -185,12 +230,74 @@ export default function BookingRequestsPage() {
     }
   };
 
+  const handleOpenInvoiceModal = (bookingId, clientName) => {
+    setSelectedBookingId(bookingId);
+    setSelectedClientName(clientName);
+    setInvoiceItems([{ description: "", unitPrice: "", quantity: "1" }]);
+    setInvoiceNotes("");
+    setShowInvoiceModal(true);
+  };
+
+  const handleAddInvoiceItem = () => {
+    setInvoiceItems(prev => [...prev, { description: "", unitPrice: "", quantity: "1" }]);
+  };
+
+  const handleRemoveInvoiceItem = (index) => {
+    setInvoiceItems(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    setInvoiceItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  };
+
+  const handleIssueInvoice = async (e) => {
+    e.preventDefault();
+    const items = invoiceItems.map(item => ({
+      description: item.description,
+      unitPrice: parseFloat(item.unitPrice) || 0,
+      quantity: parseInt(item.quantity, 10) || 1
+    })).filter(i => i.description.trim());
+
+    if (items.length === 0) {
+      alert("Please add at least one valid invoice item.");
+      return;
+    }
+
+    try {
+      const res = await paymentService.createInvoice({
+        bookingId: selectedBookingId,
+        items,
+        notes: invoiceNotes
+      });
+      if (res.success) {
+        alert("Invoice issued successfully!");
+        setShowInvoiceModal(false);
+        setUpdateTrigger(prev => prev + 1);
+      } else {
+        alert("Failed to create invoice: " + res.message);
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  const handleConfirmCash = async (invoiceId) => {
+    try {
+      const res = await paymentService.confirmCashReceived(invoiceId);
+      if (res.success) {
+        alert("Cash payment confirmed successfully!");
+        setUpdateTrigger(prev => prev + 1);
+      } else {
+        alert("Failed to confirm cash: " + res.message);
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
 
   const filteredRequests = requests.filter(
     (r) => filter === "All" || getRequestStatus(r) === filter
   );
-
-  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     const closeDropdown = () => setDropdownOpen(false);
@@ -275,6 +382,9 @@ export default function BookingRequestsPage() {
                   onConfirm={handleConfirm}
                   onDecline={handleDecline}
                   onCancel={handleDecline}
+                  onCreateInvoice={handleOpenInvoiceModal}
+                  onConfirmCash={handleConfirmCash}
+                  updateTrigger={updateTrigger}
                 />
               ))
             )}
@@ -288,6 +398,98 @@ export default function BookingRequestsPage() {
           </div>
         </main>
       </div>
+
+      {showInvoiceModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 2000, padding: "20px"
+        }}>
+          <div style={{
+            background: "#ffffff", borderRadius: "24px", width: "100%", maxWidth: "600px",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.15)", padding: "40px", position: "relative",
+            maxHeight: "90vh", overflowY: "auto"
+          }}>
+            <h2 style={{ fontSize: "22px", fontWeight: 900, marginBottom: "8px" }}>Issue Invoice</h2>
+            <p style={{ fontSize: "14px", color: COLORS.textLight, marginBottom: "30px" }}>
+              Client: <strong>{selectedClientName}</strong>
+            </p>
+
+            <form onSubmit={handleIssueInvoice} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "8px", borderBottom: `1px solid ${COLORS.border}` }}>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: COLORS.textLight }}>INVOICE LINE ITEMS</span>
+                  <button type="button" onClick={handleAddInvoiceItem} style={{ background: "transparent", color: COLORS.primary, border: "none", fontSize: "13px", fontWeight: 800, cursor: "pointer" }}>
+                    + Add Item
+                  </button>
+                </div>
+
+                {invoiceItems.map((item, idx) => (
+                  <div key={idx} style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <input
+                      placeholder="e.g. Engine Oil 5W-30"
+                      value={item.description}
+                      onChange={(e) => handleItemChange(idx, "description", e.target.value)}
+                      required
+                      style={{ flex: 3, padding: "10px 14px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, fontSize: "13.5px" }}
+                    />
+                    <input
+                      placeholder="Price"
+                      type="number"
+                      min="1"
+                      value={item.unitPrice}
+                      onChange={(e) => handleItemChange(idx, "unitPrice", e.target.value)}
+                      required
+                      style={{ flex: 1.2, padding: "10px 14px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, fontSize: "13.5px" }}
+                    />
+                    <input
+                      placeholder="Qty"
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
+                      required
+                      style={{ flex: 0.8, padding: "10px 14px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, fontSize: "13.5px" }}
+                    />
+                    {invoiceItems.length > 1 && (
+                      <button type="button" onClick={() => handleRemoveInvoiceItem(idx)} style={{ background: "transparent", border: "none", color: COLORS.primary, fontSize: "15px", cursor: "pointer", padding: "5px" }}>
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 800, color: COLORS.textLight }}>Additional Notes / Summary</label>
+                <textarea
+                  placeholder="Spare parts specifications, work warranty details, etc."
+                  value={invoiceNotes}
+                  onChange={(e) => setInvoiceNotes(e.target.value)}
+                  rows={2}
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, fontSize: "13.5px", resize: "none" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", background: COLORS.bg, borderRadius: "12px", marginTop: "10px" }}>
+                <span style={{ fontSize: "14px", fontWeight: 700, color: COLORS.textLight }}>TOTAL AMOUNT</span>
+                <span style={{ fontSize: "18px", fontWeight: 900, color: COLORS.primary }}>
+                  EGP {invoiceItems.reduce((sum, item) => sum + ((parseFloat(item.unitPrice) || 0) * (parseInt(item.quantity, 10) || 1)), 0)}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+                <button type="submit" style={{ flex: 2, background: COLORS.primary, color: "#fff", border: "none", padding: "12px", borderRadius: "10px", fontSize: "14px", fontWeight: 800, cursor: "pointer" }}>
+                  Issue Invoice
+                </button>
+                <button type="button" onClick={() => setShowInvoiceModal(false)} style={{ flex: 1, background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "12px", borderRadius: "10px", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

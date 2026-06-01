@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBookingById } from "../../../src/API/bookingsService";
+import { paymentService } from "../../../lib/api/paymentService";
 
 const STATUS_STYLES = {
   Pending:   { background: "#FFF8E1", color: "#F9A825", border: "1px solid #FFE082" },
@@ -56,6 +57,7 @@ export default function BookingDetailsPage() {
   const bookingId = searchParams.get("id");
 
   const [booking, setBooking] = useState(null);
+  const [invoice, setInvoice] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -66,7 +68,16 @@ export default function BookingDetailsPage() {
 
     getBookingById(bookingId)
       .then((response) => {
-        setBooking(response.data);
+        const b = response.data;
+        setBooking(b);
+        if (b) {
+          paymentService.getInvoiceForBooking(bookingId)
+            .then(res => {
+              if (res.success && res.data) {
+                setInvoice(res.data);
+              }
+            }).catch(() => {});
+        }
       })
       .catch((error) => {
         console.error("Booking not found:", error);
@@ -358,6 +369,39 @@ export default function BookingDetailsPage() {
             }
           />
         </div>
+
+        {invoice && (
+          <div className="section-card">
+            <div className="section-title">Billing & Invoice</div>
+            <DetailRow label="Invoice Subtotal" value={`EGP ${invoice.totalAmount}`} />
+            <DetailRow label="Total Amount Due" value={`EGP ${invoice.totalAmount}`} />
+            <DetailRow label="Invoice Status" value={
+              invoice.status === "Paid" ? "Paid" : 
+              (invoice.status === "Pending" ? "Unpaid" : 
+              (invoice.status === "AwaitingCashConfirmation" ? "Awaiting Cash Desk Confirmation" : invoice.status))
+            } />
+            
+            {invoice.status === "Pending" && (
+              <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid #F5F5F5" }}>
+                <Link href={`/user-dashboard?payBookingId=${booking.id}`} style={{
+                  display: "block",
+                  width: "100%",
+                  padding: "14px",
+                  background: "#2E7D32",
+                  color: "#fff",
+                  textAlign: "center",
+                  borderRadius: "12px",
+                  fontWeight: "800",
+                  textDecoration: "none",
+                  fontSize: "14px",
+                  boxShadow: "0 4px 12px rgba(46, 125, 50, 0.15)"
+                }}>
+                  Pay Outstanding Invoice Now
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         {booking.status === "Cancelled" && booking.cancellationReason && (
           <div className="section-card">

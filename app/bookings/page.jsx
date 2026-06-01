@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAllBookings } from "../../src/API/bookingsService";
+import { paymentService } from "../../lib/api/paymentService";
 
 const STATUS_TABS = ["All", "Pending", "Confirmed", "InProgress", "Completed", "Cancelled"];
 
@@ -30,6 +31,17 @@ function BookingCard({ booking }) {
   const statusStyle = STATUS_STYLES[booking.status] || STATUS_STYLES.Pending;
   const isCancellable = booking.status === "Pending" || booking.status === "Confirmed";
   const displayStatus = booking.status === "InProgress" ? "In Progress" : booking.status;
+
+  const [invoice, setInvoice] = useState(null);
+
+  useEffect(() => {
+    paymentService.getInvoiceForBooking(booking.id || booking.Id)
+      .then(res => {
+        if (res.success && res.data) {
+          setInvoice(res.data);
+        }
+      }).catch(() => {});
+  }, [booking.id, booking.status]);
 
   return (
     <div className="booking-card">
@@ -67,14 +79,46 @@ function BookingCard({ booking }) {
             )}
           </span>
         </div>
+        {invoice && (
+          <div className="info-row invoice-row" style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed #E0E0E0" }}>
+            <span className="info-label">Invoice Status</span>
+            <span className="info-value" style={{ 
+              fontWeight: 800,
+              color: invoice.status === "Paid" ? "#2E7D32" : (invoice.status === "Pending" ? "#E8192C" : "#F9A825")
+            }}>
+              EGP {invoice.totalAmount} • {
+                invoice.status === "Paid" ? "Paid" : 
+                (invoice.status === "Pending" ? "Unpaid" : 
+                (invoice.status === "AwaitingCashConfirmation" ? "Awaiting Cash" : invoice.status))
+              }
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="card-footer">
-        <Link href={`/bookings/details?id=${booking.id}`} className="btn-details">
+      <div className="card-footer" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+        <Link href={`/bookings/details?id=${booking.id}`} className="btn-details" style={{ flex: 1, minWidth: "100px" }}>
           View Details
         </Link>
+        {invoice && invoice.status === "Pending" && (
+          <Link href={`/user-dashboard?payBookingId=${booking.id}`} className="btn-pay-link" style={{
+            flex: 1,
+            minWidth: "100px",
+            padding: "10px 0",
+            background: "#2E7D32",
+            color: "#fff",
+            textAlign: "center",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: "700",
+            textDecoration: "none",
+            transition: "background 0.2s"
+          }}>
+            Pay Invoice
+          </Link>
+        )}
         {isCancellable && (
-          <Link href={`/bookings/cancel?id=${booking.id}`} className="btn-cancel-link">
+          <Link href={`/bookings/cancel?id=${booking.id}`} className="btn-cancel-link" style={{ flex: 0.5, textAlign: "center" }}>
             Cancel
           </Link>
         )}
