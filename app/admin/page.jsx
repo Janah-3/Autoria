@@ -10,6 +10,7 @@ import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceC
 import { sparePartsService } from "@/lib/sparePartsService";
 import { reportsService } from "@/lib/api/reportsService";
 import { contactUsService } from "@/lib/api/contactUsService";
+import { paymentService } from "@/lib/api/paymentService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -135,6 +136,19 @@ export default function AdminDashboard() {
   const [verificationQueue, setVerificationQueue] = useState([]);
 
   const [metrics, setMetrics] = useState(null);
+
+  // Payments & Revenue State Hooks
+  const [paymentsList, setPaymentsList] = useState([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
+  const [paymentsError, setPaymentsError] = useState("");
+  const [paymentsStats, setPaymentsStats] = useState(null);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [submittingRefund, setSubmittingRefund] = useState(false);
+  const [paymentsMethodFilter, setPaymentsMethodFilter] = useState("all");
+  const [paymentsStatusFilter, setPaymentsStatusFilter] = useState("all");
+  const [paymentsSearch, setPaymentsSearch] = useState("");
 
   const fetchPendingCenters = () => {
     serviceCentersService.getPending()
@@ -334,6 +348,52 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchPaymentsData = () => {
+    if (!currentUser || currentUser.role !== "Admin") return;
+    setPaymentsLoading(true);
+    setPaymentsError("");
+    Promise.all([
+      paymentService.adminGetStats(),
+      paymentService.adminGetAllTransactions()
+    ]).then(([statsRes, txRes]) => {
+      if (statsRes && statsRes.success) {
+        setPaymentsStats(statsRes.data);
+      }
+      if (txRes && txRes.success) {
+        setPaymentsList(txRes.data.items || txRes.data || []);
+      }
+    }).catch((err) => {
+      console.error("Failed to fetch payments data:", err);
+      setPaymentsError(err.message || "Failed to load payment ledgers");
+    }).finally(() => {
+      setPaymentsLoading(false);
+    });
+  };
+
+  const handleRefund = async (invoiceId, reason) => {
+    if (!reason || !reason.trim()) {
+      alert("Please enter a valid reason for the refund.");
+      return;
+    }
+    setSubmittingRefund(true);
+    try {
+      const res = await paymentService.adminRefund(invoiceId, reason);
+      if (res.success) {
+        alert("Refund processed successfully!");
+        setShowRefundModal(false);
+        setRefundReason("");
+        setSelectedPayment(null);
+        fetchPaymentsData();
+      } else {
+        alert("Failed to process refund: " + res.message);
+      }
+    } catch (err) {
+      alert("Error processing refund: " + err.message);
+    } finally {
+      setSubmittingRefund(false);
+    }
+  };
+
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
       fetchPendingCenters();
@@ -356,6 +416,12 @@ export default function AdminDashboard() {
       fetchContactMessages();
     }
   }, [contactMessagesFilter]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "Admin" && activeTab === "Payments & Revenue") {
+      fetchPaymentsData();
+    }
+  }, [currentUser, activeTab]);
 
   const handleApprove = async (id) => {
     try {
@@ -633,30 +699,8 @@ export default function AdminDashboard() {
               justifyContent: "space-between",
               alignItems: "center"
             }}>
-              {/* Subtle abstract background graphics */}
-              <div style={{
-                position: "absolute",
-                top: "-20%",
-                right: "-10%",
-                width: "300px",
-                height: "300px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.05)",
-                pointerEvents: "none"
-              }} />
-              <div style={{
-                position: "absolute",
-                bottom: "-30%",
-                right: "10%",
-                width: "200px",
-                height: "200px",
-                borderRadius: "50%",
-                background: "rgba(255, 255, 255, 0.03)",
-                pointerEvents: "none"
-              }} />
-
               <div style={{ position: "relative", zIndex: 1 }}>
-                <h2 style={{ fontSize: "28px", fontWeight: 900, margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>Welcome Back, {adminName || "Admin"}! 👋</h2>
+                <h2 style={{ fontSize: "28px", fontWeight: 900, margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>Welcome Back, {adminName || "Admin"}!</h2>
                 <p style={{ fontSize: "15px", opacity: 0.9, margin: 0, maxWidth: "600px", lineHeight: "1.6" }}>
                   Here is what's happening on Autoria today. You have <strong style={{ textDecoration: "underline" }}>{verificationQueue.length} pending service centers</strong> waiting for verification. Keep the directory verified and pristine!
                 </p>
@@ -709,7 +753,7 @@ export default function AdminDashboard() {
                   })}
                   {urgentReportsList.length === 0 && (
                     <div style={{ padding: "20px", textAlign: "center", color: COLORS.textLight, fontSize: "13px" }}>
-                      ✅ No pending reports at the moment.
+                      <i className="fa-solid fa-circle-check" style={{ color: COLORS.success, marginRight: "6px" }}></i> No pending reports at the moment.
                     </div>
                   )}
                 </div>
@@ -748,7 +792,7 @@ export default function AdminDashboard() {
                     {verificationQueue.length === 0 && (
                       <tr>
                         <td colSpan="3" style={{ padding: "30px", textAlign: "center", color: COLORS.textLight, fontSize: "13px" }}>
-                          ✅ No pending service centers to verify.
+                          <i className="fa-solid fa-circle-check" style={{ color: COLORS.success, marginRight: "6px" }}></i> No pending service centers to verify.
                         </td>
                       </tr>
                     )}
@@ -802,7 +846,7 @@ export default function AdminDashboard() {
 
             {reportsError && (
               <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
-                ⚠️ Error: {reportsError}
+                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> Error: {reportsError}
               </div>
             )}
 
@@ -887,7 +931,7 @@ export default function AdminDashboard() {
                     }).length === 0 && (
                       <tr>
                         <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>🚩</div>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-flag"></i></div>
                           <div style={{ fontWeight: 800 }}>No reports found</div>
                           <div style={{ fontSize: "12px" }}>There are no {reportsStatusFilter.toLowerCase()} reports at this moment.</div>
                         </td>
@@ -1063,7 +1107,7 @@ export default function AdminDashboard() {
                     {centerVerificationFilter === "Pending" && verificationQueue.length === 0 && (
                       <tr>
                         <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>✅</div>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.success }}><i className="fa-solid fa-circle-check"></i></div>
                           <div style={{ fontWeight: 800 }}>No pending requests</div>
                           <div style={{ fontSize: "12px" }}>All service center registrations have been processed.</div>
                         </td>
@@ -1073,7 +1117,7 @@ export default function AdminDashboard() {
                     {centerVerificationFilter === "Verified" && centersList.filter(c => c.approvalStatus === 1 || c.approvalStatus === "Approved" || c.ApprovalStatus === 1 || c.ApprovalStatus === "Approved").length === 0 && (
                       <tr>
                         <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>🛡️</div>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.primary }}><i className="fa-solid fa-shield-halved"></i></div>
                           <div style={{ fontWeight: 800 }}>No verified centers yet</div>
                           <div style={{ fontSize: "12px" }}>Approved centers will appear in this list.</div>
                         </td>
@@ -1083,7 +1127,7 @@ export default function AdminDashboard() {
                     {centerVerificationFilter === "Rejected" && centersList.filter(c => c.approvalStatus === 2 || c.approvalStatus === "Rejected" || c.ApprovalStatus === 2 || c.ApprovalStatus === "Rejected").length === 0 && (
                       <tr>
                         <td colSpan="5" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>🚩</div>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-flag"></i></div>
                           <div style={{ fontWeight: 800 }}>No rejected centers</div>
                           <div style={{ fontSize: "12px" }}>Suspended or rejected centers will appear in this list.</div>
                         </td>
@@ -1095,7 +1139,7 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ background: "#F1F5F9", padding: "16px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={{ fontSize: "20px" }}>ℹ️</div>
+              <div style={{ fontSize: "18px", color: "#2563EB" }}><i className="fa-solid fa-circle-info"></i></div>
               <div style={{ fontSize: "12px", color: "#475569", lineHeight: 1.5 }}>
                 <strong>Tip:</strong> You can verify the workshop's authenticity by checking their Trade License against the official government database before approving. 
                 Approved centers will gain the <span style={{ color: COLORS.primary, fontWeight: 700 }}>"Verified"</span> badge on their profile.
@@ -1172,7 +1216,7 @@ export default function AdminDashboard() {
 
             {usersError && (
               <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
-                ⚠️ Error: {usersError}
+                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> Error: {usersError}
               </div>
             )}
 
@@ -1294,7 +1338,7 @@ export default function AdminDashboard() {
                     {usersList.length === 0 && (
                       <tr>
                         <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>👥</div>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-users"></i></div>
                           <div style={{ fontWeight: 800 }}>No users found</div>
                           <div style={{ fontSize: "12px" }}>Try adjusting your search query or filters.</div>
                         </td>
@@ -1372,7 +1416,7 @@ export default function AdminDashboard() {
              {/* Error notification */}
              {sparePartsError && (
                <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
-                 ⚠️ Error: {sparePartsError}
+                 <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> Error: {sparePartsError}
                </div>
              )}
 
@@ -1403,7 +1447,7 @@ export default function AdminDashboard() {
                              {part.thumbnailUrl ? (
                                <img src={part.thumbnailUrl} alt={part.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                              ) : (
-                               <span style={{ fontSize: "18px" }}>📦</span>
+                               <span style={{ fontSize: "16px", color: COLORS.textLight }}><i className="fa-solid fa-cube"></i></span>
                              )}
                            </div>
                            <div>
@@ -1438,7 +1482,7 @@ export default function AdminDashboard() {
                      {sparePartsList.length === 0 && (
                        <tr>
                          <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                           <div style={{ fontSize: "40px", marginBottom: "10px" }}>📦</div>
+                           <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-cubes"></i></div>
                            <div style={{ fontWeight: 800 }}>No parts found in platform catalog</div>
                            <div style={{ fontSize: "12px" }}>Create one by clicking the "Add Spare Part" button above.</div>
                          </td>
@@ -1688,7 +1732,7 @@ export default function AdminDashboard() {
 
             {contactMessagesError && (
               <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
-                ⚠️ Error: {contactMessagesError}
+                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> Error: {contactMessagesError}
               </div>
             )}
 
@@ -1776,9 +1820,246 @@ export default function AdminDashboard() {
                     {contactMessagesList.length === 0 && (
                       <tr>
                         <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                          <div style={{ fontSize: "40px", marginBottom: "10px" }}>✉️</div>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-envelope"></i></div>
                           <div style={{ fontWeight: 800 }}>No messages found</div>
                           <div style={{ fontSize: "12px" }}>There are no {contactMessagesFilter} support inquiries currently.</div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Payments & Revenue View */}
+        {activeTab === "Payments & Revenue" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>
+              Audit financial transactions, track platform service revenue, and issue customer refunds.
+            </p>
+
+            {paymentsStats && (
+              <div style={{ display: "flex", gap: "20px" }}>
+                <StatCard 
+                  label="Platform Revenue" 
+                  value={`EGP ${(paymentsStats.totalRevenue || 0).toLocaleString()}`} 
+                  trend="Gross platform intake" 
+                  trendUp={true} 
+                />
+                <StatCard 
+                  label="Completed Payments" 
+                  value={String(paymentsStats.completedCount || 0)} 
+                  trend="Settled invoices" 
+                  trendUp={true} 
+                />
+                <StatCard 
+                  label="Avg. Invoice Amount" 
+                  value={`EGP ${paymentsStats.completedCount > 0 ? Math.round(paymentsStats.totalRevenue / paymentsStats.completedCount).toLocaleString() : "0"}`} 
+                  trend="Average basket size" 
+                />
+                <div style={{ background: COLORS.white, borderRadius: "16px", padding: "20px", border: `1px solid ${COLORS.border}`, flex: 1, boxShadow: SHADOW, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                  <div style={{ color: COLORS.textLight, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>Revenue Shares</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 700 }}>
+                      <span style={{ color: "#2563EB" }}><i className="fa-solid fa-credit-card" style={{ marginRight: "6px" }}></i> Visa Card</span>
+                      <span>EGP {(paymentsStats.visaRevenue || 0).toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 700 }}>
+                      <span style={{ color: COLORS.success }}><i className="fa-solid fa-money-bill-wave" style={{ marginRight: "6px" }}></i> Cash Desk</span>
+                      <span>EGP {(paymentsStats.cashRevenue || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Filter controls */}
+            <div style={{ display: "flex", gap: "12px", background: COLORS.white, padding: "16px", borderRadius: "12px", border: `1px solid ${COLORS.border}`, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "200px" }}>
+                <input 
+                  type="text"
+                  placeholder="Search ledger by client, email, or workshop..." 
+                  value={paymentsSearch}
+                  onChange={(e) => setPaymentsSearch(e.target.value)}
+                  style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px" }} 
+                />
+              </div>
+
+              <div style={{ minWidth: "150px" }}>
+                <select 
+                  value={paymentsMethodFilter}
+                  onChange={(e) => setPaymentsMethodFilter(e.target.value)}
+                  style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px", background: "#fff" }}
+                >
+                  <option value="all">All Methods</option>
+                  <option value="Visa">Visa Card</option>
+                  <option value="Cash">Cash desk</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", gap: "6px" }}>
+                {[
+                  { value: "all", label: "All Statuses" },
+                  { value: "Completed", label: "Completed" },
+                  { value: "Pending", label: "Pending" },
+                  { value: "Refunded", label: "Refunded" }
+                ].map(tab => (
+                  <button 
+                    key={tab.value}
+                    onClick={() => setPaymentsStatusFilter(tab.value)}
+                    style={{ 
+                      background: paymentsStatusFilter === tab.value ? "#FFF1F1" : "#fff", 
+                      color: paymentsStatusFilter === tab.value ? COLORS.primary : COLORS.textLight, 
+                      border: `1px solid ${paymentsStatusFilter === tab.value ? COLORS.primary : COLORS.border}`, 
+                      padding: "8px 16px", 
+                      borderRadius: "20px", 
+                      fontSize: "13px", 
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {paymentsError && (
+              <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
+                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> Error: {paymentsError}
+              </div>
+            )}
+
+            <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden", boxShadow: SHADOW }}>
+              {paymentsLoading ? (
+                <div style={{ padding: "60px", textAlign: "center" }}>
+                  <div style={{ width: 30, height: 30, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 16px" }} />
+                  <div style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading financial ledger...</div>
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead style={{ background: COLORS.bg }}>
+                    <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
+                      <th style={{ padding: "16px 24px" }}>TRANSACTION ID</th>
+                      <th style={{ padding: "16px 24px" }}>CLIENT / PAYEE</th>
+                      <th style={{ padding: "16px 24px" }}>SERVICE CENTER</th>
+                      <th style={{ padding: "16px 24px" }}>METHOD</th>
+                      <th style={{ padding: "16px 24px" }}>AMOUNT</th>
+                      <th style={{ padding: "16px 24px" }}>DATE</th>
+                      <th style={{ padding: "16px 24px" }}>STATUS</th>
+                      <th style={{ padding: "16px 24px", textAlign: "right" }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentsList
+                      .filter(tx => {
+                        // Status filter
+                        if (paymentsStatusFilter !== "all") {
+                          if (paymentsStatusFilter === "Completed" && tx.status !== "Completed") return false;
+                          if (paymentsStatusFilter === "Pending" && tx.status !== "Pending") return false;
+                          if (paymentsStatusFilter === "Refunded" && tx.status !== "Refunded") return false;
+                        }
+                        // Method filter
+                        if (paymentsMethodFilter !== "all" && tx.method !== paymentsMethodFilter) return false;
+                        // Search query filter
+                        if (paymentsSearch) {
+                          const query = paymentsSearch.toLowerCase();
+                          const matchClient = (tx.clientName || "").toLowerCase().includes(query) || (tx.clientEmail || "").toLowerCase().includes(query);
+                          const matchCenter = (tx.serviceCenterName || "").toLowerCase().includes(query);
+                          const matchId = (tx.id || "").toLowerCase().includes(query) || (tx.invoiceId || "").toLowerCase().includes(query);
+                          return matchClient || matchCenter || matchId;
+                        }
+                        return true;
+                      })
+                      .map(tx => {
+                        const isVisa = tx.method === "Visa";
+                        const formattedDate = tx.createdAt ? new Date(tx.createdAt).toLocaleDateString() : "—";
+                        return (
+                          <tr key={tx.id} style={{ borderTop: `1px solid ${COLORS.border}`, transition: "background 0.2s" }}>
+                            <td style={{ padding: "16px 24px" }}>
+                              <div style={{ fontSize: "13px", fontWeight: 800, fontFamily: "monospace" }}>{tx.id || "tx-unknown"}</div>
+                              <div style={{ fontSize: "10px", color: COLORS.textLight }}>Inv: {tx.invoiceId || "—"}</div>
+                            </td>
+                            <td style={{ padding: "16px 24px" }}>
+                              <div style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{tx.clientName || "Platform User"}</div>
+                              <div style={{ fontSize: "11px", color: COLORS.textLight }}>{tx.clientEmail || "—"}</div>
+                            </td>
+                            <td style={{ padding: "16px 24px", fontSize: "13.5px", fontWeight: 600 }}>{tx.serviceCenterName || "AutoCare Workshop"}</td>
+                            <td style={{ padding: "16px 24px" }}>
+                              <span style={{ 
+                                display: "inline-flex", 
+                                alignItems: "center", 
+                                gap: "4px",
+                                fontSize: "12px", 
+                                fontWeight: 700,
+                                color: isVisa ? "#2563EB" : COLORS.success
+                              }}>
+                                {isVisa ? (
+                                  <>
+                                    <i className="fa-solid fa-credit-card" style={{ marginRight: "4px" }}></i> Visa
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="fa-solid fa-money-bill-wave" style={{ marginRight: "4px" }}></i> Cash
+                                  </>
+                                )}
+                              </span>
+                            </td>
+                            <td style={{ padding: "16px 24px", fontSize: "14px", fontWeight: 900, color: COLORS.text }}>
+                              EGP {(tx.amount || 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: "16px 24px", fontSize: "12px", color: COLORS.textLight }}>
+                              {formattedDate}
+                            </td>
+                            <td style={{ padding: "16px 24px" }}>
+                              <span style={{ 
+                                color: tx.status === "Completed" ? COLORS.success : (tx.status === "Pending" ? COLORS.warning : COLORS.textLight), 
+                                background: tx.status === "Completed" ? "#E8F5E9" : (tx.status === "Pending" ? "#FFF8E1" : "#F1F5F9"), 
+                                padding: "4px 8px", 
+                                borderRadius: "4px", 
+                                fontSize: "11px", 
+                                fontWeight: 800 
+                              }}>
+                                {tx.status === "Completed" ? "Completed" : (tx.status === "Pending" ? "Pending Approval" : tx.status)}
+                              </span>
+                            </td>
+                            <td style={{ padding: "16px 24px", textAlign: "right" }}>
+                              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                                {tx.status === "Completed" && (
+                                  <button 
+                                    onClick={() => {
+                                      setSelectedPayment(tx);
+                                      setRefundReason("");
+                                      setShowRefundModal(true);
+                                    }}
+                                    className="admin-btn" 
+                                    style={{ 
+                                      background: "#FFF1F1", 
+                                      border: `1px solid ${COLORS.primary}`, 
+                                      color: COLORS.primary, 
+                                      padding: "6px 12px", 
+                                      borderRadius: "6px", 
+                                      fontSize: "11px", 
+                                      fontWeight: 800, 
+                                      cursor: "pointer" 
+                                    }}
+                                  >
+                                    Review & Refund
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {paymentsList.length === 0 && (
+                      <tr>
+                        <td colSpan="8" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-credit-card"></i></div>
+                          <div style={{ fontWeight: 800 }}>No payments or receipts registered</div>
+                          <div style={{ fontSize: "12px" }}>No transactions match your current query or filters.</div>
                         </td>
                       </tr>
                     )}
@@ -1794,7 +2075,9 @@ export default function AdminDashboard() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
           <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "600px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>🚩 Report Moderation Details</h3>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>
+                <i className="fa-solid fa-flag" style={{ color: COLORS.primary, marginRight: "10px" }}></i> Report Moderation Details
+              </h3>
               <button 
                 onClick={() => setShowReportModal(false)}
                 style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
@@ -1924,7 +2207,9 @@ export default function AdminDashboard() {
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
           <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "600px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>✉️ Support Inquiry Details</h3>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>
+                <i className="fa-solid fa-envelope" style={{ color: COLORS.primary, marginRight: "10px" }}></i> Support Inquiry Details
+              </h3>
               <button 
                 onClick={() => setShowContactMessageModal(false)}
                 style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
@@ -2039,7 +2324,9 @@ export default function AdminDashboard() {
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
             <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "750px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
-                <h3 style={{ fontSize: "18px", fontWeight: 850, color: COLORS.text, margin: 0 }}>🛡️ Service Center Verification Request</h3>
+                <h3 style={{ fontSize: "18px", fontWeight: 850, color: COLORS.text, margin: 0 }}>
+                  <i className="fa-solid fa-shield-halved" style={{ color: COLORS.primary, marginRight: "10px" }}></i> Service Center Verification Request
+                </h3>
                 <button 
                   onClick={() => setShowPendingCenterModal(false)}
                   style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
@@ -2133,10 +2420,12 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: "11.5px", fontWeight: 800, color: COLORS.text }}>Commercial Registry</div>
                       {commercialRegUrl ? (
                         <a href={commercialRegUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: COLORS.primary, fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
-                          📄 View Document →
+                          <i className="fa-solid fa-file-invoice" style={{ marginRight: "4px" }}></i> View Document →
                         </a>
                       ) : (
-                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>⚠️ File Missing</span>
+                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>
+                          <i className="fa-solid fa-circle-exclamation" style={{ marginRight: "4px" }}></i> File Missing
+                        </span>
                       )}
                     </div>
 
@@ -2145,10 +2434,12 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: "11.5px", fontWeight: 800, color: COLORS.text }}>Tax Card ID</div>
                       {taxCardUrl ? (
                         <a href={taxCardUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: COLORS.primary, fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
-                          📄 View Document →
+                          <i className="fa-solid fa-file-invoice" style={{ marginRight: "4px" }}></i> View Document →
                         </a>
                       ) : (
-                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>⚠️ File Missing</span>
+                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>
+                          <i className="fa-solid fa-circle-exclamation" style={{ marginRight: "4px" }}></i> File Missing
+                        </span>
                       )}
                     </div>
 
@@ -2157,10 +2448,12 @@ export default function AdminDashboard() {
                       <div style={{ fontSize: "11.5px", fontWeight: 800, color: COLORS.text }}>Owner National ID</div>
                       {nationalIdUrl ? (
                         <a href={nationalIdUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", color: COLORS.primary, fontSize: "12px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
-                          📄 View Document →
+                          <i className="fa-solid fa-file-invoice" style={{ marginRight: "4px" }}></i> View Document →
                         </a>
                       ) : (
-                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>⚠️ File Missing</span>
+                        <span style={{ color: COLORS.primary, fontSize: "11px", fontWeight: 700 }}>
+                          <i className="fa-solid fa-circle-exclamation" style={{ marginRight: "4px" }}></i> File Missing
+                        </span>
                       )}
                     </div>
                   </div>
@@ -2202,6 +2495,84 @@ export default function AdminDashboard() {
           </div>
         );
       })()}
+
+      {/* Platform Refund drawer overlay */}
+      {showRefundModal && selectedPayment && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "550px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>💸 Issue Financial Refund</h3>
+              <button 
+                onClick={() => { setShowRefundModal(false); setSelectedPayment(null); }}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ background: "linear-gradient(135deg, #FFF5F5 0%, #FFF1F1 100%)", padding: "16px", borderRadius: "12px", border: `1.5px solid #FFDCDC` }}>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.primary, textTransform: "uppercase", letterSpacing: "0.5px" }}>Transaction Amount</div>
+                <div style={{ fontSize: "24px", fontWeight: 900, color: COLORS.text, marginTop: "4px" }}>EGP {(selectedPayment.amount || 0).toLocaleString()}</div>
+                <div style={{ fontSize: "11px", color: COLORS.textLight, marginTop: "4px" }}>Invoice ID: {selectedPayment.invoiceId}</div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: COLORS.bg, padding: "16px", borderRadius: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Client Details</div>
+                  <div style={{ fontSize: "13.5px", fontWeight: 800 }}>{selectedPayment.clientName}</div>
+                  <div style={{ fontSize: "10.5px", color: COLORS.textLight }}>{selectedPayment.clientEmail}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Service Provider</div>
+                  <div style={{ fontSize: "13.5px", fontWeight: 700 }}>{selectedPayment.serviceCenterName}</div>
+                  <div style={{ fontSize: "10.5px", color: COLORS.textLight }}>Method: {selectedPayment.method}</div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text }}>Reason for Refund</label>
+                <textarea 
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  placeholder="Enter explicit reason for issuing a customer refund (e.g., Client cancelled service, disputed parts charge)..."
+                  rows="3"
+                  style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", fontFamily: "inherit", width: "100%" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px", borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "20px", justifyContent: "flex-end" }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setShowRefundModal(false); setSelectedPayment(null); }}
+                  style={{ background: "#F1F5F9", border: `1px solid ${COLORS.border}`, color: "#475569", padding: "10px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  disabled={submittingRefund}
+                  onClick={() => handleRefund(selectedPayment.invoiceId, refundReason)}
+                  style={{ 
+                    background: "linear-gradient(135deg, #E8272A 0%, #B81C1F 100%)", 
+                    color: "#fff", 
+                    border: "none", 
+                    padding: "10px 24px", 
+                    borderRadius: "8px", 
+                    fontWeight: 800, 
+                    fontSize: "13px", 
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(232, 39, 42, 0.15)",
+                    opacity: submittingRefund ? 0.6 : 1
+                  }}
+                >
+                  {submittingRefund ? "Processing..." : "Issue Full Refund"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       </main>
     </div>
   );

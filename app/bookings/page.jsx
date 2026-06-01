@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAllBookings } from "../../src/API/bookingsService";
+import { paymentService } from "../../lib/api/paymentService";
 
-const STATUS_TABS = ["All", "Pending", "Confirmed", "Completed", "Cancelled"];
+const STATUS_TABS = ["All", "Pending", "Confirmed", "InProgress", "Completed", "Cancelled"];
 
 const STATUS_STYLES = {
   Pending:   { background: "#FFF8E1", color: "#F9A825", border: "1px solid #FFE082" },
   Confirmed: { background: "#E3F2FD", color: "#1565C0", border: "1px solid #BBDEFB" },
+  InProgress: { background: "#E8EAF6", color: "#3F51B5", border: "1px solid #C5CAE9" },
   Completed: { background: "#E8F5E9", color: "#2E7D32", border: "1px solid #C8E6C9" },
   Cancelled: { background: "#FAFAFA", color: "#9E9E9E", border: "1px solid #E0E0E0" },
 };
@@ -28,16 +30,30 @@ const CarIcon = () => (
 function BookingCard({ booking }) {
   const statusStyle = STATUS_STYLES[booking.status] || STATUS_STYLES.Pending;
   const isCancellable = booking.status === "Pending" || booking.status === "Confirmed";
+  const displayStatus = booking.status === "InProgress" ? "In Progress" : booking.status;
+
+  const [invoice, setInvoice] = useState(null);
+
+  useEffect(() => {
+    paymentService.getInvoiceForBooking(booking.id || booking.Id)
+      .then(res => {
+        if (res.success && res.data) {
+          setInvoice(res.data);
+        }
+      }).catch(() => {});
+  }, [booking.id, booking.status]);
 
   return (
     <div className="booking-card">
       <div className="card-header">
         <div>
           <div className="center-name">{booking.serviceCenter.name}</div>
-          <div className="center-address">{booking.serviceCenter.address}</div>
+          {booking.serviceCenter.address && (
+            <div className="center-address">{booking.serviceCenter.address}</div>
+          )}
         </div>
         <span className="status-badge" style={statusStyle}>
-          {booking.status}
+          {displayStatus}
         </span>
       </div>
 
@@ -56,17 +72,53 @@ function BookingCard({ booking }) {
           <span className="info-label">Vehicle</span>
           <span className="info-value car-value">
             <CarIcon />
-            {booking.car.make} {booking.car.model} &mdash; {booking.car.licensePlate}
+            {booking.car.make || booking.car.model ? (
+              `${booking.car.make} ${booking.car.model} — ${booking.car.licensePlate}`
+            ) : (
+              `Plate: ${booking.car.licensePlate}`
+            )}
           </span>
         </div>
+        {invoice && (
+          <div className="info-row invoice-row" style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed #E0E0E0" }}>
+            <span className="info-label">Invoice Status</span>
+            <span className="info-value" style={{ 
+              fontWeight: 800,
+              color: invoice.status === "Paid" ? "#2E7D32" : (invoice.status === "Pending" ? "#E8192C" : "#F9A825")
+            }}>
+              EGP {invoice.totalAmount} • {
+                invoice.status === "Paid" ? "Paid" : 
+                (invoice.status === "Pending" ? "Unpaid" : 
+                (invoice.status === "AwaitingCashConfirmation" ? "Awaiting Cash" : invoice.status))
+              }
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="card-footer">
-        <Link href={`/bookings/details?id=${booking.id}`} className="btn-details">
+      <div className="card-footer" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+        <Link href={`/bookings/details?id=${booking.id}`} className="btn-details" style={{ flex: 1, minWidth: "100px" }}>
           View Details
         </Link>
+        {invoice && invoice.status === "Pending" && (
+          <Link href={`/user-dashboard?payBookingId=${booking.id}`} className="btn-pay-link" style={{
+            flex: 1,
+            minWidth: "100px",
+            padding: "10px 0",
+            background: "#2E7D32",
+            color: "#fff",
+            textAlign: "center",
+            borderRadius: "8px",
+            fontSize: "13px",
+            fontWeight: "700",
+            textDecoration: "none",
+            transition: "background 0.2s"
+          }}>
+            Pay Invoice
+          </Link>
+        )}
         {isCancellable && (
-          <Link href={`/bookings/cancel?id=${booking.id}`} className="btn-cancel-link">
+          <Link href={`/bookings/cancel?id=${booking.id}`} className="btn-cancel-link" style={{ flex: 0.5, textAlign: "center" }}>
             Cancel
           </Link>
         )}
@@ -365,7 +417,7 @@ export default function BookingHistoryPage() {
               className={`tab-btn ${activeTab === tab ? "active" : ""}`}
               onClick={() => setActiveTab(tab)}
             >
-              {tab}
+              {tab === "InProgress" ? "In Progress" : tab}
             </button>
           ))}
         </div>

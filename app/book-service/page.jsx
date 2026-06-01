@@ -6,6 +6,7 @@ import { bookingsService } from "@/lib/api/bookingsService";
 import { getAllCars, getCarItems, getCarId } from "@/lib/api/carsService";
 import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
+import { lookupsService } from "@/lib/api/lookupsService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -81,7 +82,7 @@ export default function BookServicePage() {
           getAllCars(),
           serviceCentersService.getAll(),
           getMe().catch(() => null),
-          serviceCentersService.getServiceTypes().catch(() => []),
+          lookupsService.getServiceTypes().catch(() => serviceCentersService.getServiceTypes()),
         ]);
 
         if (cancelled) return;
@@ -543,20 +544,24 @@ export default function BookServicePage() {
           )}
 
           {step === 5 && (
-            <div className="step-content" style={{ textAlign: "center", padding: "20px 0" }}>
-              <h2 style={{ fontSize: "24px", fontWeight: 900, marginBottom: "12px" }}>Booking Confirmed!</h2>
-              <p style={{ color: COLORS.textLight, fontSize: "16px", lineHeight: 1.6, marginBottom: "30px" }}>
-                Your appointment has been successfully scheduled.
+            <div className="step-content" style={{ textAlign: "center", padding: "30px 0" }}>
+              <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+              <div style={{ marginBottom: "24px" }}>
+                <i className="fas fa-check-circle" style={{ fontSize: "80px", color: "#28A745" }}></i>
+              </div>
+              <h2 style={{ fontSize: "26px", fontWeight: 900, marginBottom: "12px" }}>Booking Confirmed!</h2>
+              <p style={{ color: COLORS.textLight, fontSize: "15px", lineHeight: 1.6, marginBottom: "30px", maxWidth: "400px", margin: "0 auto 30px" }}>
+                Your appointment has been successfully scheduled. We have informed the service center of your upcoming booking.
               </p>
               <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
-                  router.push("/");
+                  router.push("/user-dashboard");
                 }}
-                style={{ background: COLORS.primary, color: COLORS.white, border: "none", padding: "12px 30px", borderRadius: "12px", fontWeight: 700, cursor: "pointer" }}
+                style={{ background: COLORS.primary, color: COLORS.white, border: "none", padding: "14px 32px", borderRadius: "12px", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "opacity 0.2s" }}
               >
-                Back to Home
+                Go to Dashboard
               </button>
             </div>
           )}

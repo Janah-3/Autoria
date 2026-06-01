@@ -2,7 +2,35 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
+
+// Static lookups (match backend seed data)
+const ALL_SERVICE_TYPES = [
+  { id: "779E6B5C-FC46-4207-940F-3C79DA96BECA", name: "Oil Change" },
+  { id: "0D78B545-DBE7-4C47-9557-61677308178D", name: "Brakes Repair" },
+  { id: "f218b908-d6e5-4eef-925b-12cf5873af8f", name: "Suspension" },
+  { id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890", name: "AC Maintenance" },
+  { id: "b2c3d4e5-f6a7-8901-bcde-f12345678901", name: "Engine Diagnostics" },
+  { id: "c3d4e5f6-a7b8-9012-cdef-123456789012", name: "Tire Services" },
+  { id: "d4e5f6a7-b8c9-0123-defa-234567890123", name: "Electrical Systems" },
+  { id: "e5f6a7b8-c9d0-1234-efab-345678901234", name: "Body Work" },
+];
+
+const ALL_CAR_BRANDS = [
+  { id: "2DD8709F-DDFA-452C-A23B-1BCECD6CCFAE", name: "Toyota" },
+  { id: "3AA77C79-B11C-4455-9BC9-36B206BA5D0F", name: "Hyundai" },
+  { id: "4BB88D80-CC22-5566-AAD0-47C317CB6E1F", name: "Kia" },
+  { id: "5CC99E91-DD33-6677-BBE1-58D428DC7F2G", name: "Nissan" },
+  { id: "6DD00F02-EE44-7788-CCF2-69E539ED8030", name: "Honda" },
+  { id: "7EE11013-FF55-8899-DD03-70F64AFE9141", name: "BMW" },
+  { id: "8FF22124-0066-99AA-EE14-81077BFF0252", name: "Mercedes-Benz" },
+  { id: "9AA33235-1177-AABB-FF25-92188C001363", name: "Chevrolet" },
+  { id: "ABB44346-2288-BBCC-0036-A3299D112474", name: "Ford" },
+  { id: "BCC55457-3399-CCDD-1147-B430AE223585", name: "Mitsubishi" },
+  { id: "CDD66568-44AA-DDEE-2258-C541BF334696", name: "Suzuki" },
+  { id: "DEE77679-55BB-EEFF-3369-D652C0445707", name: "Volkswagen" },
+];
 
 export default function EditServiceCenterProfile() {
   const [activeTab, setActiveTab] = useState("general");
@@ -14,9 +42,9 @@ export default function EditServiceCenterProfile() {
   const [generalInfo, setGeneralInfo] = useState({
     name: "",
     established: "",
-    bays: "",
     description: "",
   });
+  const [centerId, setCenterId] = useState("");
 
   const [contactInfo, setContactInfo] = useState({
     phone: "",
@@ -31,11 +59,9 @@ export default function EditServiceCenterProfile() {
   const [scLng, setScLng] = useState("");
   const [scLocStatus, setScLocStatus] = useState(""); // "" | "capturing" | "captured" | "error"
 
-  const [services, setServices] = useState([]);
-  const [newService, setNewService] = useState("");
-
-  const [brands, setBrands] = useState([]);
-  const [newBrand, setNewBrand] = useState("");
+  // Selected IDs (sets for O(1) toggle)
+  const [selectedServiceIds, setSelectedServiceIds] = useState(new Set());
+  const [selectedBrandIds, setSelectedBrandIds] = useState(new Set());
 
   const [pricing, setPricing] = useState({
     min: "",
@@ -71,9 +97,9 @@ export default function EditServiceCenterProfile() {
         setGeneralInfo({
           name: d.name || "",
           established: String(d.yearEstablished || ""),
-          bays: String(d.numServiceBays || ""),
           description: d.description || "",
         });
+        setCenterId(d.id || d.Id || "");
         setContactInfo({
           phone: d.phone || "",
           whatsapp: d.phone || "",
@@ -88,8 +114,14 @@ export default function EditServiceCenterProfile() {
           setScLat(String(d.latitude));
           setScLng(String(d.longitude));
         }
-        setServices(d.serviceTypes || []);
-        setBrands(d.carBrands || []);
+        // serviceTypes / carBrands from API come as name strings — match against our static list to get IDs
+        const apiServiceNames = (d.serviceTypes || []).map(s => typeof s === 'string' ? s.toLowerCase() : (s.name || '').toLowerCase());
+        const apiServiceIds = ALL_SERVICE_TYPES.filter(st => apiServiceNames.includes(st.name.toLowerCase())).map(st => st.id);
+        setSelectedServiceIds(new Set(apiServiceIds));
+
+        const apiBrandNames = (d.carBrands || []).map(b => typeof b === 'string' ? b.toLowerCase() : (b.name || '').toLowerCase());
+        const apiBrandIds = ALL_CAR_BRANDS.filter(cb => apiBrandNames.includes(cb.name.toLowerCase())).map(cb => cb.id);
+        setSelectedBrandIds(new Set(apiBrandIds));
         if (d.photos?.length) {
           setPhotos(
             d.photos.map((url, i) => ({
@@ -135,9 +167,7 @@ export default function EditServiceCenterProfile() {
         name: generalInfo.name,
         phone: contactInfo.phone,
         description: generalInfo.description,
-        numServiceBays: parseInt(generalInfo.bays, 10) || undefined,
       });
-
       // Step 2: Update GPS Map Location in backend if coordinates are set
       if (scLat && scLng) {
         await serviceCentersService.setMyLocation({
@@ -147,39 +177,33 @@ export default function EditServiceCenterProfile() {
         });
       }
 
+      // Persist service types and car brands
+      await serviceCentersService.updateServiceTypes([...selectedServiceIds]);
+      await serviceCentersService.updateCarBrands([...selectedBrandIds]);
+      
       triggerToast("Business profile & GPS location saved successfully", "success");
     } catch (err) {
       triggerToast(err.message || "Failed to save profile", "warning");
     }
   };
 
-  // Add Service Tag
-  const handleAddService = () => {
-    if (newService.trim() && !services.includes(newService.trim())) {
-      setServices([...services, newService.trim()]);
-      setNewService("");
-      triggerToast(`Added service: ${newService.trim()}`, "info");
-    }
+  const toggleServiceId = (id) => {
+    setSelectedServiceIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
-  const handleRemoveService = (serviceToRemove) => {
-    setServices(services.filter(s => s !== serviceToRemove));
-    triggerToast(`Removed service: ${serviceToRemove}`, "info");
+  const toggleBrandId = (id) => {
+    setSelectedBrandIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
   };
 
-  // Add Brand Tag
-  const handleAddBrand = () => {
-    if (newBrand.trim() && !brands.includes(newBrand.trim())) {
-      setBrands([...brands, newBrand.trim()]);
-      setNewBrand("");
-      triggerToast(`Added support for ${newBrand.trim()}`, "info");
-    }
-  };
-
-  const handleRemoveBrand = (brandToRemove) => {
-    setBrands(brands.filter(b => b !== brandToRemove));
-    triggerToast(`Removed support for ${brandToRemove}`, "info");
-  };
+  // (service / brand management is now handled via toggleServiceId / toggleBrandId)
 
   // Add Part Simple
   const handleAddPart = () => {
@@ -314,10 +338,31 @@ export default function EditServiceCenterProfile() {
           border-color: #94A3B8;
           transform: translateY(-1px);
         }
+        .live-view-btn {
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #fff;
+          text-decoration: none;
+          background: #E8272A;
+          border: none;
+          padding: 9px 20px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 12px rgba(232,39,42,0.3);
+        }
+        .live-view-btn:hover {
+          background: #B81C1F;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(232,39,42,0.4);
+        }
 
         /* Banner Hero */
         .edit-hero {
-          background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #B81C1F 100%);
+          background: linear-gradient(135deg, #460203 0%, #920406 50%, #B81C1F 100%);
           padding: 56px 5%;
           color: white;
           position: relative;
@@ -469,9 +514,9 @@ export default function EditServiceCenterProfile() {
           transform: translateY(-1px);
         }
         .pill-tag.brand {
-          background: #EFF6FF;
-          border-color: #BFDBFE;
-          color: #1E40AF;
+          background: #FEF2F2;
+          border-color: #FCA5A5;
+          color: #E8272A;
         }
         .pill-tag.brand:hover {
           border-color: #EF4444;
@@ -626,8 +671,8 @@ export default function EditServiceCenterProfile() {
         .btn-remove:hover { background: #FCA5A5; color: #991B1B; }
         
         .inventory-hint-card {
-          background: #EFF6FF;
-          border: 1px solid #BFDBFE;
+          background: #FEF2F2;
+          border: 1px solid #FCA5A5;
           border-radius: 14px;
           padding: 20px;
           margin-bottom: 28px;
@@ -638,13 +683,13 @@ export default function EditServiceCenterProfile() {
         }
         .inventory-hint-card p {
           font-size: 13.5px;
-          color: #1E40AF;
+          color: #E8272A;
           font-weight: 500;
           line-height: 1.5;
         }
         .inventory-hint-card p i { margin-right: 8px; font-size: 16px; }
         .btn-manage-inv {
-          background: #1E40AF;
+          background: #E8272A;
           color: white;
           text-decoration: none;
           padding: 10px 20px;
@@ -653,10 +698,10 @@ export default function EditServiceCenterProfile() {
           font-weight: 700;
           white-space: nowrap;
           transition: all 0.2s;
-          box-shadow: 0 4px 6px rgba(30, 64, 175, 0.1);
+          box-shadow: 0 4px 6px rgba(232, 39, 42, 0.1);
         }
         .btn-manage-inv:hover {
-          background: #1D4ED8;
+          background: #B81C1F;
           transform: translateY(-1px);
         }
 
@@ -716,20 +761,29 @@ export default function EditServiceCenterProfile() {
         }`} style={{
           color: 
             toastType === "success" ? "#10B981" :
-            toastType === "info" ? "#3B82F6" : "#F59E0B",
+            toastType === "info" ? "#E8272A" : "#F59E0B",
           fontSize: "18px"
         }}></i>
         <span style={{ fontSize: "14px", fontWeight: 700 }}>{toastMessage}</span>
       </div>
 
       <nav className="top-nav">
-        <Link href="/" className="logo">
+        <Link href="/service-center" className="logo">
           AUTO<span>RIA</span>
         </Link>
         <div className="nav-right">
           <Link href="/service-center" className="back-btn">
-            <i className="fa-solid fa-eye"></i> Live View Profile
+            <i className="fa-solid fa-arrow-left"></i> Dashboard
           </Link>
+          {centerId ? (
+            <Link href={`/service-center-profile/${centerId}`} className="live-view-btn">
+              <i className="fa-solid fa-eye"></i> Live View
+            </Link>
+          ) : (
+            <span className="live-view-btn" style={{ opacity: 0.5, cursor: "not-allowed", pointerEvents: "none" }}>
+              <i className="fa-solid fa-eye"></i> Live View
+            </span>
+          )}
         </div>
       </nav>
 
@@ -791,16 +845,6 @@ export default function EditServiceCenterProfile() {
                       className="form-input" 
                       value={generalInfo.established} 
                       onChange={(e) => setGeneralInfo({ ...generalInfo, established: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Number of Active Service Bays</label>
-                    <input 
-                      type="number" 
-                      className="form-input" 
-                      value={generalInfo.bays} 
-                      onChange={(e) => setGeneralInfo({ ...generalInfo, bays: e.target.value })}
                       required
                     />
                   </div>
@@ -950,64 +994,66 @@ export default function EditServiceCenterProfile() {
                 <h2 className="section-title">
                   <i className="fa-solid fa-wrench"></i> Services Offered
                 </h2>
-                <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>
-                  Currently Selected Services
-                </label>
-                <div className="tags-container">
-                  {services.map(s => (
-                    <span key={s} className="pill-tag">
-                      {s}
-                      <button type="button" onClick={() => handleRemoveService(s)}>×</button>
-                    </span>
+                <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>
+                  Select all service types your workshop provides. Changes are saved when you click &ldquo;Save Business Profile&rdquo;.
+                </p>
+                <div className="tags-container" style={{ gap: 10 }}>
+                  {ALL_SERVICE_TYPES.map(st => (
+                    <label key={st.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
+                      border: `1.5px solid ${selectedServiceIds.has(st.id) ? '#E8272A' : '#E2E8F0'}`,
+                      background: selectedServiceIds.has(st.id) ? '#FEF2F2' : '#fff',
+                      fontWeight: 700, fontSize: 13,
+                      color: selectedServiceIds.has(st.id) ? '#E8272A' : '#334155',
+                      transition: 'all 0.15s',
+                      userSelect: 'none',
+                    }}>
+                      <input
+                        type="checkbox"
+                        style={{ display: 'none' }}
+                        checked={selectedServiceIds.has(st.id)}
+                        onChange={() => toggleServiceId(st.id)}
+                      />
+                      {selectedServiceIds.has(st.id) ? '✓ ' : ''}{st.name}
+                    </label>
                   ))}
-                  {services.length === 0 && <span style={{fontSize: '13px', color: '#94A3B8'}}>No services listed yet.</span>}
                 </div>
-
-                <div className="add-tag-wrapper" style={{ marginBottom: '32px' }}>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    style={{ flex: 1 }} 
-                    placeholder="e.g. Wheel alignment, Painting, Transmission fluid" 
-                    value={newService}
-                    onChange={(e) => setNewService(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddService())}
-                  />
-                  <button type="button" className="btn-add-tag" onClick={handleAddService}>
-                    <i className="fa-solid fa-plus"></i> Add Service
-                  </button>
-                </div>
+                <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 8 }}>
+                  {selectedServiceIds.size} service{selectedServiceIds.size !== 1 ? 's' : ''} selected
+                </p>
 
                 <h2 className="section-title" style={{ marginTop: '40px' }}>
                   <i className="fa-solid fa-car"></i> Car Brands Serviced
                 </h2>
-                <label className="form-label" style={{ marginBottom: '8px', display: 'block' }}>
-                  Specialized Manufacturers
-                </label>
-                <div className="tags-container">
-                  {brands.map(b => (
-                    <span key={b} className="pill-tag brand">
-                      {b}
-                      <button type="button" onClick={() => handleRemoveBrand(b)}>×</button>
-                    </span>
+                <p style={{ fontSize: 13, color: '#64748B', marginBottom: 16 }}>
+                  Select the car brands your mechanics are certified to work on.
+                </p>
+                <div className="tags-container" style={{ gap: 10 }}>
+                  {ALL_CAR_BRANDS.map(cb => (
+                    <label key={cb.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 14px', borderRadius: 10, cursor: 'pointer',
+                      border: `1.5px solid ${selectedBrandIds.has(cb.id) ? '#E8272A' : '#E2E8F0'}`,
+                      background: selectedBrandIds.has(cb.id) ? '#FEF2F2' : '#fff',
+                      fontWeight: 700, fontSize: 13,
+                      color: selectedBrandIds.has(cb.id) ? '#E8272A' : '#334155',
+                      transition: 'all 0.15s',
+                      userSelect: 'none',
+                    }}>
+                      <input
+                        type="checkbox"
+                        style={{ display: 'none' }}
+                        checked={selectedBrandIds.has(cb.id)}
+                        onChange={() => toggleBrandId(cb.id)}
+                      />
+                      {selectedBrandIds.has(cb.id) ? '✓ ' : ''}{cb.name}
+                    </label>
                   ))}
-                  {brands.length === 0 && <span style={{fontSize: '13px', color: '#94A3B8'}}>No brands selected.</span>}
                 </div>
-
-                <div className="add-tag-wrapper" style={{ marginBottom: '32px' }}>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    style={{ flex: 1 }} 
-                    placeholder="e.g. Nissan, Chevrolet, Audi" 
-                    value={newBrand}
-                    onChange={(e) => setNewBrand(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddBrand())}
-                  />
-                  <button type="button" className="btn-add-tag" onClick={handleAddBrand}>
-                    <i className="fa-solid fa-plus"></i> Add Brand
-                  </button>
-                </div>
+                <p style={{ fontSize: 12, color: '#94A3B8', marginTop: 8, marginBottom: 32 }}>
+                  {selectedBrandIds.size} brand{selectedBrandIds.size !== 1 ? 's' : ''} selected
+                </p>
 
                 <h2 className="section-title" style={{ marginTop: '40px' }}>
                   <i className="fa-solid fa-tags"></i> Pricing & Spare Parts

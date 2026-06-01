@@ -4,12 +4,13 @@ import Link from "next/link";
 
 export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }) {
   const menuItems = [
-    { id: "Dashboard", icon: "📊" },
-    { id: "Center verification", icon: "🛡️", badge: badges.verification },
-    { id: "User reports", icon: "🚩", badge: badges.reports },
-    { id: "User management", icon: "👥", badge: badges.users },
-    { id: "Spare Parts", icon: "📦", badge: badges.spareParts },
-    { id: "Contact Messages", icon: "✉️", badge: badges.contacts },
+    { id: "Dashboard", iconClass: "fa-solid fa-gauge" },
+    { id: "Center verification", iconClass: "fa-solid fa-shield-halved", badge: badges.verification },
+    { id: "User reports", iconClass: "fa-solid fa-flag", badge: badges.reports },
+    { id: "User management", iconClass: "fa-solid fa-users", badge: badges.users },
+    { id: "Spare Parts", iconClass: "fa-solid fa-cubes", badge: badges.spareParts },
+    { id: "Contact Messages", iconClass: "fa-solid fa-envelope", badge: badges.contacts },
+    { id: "Payments & Revenue", iconClass: "fa-solid fa-credit-card" },
   ];
 
   return (
@@ -24,6 +25,8 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
       display: "flex",
       flexDirection: "column"
     }}>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+      
       <div style={{ padding: "0 32px", marginBottom: "48px" }}>
         <div style={{ fontSize: "24px", fontWeight: 900, letterSpacing: "-1px" }}>
           AUTO<span style={{ color: colors.primary }}>RIA</span>
@@ -47,7 +50,9 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
               fontSize: "14px"
             }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ fontSize: "18px", opacity: activeTab === item.id ? 1 : 0.7 }}>{item.icon}</span> 
+              <span style={{ fontSize: "18px", opacity: activeTab === item.id ? 1 : 0.7, width: "24px", textAlign: "center", display: "inline-block" }}>
+                <i className={item.iconClass}></i>
+              </span> 
               {item.id}
             </div>
             {item.badge > 0 && (

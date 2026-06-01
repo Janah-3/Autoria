@@ -30,6 +30,7 @@ const Sidebar = ({ active }) => (
       <div style={{ fontSize: "11px", fontWeight: 800, color: COLORS.textLight, letterSpacing: "1.5px", marginBottom: "20px" }}>MANAGE</div>
       {[
         { id: "Dashboard", icon: "📊", path: "/service-center" },
+        { id: "Analytics", icon: "📈", path: "/service-center/analytics" },
         { id: "Booking requests", icon: "📬", path: "/booking-requests" },
         { id: "Availability", icon: "📅", path: "/availability" },
         { id: "Services & pricing", icon: "🏷️", path: "/service-center/services-pricing" },
@@ -103,7 +104,6 @@ export default function ServiceCenterDashboard() {
       })
       .catch(() => {});
 
-    // Fetch own service center profile
     serviceCentersService.getMy()
       .then(res => {
         const d = res?.data ?? res;
@@ -118,7 +118,7 @@ export default function ServiceCenterDashboard() {
         setCenter(null);
       });
 
-    // Fetch booking lists
+
     bookingService.getServiceCenterBookings()
       .then(res => {
         setBookings(getBookingItems(res) || []);
@@ -145,7 +145,7 @@ export default function ServiceCenterDashboard() {
       <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: COLORS.bg, padding: "20px", fontFamily: "sans-serif" }}>
         <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#111827", marginBottom: "12px" }}>No Partner Profile Found</h2>
         <p style={{ color: COLORS.textLight, marginBottom: "24px", textAlign: "center", maxWidth: "400px" }}>
-          You don't have an active service center profile yet, or you are not logged in as a Service Center partner.
+          You don&apos;t have an active service center profile yet, or you are not logged in as a Service Center partner.
         </p>
         <div style={{ display: "flex", gap: "12px" }}>
           <Link href="/service-center-registration">
@@ -193,6 +193,9 @@ export default function ServiceCenterDashboard() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
             <div style={{ display: "flex", gap: "8px" }}>
+              <Link href="/service-center/analytics" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
+                📈 View Analytics
+              </Link>
               <Link href="/service-center/edit" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
                 ✏️ Edit Profile
               </Link>
@@ -300,9 +303,9 @@ export default function ServiceCenterDashboard() {
                   <div style={{ fontSize: "12px", color: COLORS.textLight, fontWeight: 700, marginBottom: "8px" }}>SUPPORTED SERVICES</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                     {(center.serviceTypes || []).slice(0, 5).map(s => (
-                      <span key={s} style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", color: "#1E40AF", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px" }}>
-                        {s}
-                      </span>
+                    <span key={s} style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", color: "#E8272A", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px" }}>
+                      {s}
+                    </span>
                     ))}
                     {(center.serviceTypes || []).length > 5 && (
                       <span style={{ fontSize: "11px", color: COLORS.textLight, alignSelf: "center" }}>

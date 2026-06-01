@@ -163,26 +163,43 @@ export default function CenterProfilePage() {
 
         <div style={{ position: "sticky", top: 100, height: "fit-content" }}>
           <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 24, boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
-            <h3 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Book Appointment</h3>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#9ca3af", marginBottom: 8, textTransform: "uppercase" }}>Contact Number</label>
-              <div style={{ fontSize: 18, fontWeight: 700, color: R }}>{center.phone || "Not provided"}</div>
+            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Contact Information</h3>
+            <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 20 }}>This is how customers see your profile.</p>
+
+            {/* Phone */}
+            <div style={{ marginBottom: 16, padding: "14px 16px", background: "#f9fafb", borderRadius: 12, border: "1px solid #f3f4f6" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Phone Number</div>
+              <div style={{ ...row(8) }}>
+                <span style={{ color: R, fontSize: 16 }}>📞</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: R }}>{center.phone || "Not provided"}</span>
+              </div>
             </div>
-            
-            <a href={`/book-service?serviceCenterId=${center.id}`} style={{ textDecoration: "none" }}>
-              <button className="btn-hover" style={{ width: "100%", background: R, color: "#fff", border: "none", padding: "16px", borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: "pointer", marginBottom: 12 }}>
-                Request Booking
-              </button>
-            </a>
 
-            <p style={{ textAlign: "center", fontSize: 12, color: "#9ca3af" }}>No payment required upfront</p>
+            {/* Location */}
+            <div style={{ marginBottom: 16, padding: "14px 16px", background: "#f9fafb", borderRadius: 12, border: "1px solid #f3f4f6" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Location</div>
+              <div style={{ ...row(8) }}>
+                <span style={{ fontSize: 16 }}>📍</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>{center.district}, {center.governorate}</span>
+              </div>
+            </div>
 
-            <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid #f3f4f6" }}>
-               <h4 style={{ fontSize: 13, fontWeight: 800, marginBottom: 12 }}>Map Location</h4>
-               <p style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.6 }}>{center.district}, {center.governorate}<br/>Egypt</p>
-               <div style={{ height: 150, background: "#f3f4f6", borderRadius: 12, marginTop: 12, ...row(0), justifyContent: "center", color: "#9ca3af", fontSize: 12 }}>
-                  Map View
-               </div>
+            {/* Rating */}
+            <div style={{ marginBottom: 20, padding: "14px 16px", background: "#f9fafb", borderRadius: 12, border: "1px solid #f3f4f6" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Rating</div>
+              <div style={{ ...row(8) }}>
+                <span style={{ color: "#f59e0b", fontSize: 16 }}>★</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#374151" }}>4.8</span>
+                <span style={{ fontSize: 13, color: "#9ca3af" }}>(120 reviews)</span>
+              </div>
+            </div>
+
+            {/* Info note */}
+            <div style={{ padding: "12px 14px", background: "#fff7f7", borderRadius: 10, border: "1px solid #fecaca", ...row(10) }}>
+              <span style={{ fontSize: 18 }}>👁️</span>
+              <p style={{ fontSize: 12, color: "#991b1b", fontWeight: 600, lineHeight: 1.5 }}>
+                Live preview — this is exactly how customers see your profile page.
+              </p>
             </div>
           </div>
         </div>
