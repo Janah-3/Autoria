@@ -13,6 +13,8 @@ namespace Autoria.features.SpareParts.Commands.UpdateSparePart
         string CountryOfOrigin,
         string Manufacturer,
         string? Description,
-        List<string> ImageUrls
+        IFormFileCollection? NewImages,      // new images to add
+        List<string>? ImageUrlsToDelete,     // existing image URLs to remove
+        bool ReplaceAllImages = false        // if true: delete all old images and replace with NewImages
     ) : IRequest;
 }

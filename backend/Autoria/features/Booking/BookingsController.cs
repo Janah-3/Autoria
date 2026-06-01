@@ -4,6 +4,8 @@ using Autoria.features.Booking.Commands.CancelBooking;
 using Autoria.features.Booking.Commands.CompleteBooking;
 using Autoria.features.Booking.Commands.ConfirmBooking;
 using Autoria.features.Booking.Commands.CreateBooking;
+using Autoria.features.Booking.Commands.GenerateTimeSlots;
+using Autoria.features.Booking.Commands.RejectBooking;
 using Autoria.features.Booking.Commands.RescheduleBooking;
 using Autoria.features.Booking.Commands.UnblockTimeSlot;
 using Autoria.features.Booking.Dtos;
@@ -43,7 +45,23 @@ namespace Autoria.features.Booking
             return Ok(ApiResponse<List<TimeSlotDto>>.Ok(result));
         }
 
-        /// <summary>Add an available time slot — service center owner only</summary>
+        /// <summary>
+        /// Auto-generate hourly slots for a date based on operating hours — owner only.
+        /// Call this once per day before clients start booking.
+        /// </summary>
+        [HttpPost("slots/generate")]
+        public async Task<IActionResult> GenerateTimeSlots([FromBody] GenerateTimeSlotsRequest request)
+        {
+            var count = await _mediator.Send(new GenerateTimeSlotsCommand(
+                request.ServiceCenterId,
+                request.Date));
+            return Ok(ApiResponse<object>.Ok(new { slotsGenerated = count },
+                count > 0
+                    ? $"{count} time slot(s) generated successfully."
+                    : "All slots for this date already exist."));
+        }
+
+        /// <summary>Manually add a single time slot — owner only</summary>
         [HttpPost("slots")]
         public async Task<IActionResult> AddTimeSlot([FromBody] AddTimeSlotRequest request)
         {
@@ -55,7 +73,7 @@ namespace Autoria.features.Booking
             return Ok(ApiResponse<Guid>.Ok(slotId, "Time slot added successfully."));
         }
 
-        /// <summary>Block an existing time slot — service center owner only</summary>
+        /// <summary>Block an existing time slot — owner only</summary>
         [HttpPatch("slots/{slotId:guid}/block")]
         public async Task<IActionResult> BlockTimeSlot(Guid slotId)
         {
@@ -63,7 +81,7 @@ namespace Autoria.features.Booking
             return Ok(ApiResponse<object>.Ok(null!, "Time slot blocked successfully."));
         }
 
-        /// <summary>Delete a time slot — service center owner only</summary>
+        /// <summary>Delete a time slot — owner only</summary>
         [HttpDelete("slots/{slotId:guid}")]
         public async Task<IActionResult> DeleteTimeSlot(Guid slotId)
         {
@@ -129,6 +147,14 @@ namespace Autoria.features.Booking
             return Ok(ApiResponse<object>.Ok(null!, "Booking confirmed successfully."));
         }
 
+        /// <summary>Reject a pending booking — service center owner only</summary>
+        [HttpPatch("{id:guid}/reject")]
+        public async Task<IActionResult> RejectBooking(Guid id, [FromBody] RejectBookingRequest request)
+        {
+            await _mediator.Send(new RejectBookingCommand(id, request.Reason));
+            return Ok(ApiResponse<object>.Ok(null!, "Booking rejected successfully."));
+        }
+
         /// <summary>Mark a booking as completed — service center owner only</summary>
         [HttpPatch("{id:guid}/complete")]
         public async Task<IActionResult> CompleteBooking(Guid id, [FromBody] CompleteBookingRequest request)
@@ -178,9 +204,11 @@ namespace Autoria.features.Booking
         }
     }
 
+    public record GenerateTimeSlotsRequest(Guid ServiceCenterId, DateOnly Date);
     public record AddTimeSlotRequest(Guid ServiceCenterId, DateOnly Date, TimeOnly StartTime, TimeOnly EndTime);
     public record CreateBookingRequest(Guid CarId, Guid ServiceCenterId, Guid ServiceTypeId, Guid TimeSlotId, string? Notes);
     public record CancelBookingRequest(string? CancellationReason);
+    public record RejectBookingRequest(string Reason);
     public record RescheduleBookingRequest(Guid NewTimeSlotId);
     public record CompleteBookingRequest(decimal? TotalPrice);
 }

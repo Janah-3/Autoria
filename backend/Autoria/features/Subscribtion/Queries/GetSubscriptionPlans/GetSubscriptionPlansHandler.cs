@@ -21,7 +21,7 @@ namespace Autoria.features.Subscribtion.Queries.GetSubscriptionPlans
                     "Manage bookings (confirm, cancel, complete)",
                     "Manage spare parts inventory",
                     "Receive and reply to reviews",
-                    "Basic analytics (today's bookings, total reviews, avg rating)",
+                    "Basic analytics",
                     "Customer notifications"
                 }
             },
@@ -29,11 +29,11 @@ namespace Autoria.features.Subscribtion.Queries.GetSubscriptionPlans
             {
                 Plan         = SubscriptionPlan.Premium,
                 Name         = "Premium",
-                MonthlyPrice = 299,   // EGP per month
+                MonthlyPrice = 1300,
                 Features     = new()
                 {
                     "Everything in Free",
-                    "Featured / boosted listing — appear at the top of search results",
+                    "Featured listing — appear at the top of search results",
                     "Send promotional emails to past clients",
                     "Advanced analytics (profile views, conversion rate, top services, peak days)",
                     "Monthly vs last month booking comparison",

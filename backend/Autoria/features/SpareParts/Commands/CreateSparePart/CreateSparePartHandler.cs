@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Autoria.features.SpareParts.Entities;
+using Autoria.features.SpareParts.Services;
 using Autoria.Infrastructure.Persistence;
 using Autoria.shared.Exceptions;
 using MediatR;
@@ -11,11 +12,16 @@ namespace Autoria.features.SpareParts.Commands.CreateSparePart
     {
         private readonly AppDbContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IImageStorageService _imageStorage;
 
-        public CreateSparePartHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor)
+        public CreateSparePartHandler(
+            AppDbContext db,
+            IHttpContextAccessor httpContextAccessor,
+            IImageStorageService imageStorage)
         {
             _db = db;
             _httpContextAccessor = httpContextAccessor;
+            _imageStorage = imageStorage;
         }
 
         public async Task<Guid> Handle(CreateSparePartCommand request, CancellationToken cancellationToken)
@@ -27,6 +33,17 @@ namespace Autoria.features.SpareParts.Commands.CreateSparePart
                 .AnyAsync(sp => sp.PartNumber == request.PartNumber, cancellationToken);
             if (duplicate)
                 throw new ConflictException($"A spare part with part number '{request.PartNumber}' already exists.");
+
+            // Upload images and collect URLs
+            var imageUrls = new List<string>();
+            if (request.Images is { Count: > 0 })
+            {
+                foreach (var file in request.Images)
+                {
+                    var url = await _imageStorage.SaveImageAsync(file, cancellationToken);
+                    imageUrls.Add(url);
+                }
+            }
 
             var part = new SparePart
             {
@@ -42,7 +59,7 @@ namespace Autoria.features.SpareParts.Commands.CreateSparePart
                 Manufacturer = request.Manufacturer,
                 Description = request.Description,
                 CreatedAt = DateTime.UtcNow,
-                Images = request.ImageUrls.Select(url => new SparePartImage
+                Images = imageUrls.Select(url => new SparePartImage
                 {
                     Id = Guid.NewGuid(),
                     Url = url

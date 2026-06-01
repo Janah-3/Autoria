@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text;
+using Autoria.features.MileageTracking.BackgroundJobs;
 using Autoria.features.Notifications.Services;
 using Autoria.features.Payments.Services;
+using Autoria.features.SpareParts.Services;
 using Autoria.features.Subscribtion.Services;
 using Autoria.Infrastructure.AI;
 using Autoria.Infrastructure.AI.Contracts;
@@ -137,6 +139,8 @@ namespace Autoria
             builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
             builder.Services.AddScoped<IPremiumGuard, PremiumGuard>();
             builder.Services.AddScoped<IMockPaymentGateway, MockPaymentGateway>();
+            builder.Services.AddHostedService<MileageReminderJob>();
+            builder.Services.AddScoped<IImageStorageService, LocalImageStorageService>();
 
             builder.Services.AddCors(options =>
             {
@@ -175,6 +179,7 @@ namespace Autoria
 
             app.UseCors("AllowAll");
 
+            app.UseStaticFiles();
 
             app.UseAuthentication();
 

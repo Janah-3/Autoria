@@ -27,7 +27,7 @@ namespace Autoria.features.SpareParts
 
         // ── Catalog (public) ───────────────────────────────────────────────────
 
-        /// <summary>Browse & search spare parts catalog</summary>
+        /// <summary>Browse & search spare parts catalog — supports car compatibility filter</summary>
         [HttpGet]
         public async Task<IActionResult> GetCatalog([FromQuery] SparePartFilterDto filter)
         {
@@ -52,8 +52,6 @@ namespace Autoria.features.SpareParts
         }
 
 
-     
-
         // ── Admin — Catalog Management ─────────────────────────────────────────
 
         /// <summary>List all parts including inactive — admin only</summary>
@@ -67,22 +65,71 @@ namespace Autoria.features.SpareParts
             return Ok(ApiResponse<PagedResponse<SparePartSummaryDto>>.Ok(result));
         }
 
-        /// <summary>Add a new spare part to the catalog — admin only</summary>
+        /// <summary>
+        /// Add a new spare part — admin only.
+        /// Use multipart/form-data. Attach images as "images" field.
+        /// Compatibilities as JSON string: [{"carMake":"Toyota","carModel":"Corolla","yearFrom":2018,"yearTo":2023}]
+        /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateSparePart([FromBody] CreateSparePartCommand command)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> CreateSparePart([FromForm] CreateSparePartFormRequest request)
         {
+            var compatibilities = string.IsNullOrWhiteSpace(request.CompatibilitiesJson)
+                ? null
+                : System.Text.Json.JsonSerializer.Deserialize<List<CompatibilityRequest>>(
+                    request.CompatibilitiesJson,
+                    new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            var command = new CreateSparePartCommand(
+                request.Name,
+                request.Category,
+                request.Brand,
+                request.Model,
+                request.ProductionDate,
+                request.PartNumber,
+                request.CountryOfOrigin,
+                request.Manufacturer,
+                request.Description,
+                request.Images ?? new FormFileCollection(),
+                compatibilities);
+
             var partId = await _mediator.Send(command);
             return CreatedAtAction(nameof(GetSparePartById), new { id = partId },
                 ApiResponse<Guid>.Ok(partId, "Spare part created successfully."));
         }
 
-        /// <summary>Edit a spare part — admin only</summary>
+        /// <summary>
+        /// Edit a spare part — admin only.
+        /// Use multipart/form-data.
+        /// NewImages: files to add. ImageUrlsToDeleteJson: JSON array of URLs to remove.
+        /// ReplaceAllImages=true: replaces everything.
+        /// </summary>
         [HttpPut("{id:guid}")]
         [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> UpdateSparePart(Guid id, [FromBody] UpdateSparePartCommand command)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateSparePart(Guid id, [FromForm] UpdateSparePartFormRequest request)
         {
-            await _mediator.Send(command with { SparePartId = id });
+            var urlsToDelete = string.IsNullOrWhiteSpace(request.ImageUrlsToDeleteJson)
+                ? null
+                : System.Text.Json.JsonSerializer.Deserialize<List<string>>(request.ImageUrlsToDeleteJson);
+
+            var command = new UpdateSparePartCommand(
+                id,
+                request.Name,
+                request.Category,
+                request.Brand,
+                request.Model,
+                request.ProductionDate,
+                request.PartNumber,
+                request.CountryOfOrigin,
+                request.Manufacturer,
+                request.Description,
+                request.NewImages,
+                urlsToDelete,
+                request.ReplaceAllImages);
+
+            await _mediator.Send(command);
             return Ok(ApiResponse<object>.Ok(null!, "Spare part updated successfully."));
         }
 
@@ -95,6 +142,4 @@ namespace Autoria.features.SpareParts
             return Ok(ApiResponse<object>.Ok(null!, "Spare part deleted successfully."));
         }
     }
-
-    public record CancelReservationRequest(string? Reason);
 }

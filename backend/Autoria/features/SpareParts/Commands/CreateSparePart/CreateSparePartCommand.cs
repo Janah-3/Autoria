@@ -15,7 +15,7 @@ namespace Autoria.features.SpareParts.Commands.CreateSparePart
         string CountryOfOrigin,
         string Manufacturer,
         string? Description,
-        List<string> ImageUrls,
+        IFormFileCollection Images,
         List<CompatibilityRequest>? Compatibilities = null
     ) : IRequest<Guid>;
 }

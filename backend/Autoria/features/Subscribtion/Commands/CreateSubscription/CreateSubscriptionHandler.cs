@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using Autoria.features.Subscribtion.Dtos;
 using Autoria.features.Subscribtion.Entities;
 using Autoria.features.Subscribtion.Enums;
 using Autoria.Infrastructure.Persistence;
@@ -8,19 +9,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Autoria.features.Subscribtion.Commands.CreateSubscription
 {
-    public class CreateSubscriptionHandler : IRequestHandler<CreateSubscriptionCommand, Guid>
+    public class CreateSubscriptionHandler : IRequestHandler<CreateSubscriptionCommand, SubscriptionPaymentDto>
     {
+        private const decimal PlanPrice = 1300m;
+
         private readonly AppDbContext _db;
         private readonly IHttpContextAccessor _httpContextAccessor;
-
-        // Pricing tiers
-        private static readonly Dictionary<int, decimal> Pricing = new()
-    {
-        { 1,  299m  },
-        { 3,  799m  },   // ~11% off
-        { 6,  1499m },   // ~16% off
-        { 12, 2799m }    // ~22% off
-    };
 
         public CreateSubscriptionHandler(AppDbContext db, IHttpContextAccessor httpContextAccessor)
         {
@@ -28,7 +22,7 @@ namespace Autoria.features.Subscribtion.Commands.CreateSubscription
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<Guid> Handle(CreateSubscriptionCommand request, CancellationToken cancellationToken)
+        public async Task<SubscriptionPaymentDto> Handle(CreateSubscriptionCommand request, CancellationToken cancellationToken)
         {
             var userId = _httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? throw new UnauthorizedException("User not authenticated.");
@@ -37,10 +31,7 @@ namespace Autoria.features.Subscribtion.Commands.CreateSubscription
                 .FirstOrDefaultAsync(sc => sc.Id == request.ServiceCenterId && sc.UserId == userId, cancellationToken)
                 ?? throw new NotFoundException("Service center not found.");
 
-            if (!Pricing.TryGetValue(request.MonthsDuration, out var price))
-                throw new BadRequestException("Invalid subscription duration. Choose 1, 3, 6, or 12 months.");
-
-            // Check for existing active premium subscription
+            // If already active — extend by 1 month
             var existing = await _db.ServiceCenterSubscriptions
                 .FirstOrDefaultAsync(s =>
                     s.ServiceCenterId == request.ServiceCenterId &&
@@ -48,36 +39,46 @@ namespace Autoria.features.Subscribtion.Commands.CreateSubscription
                     s.Status == SubscriptionStatus.Active &&
                     s.EndDate > DateTime.UtcNow, cancellationToken);
 
-            DateTime startDate;
             if (existing is not null)
             {
-                // Extend existing subscription
-                startDate = existing.EndDate;
-                existing.EndDate = existing.EndDate.AddMonths(request.MonthsDuration);
+                existing.EndDate = existing.EndDate.AddMonths(1);
+                existing.AmountPaid += PlanPrice;
                 await _db.SaveChangesAsync(cancellationToken);
-                return existing.Id;
-            }
-            else
-            {
-                startDate = DateTime.UtcNow;
+
+                return new SubscriptionPaymentDto
+                {
+                    SubscriptionId = existing.Id,
+                    Amount = PlanPrice,
+                    MonthsDuration = 1,
+                    Status = SubscriptionStatus.Active,
+                    Message = $"Subscription extended by 1 month. New end date: {existing.EndDate:yyyy-MM-dd}."
+                };
             }
 
+            // Create new subscription — PendingPayment until paid
             var subscription = new ServiceCenterSubscription
             {
                 Id = Guid.NewGuid(),
                 ServiceCenterId = request.ServiceCenterId,
                 Plan = SubscriptionPlan.Premium,
-                Status = SubscriptionStatus.Active,
-                AmountPaid = price,
-                StartDate = startDate,
-                EndDate = startDate.AddMonths(request.MonthsDuration),
+                Status = SubscriptionStatus.PendingPayment,
+                AmountPaid = PlanPrice,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(1),
                 CreatedAt = DateTime.UtcNow
             };
 
             _db.ServiceCenterSubscriptions.Add(subscription);
             await _db.SaveChangesAsync(cancellationToken);
 
-            return subscription.Id;
+            return new SubscriptionPaymentDto
+            {
+                SubscriptionId = subscription.Id,
+                Amount = PlanPrice,
+                MonthsDuration = 1,
+                Status = SubscriptionStatus.PendingPayment,
+                Message = $"Subscription created. Please complete payment of {PlanPrice} LE to activate."
+            };
         }
     }
 }

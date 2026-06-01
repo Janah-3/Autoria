@@ -1,5 +1,7 @@
-﻿using Autoria.features.Subscribtion.Commands.CancelSubscription;
+﻿using Autoria.features.Payments.Enums;
+using Autoria.features.Subscribtion.Commands.CancelSubscription;
 using Autoria.features.Subscribtion.Commands.CreateSubscription;
+using Autoria.features.Subscribtion.Commands.PaySubscription;
 using Autoria.features.Subscribtion.Dtos;
 using Autoria.features.Subscribtion.Queries.GetSubscriptionPlans;
 using Autoria.features.Subscribtion.Queries.GetSubscriptionStatus;
@@ -38,13 +40,31 @@ namespace Autoria.features.Subscribtion
             return Ok(ApiResponse<SubscriptionStatusDto>.Ok(result));
         }
 
-        /// <summary>Subscribe to Premium plan (1, 3, 6, or 12 months)</summary>
+        /// <summary>
+        /// Step 1 — Create subscription (PendingPayment).
+        /// Returns subscriptionId + amount to proceed to payment.
+        /// </summary>
         [HttpPost("{serviceCenterId:guid}/subscribe")]
         [Authorize]
-        public async Task<IActionResult> Subscribe(Guid serviceCenterId, [FromBody] SubscribeRequest request)
+        public async Task<IActionResult> Subscribe(Guid serviceCenterId)
         {
-            var id = await _mediator.Send(new CreateSubscriptionCommand(serviceCenterId, request.MonthsDuration));
-            return Ok(ApiResponse<Guid>.Ok(id, $"Premium plan activated for {request.MonthsDuration} month(s)."));
+            var result = await _mediator.Send(new CreateSubscriptionCommand(serviceCenterId));
+            return Ok(ApiResponse<SubscriptionPaymentDto>.Ok(result, result.Message));
+        }
+
+        /// <summary>
+        /// Step 2 — Pay for the subscription to activate it.
+        /// Card: provide cardToken. Cash: no token needed.
+        /// </summary>
+        [HttpPost("{serviceCenterId:guid}/pay")]
+        [Authorize]
+        public async Task<IActionResult> Pay(Guid serviceCenterId, [FromBody] PaySubscriptionRequest request)
+        {
+            var result = await _mediator.Send(new PaySubscriptionCommand(
+                request.SubscriptionId,
+                request.Method,
+                request.CardToken));
+            return Ok(ApiResponse<PaySubscriptionResult>.Ok(result, result.Message));
         }
 
         /// <summary>Cancel Premium subscription — stays active until end date</summary>
@@ -57,6 +77,6 @@ namespace Autoria.features.Subscribtion
         }
     }
 
-    public record SubscribeRequest(int MonthsDuration);
+    public record PaySubscriptionRequest(Guid SubscriptionId, PaymentMethod Method, string? CardToken);
     public record CancelSubscriptionRequest(string? Reason);
 }

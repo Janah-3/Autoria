@@ -19,20 +19,20 @@ namespace Autoria.features.PartReservations
     {
         public PartReservationsController(IMediator mediator) : base(mediator) { }
 
+        /// <summary>Reserve a spare part online</summary>
         [HttpPost("reserve")]
-        [Authorize(Roles = Roles.User)]
+        [Authorize]
         public async Task<IActionResult> ReservePart([FromBody] ReservePartCommand command)
         {
             var reservationId = await _mediator.Send(command);
             return Ok(ApiResponse<Guid>.Ok(reservationId, "Part reserved successfully. Expires in 24 hours."));
         }
-
-        [HttpPost("{id:guid}/cancel")]
-        [Authorize(Roles = Roles.User)]
-
-        public async Task<IActionResult> CancelReservation(Guid id, [FromBody] CancelReservationRequest? request)
+        /// <summary>Cancel a reservation — restores stock</summary>
+        [HttpPatch("reservations/{id:guid}/cancel")]
+        [Authorize]
+        public async Task<IActionResult> CancelReservation(Guid id, [FromBody] CancelReservationRequest request)
         {
-            await _mediator.Send(new CancelReservationCommand(id, request?.Reason));
+            await _mediator.Send(new CancelReservationCommand(id, request.Reason));
             return Ok(ApiResponse<object>.Ok(null!, "Reservation cancelled successfully."));
         }
 
@@ -66,4 +66,5 @@ namespace Autoria.features.PartReservations
             return Ok(ApiResponse<PagedResponse<ReservationDto>>.Ok(result));
         }
     }
+    public record CancelReservationRequest(string? Reason);
 }
