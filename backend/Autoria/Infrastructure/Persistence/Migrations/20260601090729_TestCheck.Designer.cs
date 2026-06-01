@@ -4,6 +4,7 @@ using Autoria.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetTopologySuite.Geometries;
 
@@ -12,9 +13,11 @@ using NetTopologySuite.Geometries;
 namespace Autoria.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260601090729_TestCheck")]
+    partial class TestCheck
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -922,6 +925,9 @@ namespace Autoria.Migrations
                     b.Property<Guid>("ServiceCenterId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ServiceCenterId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -931,6 +937,8 @@ namespace Autoria.Migrations
                     b.HasIndex("BookingId");
 
                     b.HasIndex("ServiceCenterId");
+
+                    b.HasIndex("ServiceCenterId1");
 
                     b.HasIndex("UserId");
 
@@ -1400,9 +1408,6 @@ namespace Autoria.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
-
-                    b.Property<string>("TransactionId")
-                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -1907,10 +1912,14 @@ namespace Autoria.Migrations
                         .IsRequired();
 
                     b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", "ServiceCenter")
-                        .WithMany("Reviews")
+                        .WithMany()
                         .HasForeignKey("ServiceCenterId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+
+                    b.HasOne("Autoria.features.ServiceCenter.Entities.ServiceCenter", null)
+                        .WithMany("Reviews")
+                        .HasForeignKey("ServiceCenterId1");
 
                     b.HasOne("Autoria.Infrastructure.Identity.entities.User", "User")
                         .WithMany()
