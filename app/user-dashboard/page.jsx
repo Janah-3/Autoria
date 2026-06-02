@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getMe } from "@/lib/api/usersService";
+import usersService, { getMe } from "@/lib/api/usersService";
 import { getAllCars, getCarItems } from "@/lib/api/carsService";
 import { getAllBookings } from "@/lib/api/bookingsService";
 import { paymentService } from "@/lib/api/paymentService";
@@ -15,6 +15,36 @@ export default function UserDashboardPage() {
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [detectingLoc, setDetectingLoc] = useState(false);
+
+  const handleDetectLocation = () => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setDetectingLoc(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        try {
+          await usersService.setMyLocation(lat, lng);
+          alert("Location detected and updated in your profile successfully!");
+        } catch (err) {
+          console.warn("Failed to sync location:", err);
+          alert("Location detected but failed to update profile: " + err.message);
+        } finally {
+          setDetectingLoc(false);
+        }
+      },
+      (error) => {
+        console.warn("Location error:", error);
+        alert("Failed to acquire location: " + (error.message || "Permission denied"));
+        setDetectingLoc(false);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+  };
 
   // Checkout Modal State
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -494,10 +524,35 @@ export default function UserDashboardPage() {
           }}>
             ← Back to Website
           </Link>
-          <div className="user-profile">
-            <span className="user-name">{userName || "User"}</span>
-            <div className="user-avatar">
-              {userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "U"}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <button
+              onClick={handleDetectLocation}
+              disabled={detectingLoc}
+              style={{
+                background: "transparent",
+                border: "1.5px solid #CBD5E1",
+                borderRadius: "10px",
+                padding: "8px 16px",
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "#475569",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => { e.target.style.background = "#F1F5F9"; e.target.style.borderColor = "#94A3B8"; }}
+              onMouseLeave={(e) => { e.target.style.background = "transparent"; e.target.style.borderColor = "#CBD5E1"; }}
+            >
+              <i className="fa-solid fa-location-crosshairs" style={{ color: "#E8192C" }}></i>
+              {detectingLoc ? "Detecting..." : "Detect Location"}
+            </button>
+            <div className="user-profile">
+              <span className="user-name">{userName || "User"}</span>
+              <div className="user-avatar">
+                {userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "U"}
+              </div>
             </div>
           </div>
         </div>

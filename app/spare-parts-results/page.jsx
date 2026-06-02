@@ -101,6 +101,30 @@ const PartCard = ({ part }) => {
 };
 
 
+const mapSearchToCategory = (searchStr) => {
+  if (!searchStr) return null;
+  const s = searchStr.toLowerCase().trim();
+  if (s === "brakes & pads" || s === "brakes" || s === "brake pads" || s === "pads") {
+    return "Brake Pads";
+  }
+  if (s === "engine parts" || s === "engine" || s === "engines") {
+    return "Engine Parts";
+  }
+  if (s === "filters" || s === "filter") {
+    return "Filters";
+  }
+  if (s === "electrical" || s === "electricity" || s === "battery" || s === "bulbs" || s === "bulb") {
+    return "Electrical";
+  }
+  if (s === "suspension" || s === "spring" || s === "springs") {
+    return "Suspension";
+  }
+  if (s === "exhaust" || s === "wind" || s === "muffler") {
+    return "Exhaust";
+  }
+  return null;
+};
+
 function ResultsContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -117,16 +141,32 @@ function ResultsContent() {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [governorate, setGovernorate] = useState("All Cairo");
 
+  // Sync category selection with search query q if it matches a category
+  useEffect(() => {
+    const urlQ = searchParams.get("q") || "";
+    const mapped = mapSearchToCategory(urlQ);
+    if (mapped) {
+      setSelectedCategories([mapped]);
+    } else {
+      setSelectedCategories([]);
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const fetchParts = async () => {
       setLoading(true);
       try {
+        const urlQ = searchParams.get("q") || "";
+        const mappedCategory = mapSearchToCategory(urlQ);
+
         const query = {
-          q: searchParams.get("q") || "",
+          q: mappedCategory ? "" : urlQ, // Clear search text if we're filtering by category
           brand: searchParams.get("brand") || "",
           model: searchParams.get("model") || "",
           year: searchParams.get("year") || "",
+          category: selectedCategories.length > 0 ? selectedCategories[0] : (mappedCategory || undefined)
         };
+
         const data = await sparePartsService.getSpareParts(query);
         
         // Filter by category 
@@ -239,7 +279,7 @@ function ResultsContent() {
           
           <div style={{ marginBottom: "35px" }}>
             <div style={{ fontSize: "11px", fontWeight: 900, marginBottom: "15px", color: COLORS.text }}>PART CATEGORY</div>
-            {["Brake Pads", "Engine Parts", "Filters", "Electrical"].map(cat => (
+            {["Brake Pads", "Engine Parts", "Filters", "Electrical", "Suspension", "Exhaust"].map(cat => (
               <label key={cat} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", fontSize: "13px", color: COLORS.muted2, cursor: "pointer" }}>
                 <input 
                   type="checkbox" 

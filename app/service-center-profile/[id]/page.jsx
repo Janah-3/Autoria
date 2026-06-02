@@ -218,6 +218,33 @@ export default function CenterProfilePage() {
 
         <div style={{ position: "sticky", top: 100, height: "fit-content" }}>
           <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 24, boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
+            
+            {/* Book Now Button */}
+            <Link href={`/book-service?serviceCenterId=${center.id}`} style={{ textDecoration: "none" }}>
+              <button
+                className="btn-hover"
+                style={{
+                  width: "100%",
+                  background: R,
+                  color: "#fff",
+                  border: "none",
+                  padding: "14px 20px",
+                  borderRadius: "12px",
+                  fontWeight: 800,
+                  fontSize: "15px",
+                  cursor: "pointer",
+                  marginBottom: "24px",
+                  boxShadow: "0 4px 14px rgba(232, 39, 42, 0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px"
+                }}
+              >
+                <i className="fa-solid fa-calendar-check"></i> Book Service
+              </button>
+            </Link>
+
             <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Contact Information</h3>
             <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 20 }}>This is how customers see your profile.</p>
 
@@ -233,9 +260,53 @@ export default function CenterProfilePage() {
             {/* Location */}
             <div style={{ marginBottom: 16, padding: "14px 16px", background: "#f9fafb", borderRadius: 12, border: "1px solid #f3f4f6" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Location</div>
-              <div style={{ ...row(8) }}>
+              <div style={{ ...row(8), marginBottom: 10 }}>
                 <span style={{ fontSize: 16 }}>📍</span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>{center.district}, {center.governorate}</span>
+              </div>
+              
+              {/* Map Preview iframe connected to API coordinates or address fallback */}
+              <div style={{ overflow: "hidden", borderRadius: 8, border: "1px solid #e5e7eb", marginTop: 10 }}>
+                <iframe
+                  title="Center Location Map"
+                  width="100%"
+                  height="140"
+                  style={{ border: 0, display: "block" }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                    center.latitude && center.longitude
+                      ? `${center.latitude},${center.longitude}`
+                      : `${center.name}, ${center.district}, ${center.governorate}`
+                  )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                ></iframe>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    center.latitude && center.longitude
+                      ? `${center.latitude},${center.longitude}`
+                      : `${center.name}, ${center.district}, ${center.governorate}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
+                    padding: "8px",
+                    background: "#ffffff",
+                    borderTop: "1px solid #e5e7eb",
+                    color: R,
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    transition: "all 0.2s"
+                  }}
+                  className="btn-hover"
+                >
+                  <span>🗺️</span> View on Google Maps
+                </a>
               </div>
             </div>
 

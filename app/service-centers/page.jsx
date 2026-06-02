@@ -160,18 +160,6 @@ function Sidebar({ city, setCity, minRating, setMinRating, serviceFilter, setSer
           ))}
         </div>
       </FilterBox>
-
-      <FilterBox title="Availability">
-        <label style={{ ...row(8), cursor: "pointer", fontSize: 13 }}>
-          <input
-            type="checkbox"
-            checked={onlyOpen}
-            onChange={e => setOnlyOpen(e.target.checked)}
-            style={{ accentColor: R, width: 15, height: 15 }}
-          />
-          <span style={{ color: onlyOpen ? R : "#374151", fontWeight: onlyOpen ? 700 : 400 }}>Open Now Only</span>
-        </label>
-      </FilterBox>
     </aside>
   );
 }
@@ -290,34 +278,12 @@ function EmptyState({ onReset }) {
 }
 
 
-function SortBar({ sort, setSort, count }) {
+function SortBar({ count }) {
   return (
     <div style={{ ...row(0), justifyContent: "space-between", marginBottom: 20 }}>
       <span style={{ fontSize: 13, color: "#6b7280" }}>
         Showing <strong style={{ color: "#111" }}>{count}</strong> service centers
       </span>
-      <div style={{ ...row(6) }}>
-        <span style={{ fontSize: 12, color: "#9ca3af" }}>Sort by:</span>
-        {[["Rating", "rating"], ["Price", "price"], ["Reviews", "reviews"]].map(([label, val]) => (
-          <button
-            key={val}
-            onClick={() => setSort(val)}
-            style={{
-              background: sort === val ? R : "#f3f4f6",
-              color: sort === val ? "#fff" : "#374151",
-              border: "none",
-              padding: "5px 12px",
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -576,7 +542,7 @@ export default function ServiceCentersPage() {
             </button>
           </div>
 
-          <SortBar sort={sort} setSort={setSort} count={filtered.length} />
+          <SortBar count={filtered.length} />
 
           {loading ? (
             <p style={{ textAlign: "center", padding: 48, color: "#6b7280" }}>Loading service centers…</p>

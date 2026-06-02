@@ -85,7 +85,6 @@ export default function CenterCard({ center }) {
           borderTop: `1px solid ${COLORS.border}`
         }}>
           <div>
-            <span style={{ fontSize: "12px", color: COLORS.textLight }}>Starting from</span>
             <div style={{ fontSize: "16px", fontWeight: 900, color: COLORS.primary }}>{center.price || "250 EGP"}</div>
           </div>
           <a href={`/service-center-profile/${center.id}`} style={{ textDecoration: "none" }}>

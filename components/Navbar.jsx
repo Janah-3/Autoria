@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getMe } from "@/lib/api/usersService";
 import { clearAuthTokens } from "@/lib/api/client";
+import notificationService from "@/lib/notificationService";
 
 const R = "#E8272A";
 const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
@@ -15,6 +16,7 @@ export default function Navbar({ user: initialUser }) {
   const [userRole, setUserRole] = useState("User");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const toggleDropdown = (e) => {
     e.stopPropagation();
@@ -32,8 +34,19 @@ export default function Navbar({ user: initialUser }) {
     const cachedRole = localStorage.getItem("userRole");
     const cachedName = localStorage.getItem("userName");
 
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await notificationService.getNotifications({ isRead: false, pageSize: 100 });
+        const count = data?.totalCount ?? data?.items?.filter(n => !n.isRead)?.length ?? 0;
+        setUnreadCount(count);
+      } catch (err) {
+        console.warn("Failed to fetch unread notifications count:", err.message);
+      }
+    };
+
     if (cachedToken) {
       setUser({ name: cachedName || "User" });
+      fetchUnreadCount();
 
       if (cachedRole === "Admin") {
         setDashboardUrl("/admin");
@@ -62,6 +75,7 @@ export default function Navbar({ user: initialUser }) {
         if (result?.data?.fullName) {
           setUser({ name: result.data.fullName });
           localStorage.setItem("userName", result.data.fullName);
+          fetchUnreadCount();
 
           const role =
             result?.data?.role ??
@@ -210,8 +224,26 @@ export default function Navbar({ user: initialUser }) {
         </div>
 
         <div style={row(15)}>
-          <Link href="/notifications" className="btn-hover">
+          <Link href="/notifications" style={{ textDecoration: "none", position: "relative", display: "flex", alignItems: "center" }} className="btn-hover">
             <span style={{ fontSize: 20 }}>🔔</span>
+            {unreadCount > 0 && (
+              <span style={{ 
+                position: "absolute", 
+                top: -2, 
+                right: -2, 
+                background: "#fff", 
+                color: R, 
+                fontSize: 9, 
+                fontWeight: 900, 
+                width: 14, 
+                height: 14, 
+                borderRadius: "50%", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                border: `1.5px solid ${R}`
+              }}>{unreadCount}</span>
+            )}
           </Link>
 
           {user ? (
@@ -219,26 +251,38 @@ export default function Navbar({ user: initialUser }) {
               <div
                 className="btn-hover"
                 onClick={toggleDropdown}
-                style={{ ...row(8), cursor: "pointer" }}
+                style={{ ...row(10), cursor: "pointer", userSelect: "none" }}
               >
-                <span style={{ color: "#fff", fontSize: 13 }}>
+                <div style={{ 
+                  width: 32, 
+                  height: 32, 
+                  borderRadius: "50%", 
+                  background: "#fff", 
+                  color: R, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  fontWeight: 800,
+                  fontSize: 13
+                }}>
+                  <i className="fa-solid fa-user" style={{ fontSize: 14 }}></i>
+                </div>
+
+                <span style={{ color: "#fff", fontSize: 13, fontWeight: 600 }}>
                   {user.name}
                 </span>
 
                 {userRole === "ServiceCenter" && isPremium && (
-                  <span style={{ color: "#FFD700", fontSize: 10 }}>
+                  <span style={{ background: "rgba(255,255,255,0.2)", color: "#FFD700", fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 4, letterSpacing: "0.5px", border: "1px solid rgba(255,215,0,0.3)" }}>
                     ⭐ Premium
                   </span>
                 )}
-
-                <span style={{ color: "#fff" }}>
-                  {user.name?.[0]?.toUpperCase() || "U"}
-                </span>
 
                 <span
                   className={`chevron-icon ${
                     dropdownOpen ? "open" : ""
                   }`}
+                  style={{ color: "#fff" }}
                 >
                   ▼
                 </span>
@@ -293,11 +337,11 @@ export default function Navbar({ user: initialUser }) {
             </div>
           ) : (
             <div style={row(8)}>
-              <Link href="/login">
-                <button className="btn-hover">Login</button>
+              <Link href="/login" style={{ textDecoration: "none" }}>
+                <button className="btn-hover" style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,.45)", color: "#fff", padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Login</button>
               </Link>
-              <Link href="/signup">
-                <button className="btn-hover">Sign Up</button>
+              <Link href="/signup" style={{ textDecoration: "none" }}>
+                <button className="btn-hover" style={{ background: "#fff", border: "none", color: R, padding: "6px 16px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Sign Up</button>
               </Link>
             </div>
           )}

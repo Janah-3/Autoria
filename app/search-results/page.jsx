@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   serviceCentersService,
   getServiceCenterItems,
@@ -176,7 +177,6 @@ const CenterCard = ({ center }) => {
           borderTop: `1px solid ${COLORS.border}`
         }}>
           <div>
-            <span style={{ fontSize: "12px", color: COLORS.textLight }}>Starting from</span>
             <div style={{ fontSize: "16px", fontWeight: 900, color: COLORS.primary }}>{center.price || "250 EGP"}</div>
           </div>
           <a href={`/service-center-profile/${center.id}`} style={{ textDecoration: "none" }}>
@@ -216,7 +216,6 @@ function SearchResultsContent() {
   const [query, setQuery] = useState(initialQuery);
   const [centers, setCenters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState("grid"); // "grid" or "map"
   const [filters, setFilters] = useState({
     city: initialLoc || "All",
     rating: 0,
@@ -389,14 +388,6 @@ function SearchResultsContent() {
               ))}
             </FilterSection>
 
-            <FilterSection title="Availability">
-              <Checkbox 
-                label="Open Now Only" 
-                checked={filters.openOnly} 
-                onChange={(e) => setFilters({...filters, openOnly: e.target.checked})} 
-              />
-            </FilterSection>
-
             <div style={{ 
               marginTop: "30px", 
               padding: "20px", 
@@ -404,18 +395,20 @@ function SearchResultsContent() {
               borderRadius: "12px",
               textAlign: "center"
             }}>
-              <p style={{ fontSize: "12px", color: COLORS.primaryDark, fontWeight: 600, margin: "0 0 10px 0" }}>Need Help Choosing?</p>
-              <button style={{ 
-                background: COLORS.primary, 
-                color: COLORS.white, 
-                border: "none", 
-                padding: "8px 16px", 
-                borderRadius: "8px", 
-                fontSize: "12px", 
-                fontWeight: 700,
-                cursor: "pointer",
-                width: "100%"
-              }}>Chat with Expert</button>
+              <p style={{ fontSize: "12px", color: COLORS.primaryDark, fontWeight: 600, margin: "0 0 10px 0" }}>Have Issues?</p>
+              <Link href="/contact-us" style={{ textDecoration: "none" }}>
+                <button style={{ 
+                  background: COLORS.primary, 
+                  color: COLORS.white, 
+                  border: "none", 
+                  padding: "8px 16px", 
+                  borderRadius: "8px", 
+                  fontSize: "12px", 
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  width: "100%"
+                }}>Contact Us</button>
+              </Link>
             </div>
           </div>
         </aside>
@@ -431,80 +424,9 @@ function SearchResultsContent() {
             <div style={{ fontSize: "15px", color: COLORS.textLight }}>
               Showing <strong style={{ color: COLORS.text }}>{filteredCenters.length}</strong> service centers
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-              <div style={{ 
-                display: "flex", 
-                background: COLORS.white, 
-                border: `1px solid ${COLORS.border}`,
-                borderRadius: "8px",
-                padding: "2px"
-              }}>
-                <button 
-                  onClick={() => setViewMode("grid")}
-                  style={{ 
-                    padding: "6px 12px", 
-                    borderRadius: "6px", 
-                    background: viewMode === "grid" ? COLORS.primary : "transparent",
-                    color: viewMode === "grid" ? COLORS.white : COLORS.text,
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: 700
-                  }}>List</button>
-                <button 
-                  onClick={() => setViewMode("map")}
-                  style={{ 
-                    padding: "6px 12px", 
-                    borderRadius: "6px", 
-                    background: viewMode === "map" ? COLORS.primary : "transparent",
-                    color: viewMode === "map" ? COLORS.white : COLORS.text,
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: 700
-                  }}>Map</button>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "14px", color: COLORS.textLight }}>Sort by:</span>
-                <select style={{ 
-                  background: COLORS.white, 
-                  border: `1px solid ${COLORS.border}`, 
-                  padding: "8px 16px", 
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  outline: "none"
-                }}>
-                  <option>Most Recommended</option>
-                  <option>Highest Rated</option>
-                  <option>Lowest Price</option>
-                  <option>Nearest to Me</option>
-                </select>
-              </div>
-            </div>
           </div>
 
-          {viewMode === "map" ? (
-            <div style={{ 
-              height: "600px", 
-              background: "#E5E3DF", 
-              borderRadius: "20px", 
-              display: "flex", 
-              alignItems: "center", 
-              justifyContent: "center",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              <img 
-                src="https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/31.2357,30.0444,11,0/1000x600?access_token=DUMMY_TOKEN" 
-                alt="Map View"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              />
-              <div style={{ position: "absolute", top: "20px", left: "20px", background: COLORS.white, padding: "10px 20px", borderRadius: "10px", boxShadow: SHADOWS.md }}>
-                <span style={{ fontWeight: 700 }}>{filteredCenters.length}</span> centers in this area
-              </div>
-            </div>
-          ) : loading ? (
+          {loading ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
               {[1, 2, 3, 4, 5, 6].map(i => (
                 <div key={i} style={{ height: "400px", borderRadius: "20px" }} className="loading-shimmer" />

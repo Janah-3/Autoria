@@ -36,12 +36,12 @@ const STEPS = [
 ];
 
 const WHY = [
-  { icon: "✅", title: "Verified Centers Only", desc: "Every center is vetted before listing. No surprises." },
-  { icon: "💰", title: "Transparent Pricing", desc: "See prices upfront. Compare across centers side by side." },
-  { icon: "⚡", title: "Instant Booking", desc: "Book in under 2 minutes. No calls, no waiting." },
-  { icon: "⭐", title: "Trusted Reviews", desc: "Ratings from real verified customers only." },
-  { icon: "🛒", title: "Parts Marketplace", desc: "Order genuine parts online, delivered to your door." },
-  { icon: "📱", title: "Track Everything", desc: "All bookings and orders in one dashboard." },
+  { iconClass: "fa-solid fa-circle-check", title: "Verified Centers Only", desc: "Every center is vetted before listing. No surprises." },
+  { iconClass: "fa-solid fa-tags", title: "Transparent Pricing", desc: "See prices upfront. Compare across centers side by side." },
+  { iconClass: "fa-solid fa-calendar-check", title: "Instant Booking", desc: "Book in under 2 minutes. No calls, no waiting." },
+  { iconClass: "fa-solid fa-star", title: "Trusted Reviews", desc: "Ratings from real verified customers only." },
+  { iconClass: "fa-solid fa-cart-shopping", title: "Parts Marketplace", desc: "Order genuine parts online, delivered to your door." },
+  { iconClass: "fa-solid fa-mobile-screen-button", title: "Track Everything", desc: "All bookings and orders in one dashboard." },
 ];
 
 const REVIEWS = [
@@ -224,22 +224,53 @@ function ServiceCenters({ centers }) {
 }
 
 // ── Spare Parts ────────────────────────────────────────────────────────────
-function SpareParts({ parts }) {
+const SPARE_PART_CATEGORIES = [
+  { iconClass: "fa-solid fa-circle-notch", title: "Brakes & Pads" },
+  { iconClass: "fa-solid fa-gears", title: "Engine Parts" },
+  { iconClass: "fa-solid fa-filter", title: "Filters" },
+  { iconClass: "fa-solid fa-bolt", title: "Electrical" },
+  { iconClass: "fa-solid fa-compress", title: "Suspension" },
+  { iconClass: "fa-solid fa-wind", title: "Exhaust" },
+];
+
+function SpareParts() {
+  const router = useRouter();
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+
   return (
     <section style={{ padding: "72px 5%" }}>
-      <SH tag="Spare Parts" h2="Browse the" em="Marketplace" sub="Genuine parts from trusted suppliers — delivered to your door." />
-      <div style={grid(4, 16)}>
-        {parts.map(p => (
-          <div key={p.name} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 18, textAlign: "center", cursor: "pointer" }}>
-            <span style={{ fontSize: "36px", marginBottom: 10, display: "block" }}>{p.icon || "📦"}</span>
-            <div style={{ fontSize: 12, fontWeight: 800, marginBottom: 3 }}>{p.name}</div>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 9 }}>{p.desc || p.car}</div>
-            <div style={{ fontSize: 15, fontWeight: 900, color: R }}>{p.price}</div>
-          </div>
-        ))}
+      <SH tag="Spare Parts" h2="Browse by" em="Category" sub="Genuine parts from trusted suppliers — live availability from verified centers." />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "16px" }}>
+        {SPARE_PART_CATEGORIES.map((cat, idx) => {
+          const hovered = hoveredIdx === idx;
+          return (
+            <div
+              key={cat.title}
+              onClick={() => router.push(`/spare-parts-results?q=${encodeURIComponent(cat.title)}`)}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              style={{
+                background: "#ffffff",
+                border: `1.5px solid ${hovered ? R : "#e5e7eb"}`,
+                borderRadius: "16px",
+                padding: "28px 20px",
+                textAlign: "center",
+                cursor: "pointer",
+                transition: "all .2s ease",
+                transform: hovered ? "translateY(-3px)" : "none",
+                boxShadow: hovered ? "0 8px 24px rgba(232,39,42,.08)" : "0 2px 8px rgba(0,0,0,.03)",
+              }}
+            >
+              <div style={{ fontSize: "36px", marginBottom: "12px", color: hovered ? R : "#4b5563", transition: "color 0.2s" }}>
+                <i className={cat.iconClass}></i>
+              </div>
+              <div style={{ fontFamily: "'Syne', sans-serif", fontSize: "14px", fontWeight: 700, marginBottom: "4px", color: "#111111" }}>{cat.title}</div>
+            </div>
+          );
+        })}
       </div>
       <div style={{ textAlign: "center", marginTop: 28 }}>
-        <a href="/spare-parts-results" style={{ textDecoration: "none" }}>
+        <a href="/spare-parts-search" style={{ textDecoration: "none" }}>
           <button className="btn-hover" style={{ background: "transparent", border: `1.5px solid ${R}`, color: R, padding: "10px 26px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Shop All Parts →</button>
         </a>
       </div>
@@ -273,8 +304,8 @@ function WhyAutoria() {
       <div style={grid(3, 16)}>
         {WHY.map(w => (
           <div key={w.title} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 22 }}>
-            <div style={{ width: 42, height: 42, background: "#fff0f0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 13 }}>
-              <span style={{ fontSize: "20px" }}>{w.icon}</span>
+            <div style={{ width: 42, height: 42, background: "#fff0f0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 13, color: R }}>
+              <i className={w.iconClass} style={{ fontSize: "18px" }}></i>
             </div>
             <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>{w.title}</h3>
             <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{w.desc}</p>
@@ -468,7 +499,7 @@ export default function AutoriaHomePage() {
       <Navbar user={user} />
       <Hero setCenters={setCenters} onAiSupportClick={() => setShowAiModal(true)} />
       <ServiceCenters centers={centers} />
-      <SpareParts parts={parts} />
+      <SpareParts />
       <HowItWorks />
       <WhyAutoria />
       <Reviews reviews={reviews} />
