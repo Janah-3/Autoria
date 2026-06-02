@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { reviewsService } from "@/lib/api/reviewsService";
 
 const StarSelector = ({ label, rating, onRatingChange }) => {
   const [hoverRating, setHoverRating] = useState(0);
@@ -26,18 +27,47 @@ const StarSelector = ({ label, rating, onRatingChange }) => {
 
 export default function EditReviewPage() {
   const router = useRouter();
-  // Pre-filled mock data for editing
-  const [mainRating, setMainRating] = useState(4);
-  const [subRatings, setSubRatings] = useState({ quality: 5, value: 3, waitTime: 4, staff: 5 });
-  const [reviewText, setReviewText] = useState("Very professional team, they know what they're doing. A bit pricey but worth it for the peace of mind. The waiting area was also very comfortable.");
+  const searchParams = useSearchParams();
+
+  // Load from search params
+  const reviewId = searchParams.get("id");
+  const initialCenterName = searchParams.get("serviceCenterName") || "Precision Auto Works";
+  const initialRating = Number(searchParams.get("rating") || 4);
+  const initialComment = searchParams.get("comment") || "";
+
+  const [mainRating, setMainRating] = useState(initialRating);
+  const [subRatings, setSubRatings] = useState({ quality: 4, value: 4, waitTime: 4, staff: 4 });
+  const [reviewText, setReviewText] = useState(initialComment);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (initialRating) setMainRating(initialRating);
+    if (initialComment) setReviewText(initialComment);
+  }, [initialRating, initialComment]);
 
   const handleSubRating = (key, value) => {
     setSubRatings(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleUpdate = () => {
-    alert("Review updated successfully!");
-    router.push("/reviews");
+  const handleUpdate = async () => {
+    if (!reviewId) {
+      alert("Error: Review ID not found!");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await reviewsService.editReview(reviewId, {
+        rating: mainRating,
+        comment: reviewText,
+      });
+      alert("Review updated successfully!");
+      router.push("/reviews");
+    } catch (err) {
+      console.error("Failed to update review:", err);
+      alert("Failed to update review. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const isFormValid = mainRating > 0 && reviewText.length > 10;
@@ -84,31 +114,18 @@ export default function EditReviewPage() {
         .review-textarea:focus { border-color: #E8192C; box-shadow: 0 0 0 3px rgba(232, 25, 44, 0.1); }
         .textarea-hint { font-size: 12px; color: #9CA3AF; margin-top: 6px; }
 
-        /* Photos Upload */
-        .upload-section { margin-bottom: 40px; }
-        .upload-box { border: 2px dashed #D1D5DB; border-radius: 8px; padding: 32px; text-align: center; cursor: pointer; transition: border-color 0.2s; background: #F9FAFB; }
-        .upload-box:hover { border-color: #E8192C; background: #FFF5F6; }
-        .upload-icon { font-size: 32px; color: #9CA3AF; margin-bottom: 12px; }
-        .upload-text { font-size: 14px; font-weight: 600; color: #4B5563; margin-bottom: 4px; }
-        .upload-hint { font-size: 12px; color: #9CA3AF; }
-
-        /* Existing Photos */
-        .existing-photos { display: flex; gap: 12px; margin-bottom: 16px; }
-        .photo-thumbnail { width: 80px; height: 60px; background: #E5E7EB; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #9CA3AF; font-size: 20px; position: relative; }
-        .remove-photo-btn { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #EF4444; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; border: none; }
-
         /* Actions */
         .actions-bar { display: flex; justify-content: flex-end; gap: 16px; border-top: 1px solid #E5E7EB; padding-top: 24px; }
         .btn { padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
         .btn-cancel { background: #fff; color: #374151; border: 1px solid #D1D5DB; }
         .btn-cancel:hover { background: #F3F4F6; }
-        .btn-submit { background: #10B981; color: #fff; border: none; }
-        .btn-submit:hover { background: #059669; }
-        .btn-submit:disabled { background: #6EE7B7; cursor: not-allowed; }
+        .btn-submit { background: #E8192C; color: #fff; border: none; }
+        .btn-submit:hover { background: #C8001E; }
+        .btn-submit:disabled { background: #FCA5A5; cursor: not-allowed; }
       `}</style>
 
       <nav className="top-nav">
-        <Link href="/service-center" className="logo">Autoria</Link>
+        <Link href="/user-dashboard" className="logo">Autoria</Link>
         <Link href="/reviews" className="nav-back">
           <i className="fa-solid fa-arrow-left"></i> Back to My Reviews
         </Link>
@@ -117,13 +134,13 @@ export default function EditReviewPage() {
       <main className="content">
         <div className="page-header">
           <h1 className="page-title">Edit your review</h1>
-          <p className="page-subtitle">Update your feedback for <span className="center-highlight">Precision Auto Works</span></p>
+          <p className="page-subtitle">Update your feedback for <span className="center-highlight">{initialCenterName}</span></p>
         </div>
 
         <div className="review-card">
           <div className="main-rating-box">
             <div className="main-rating-label">Overall Rating</div>
-            <div className="stars-container" onMouseLeave={() => setMainRating(mainRating)}>
+            <div className="stars-container">
               {[1, 2, 3, 4, 5].map((star) => (
                 <i
                   key={star}
@@ -153,25 +170,14 @@ export default function EditReviewPage() {
             <p className="textarea-hint">Minimum 10 characters.</p>
           </div>
 
-          <div className="upload-section">
-            <h2 className="section-title">Attached Photos</h2>
-            <div className="existing-photos">
-              <div className="photo-thumbnail">
-                <i className="fa-regular fa-image"></i>
-                <button className="remove-photo-btn"><i className="fa-solid fa-xmark"></i></button>
-              </div>
-            </div>
-            <div className="upload-box">
-              <i className="fa-solid fa-cloud-arrow-up upload-icon"></i>
-              <div className="upload-text">Click to add more photos</div>
-              <div className="upload-hint">PNG, JPG up to 5MB</div>
-            </div>
-          </div>
-
           <div className="actions-bar">
             <Link href="/reviews" className="btn btn-cancel">Cancel</Link>
-            <button className="btn btn-submit" disabled={!isFormValid} onClick={handleUpdate}>
-              Update Review
+            <button 
+              className="btn btn-submit" 
+              disabled={!isFormValid || submitting} 
+              onClick={handleUpdate}
+            >
+              {submitting ? "Updating..." : "Update Review"}
             </button>
           </div>
         </div>

@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { reviewsService } from "@/lib/api/reviewsService";
 
 const StarRating = ({ rating }) => {
   const stars = [];
@@ -18,8 +19,39 @@ const StarRating = ({ rating }) => {
 };
 
 export default function MyReviewsPage() {
-  // Reviews API not yet available — show empty state
-  const [reviews] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchReviews = async () => {
+    setLoading(true);
+    try {
+      const res = await reviewsService.getMyReviews();
+      setReviews(res.data || []);
+    } catch (err) {
+      console.error("Failed to load reviews:", err);
+      setError("Failed to load your reviews. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const handleDelete = async (reviewId) => {
+    if (confirm("Are you sure you want to delete this review?")) {
+      try {
+        await reviewsService.deleteReview(reviewId);
+        alert("Review deleted successfully!");
+        fetchReviews();
+      } catch (err) {
+        console.error("Failed to delete review:", err);
+        alert("Failed to delete review. Please try again.");
+      }
+    }
+  };
 
   return (
     <div className="page-container">
@@ -55,21 +87,36 @@ export default function MyReviewsPage() {
         .rating-row { margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
         .rating-text { font-size: 14px; font-weight: 700; color: #374151; }
         
-        .review-text { font-size: 15px; color: #4B5563; line-height: 1.6; margin-bottom: 24px; }
+        .review-text { font-size: 15px; color: #4B5563; line-height: 1.6; margin-bottom: 20px; }
         
-        .center-reply { background: #F9FAFB; border-left: 3px solid #10B981; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px; }
+        .center-reply { background: #F9FAFB; border-left: 3px solid #10B981; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 20px; }
         .reply-header { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
         .reply-text { font-size: 14px; color: #4B5563; line-height: 1.5; }
+
+        .review-actions { display: flex; gap: 16px; border-top: 1px solid #F3F4F6; paddingTop: 16px; padding: 16px 0 0 0; margin-top: 16px; }
+        .btn-action { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; text-decoration: none; border: none; background: none; cursor: pointer; transition: color 0.2s; }
+        .btn-edit { color: #2563EB; }
+        .btn-edit:hover { color: #1D4ED8; }
+        .btn-delete { color: #DC2626; }
+        .btn-delete:hover { color: #B91C1C; }
 
         .empty-state { background: #fff; border-radius: 12px; border: 1px dashed #D1D5DB; padding: 60px 20px; text-align: center; }
         .empty-icon { font-size: 48px; color: #D1D5DB; margin-bottom: 16px; }
         .empty-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px; }
         .empty-desc { font-size: 14px; color: #6B7280; }
+        
+        .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 20px; color: #6B7280; gap: 16px; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #E8192C; border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
       `}</style>
 
       <nav className="top-nav">
-        <Link href="/service-center" className="logo">Autoria</Link>
-        <Link href="/service-center" className="nav-back">
+        <Link href="/user-dashboard" className="logo">Autoria</Link>
+        <Link href="/user-dashboard" className="nav-back">
           <i className="fa-solid fa-arrow-left"></i> Back to Dashboard
         </Link>
       </nav>
@@ -82,7 +129,18 @@ export default function MyReviewsPage() {
           </div>
         </div>
 
-        {reviews.length > 0 ? (
+        {loading ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading your reviews...</p>
+          </div>
+        ) : error ? (
+          <div className="empty-state" style={{ borderColor: '#FCA5A5' }}>
+            <i className="fa-solid fa-circle-exclamation empty-icon" style={{ color: '#EF4444' }}></i>
+            <h2 className="empty-title">{error}</h2>
+            <button onClick={fetchReviews} className="btn-action btn-edit" style={{ marginTop: '12px' }}>Try Again</button>
+          </div>
+        ) : reviews.length > 0 ? (
           <div className="reviews-list">
             {reviews.map(review => (
               <div className="review-card" key={review.id}>
@@ -90,12 +148,14 @@ export default function MyReviewsPage() {
                   <div className="center-info">
                     <div className="center-icon"><i className="fa-solid fa-wrench"></i></div>
                     <div>
-                      <div className="center-name">{review.center}</div>
-                      <div className="review-date">Posted on {review.date}</div>
+                      <div className="center-name">{review.serviceCenterName}</div>
+                      <div className="review-date">
+                        Posted on {new Date(review.createdAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
-                  <div className={`status-badge ${review.status === 'Published' ? 'published' : 'pending'}`}>
-                    {review.status}
+                  <div className="status-badge published">
+                    Published
                   </div>
                 </div>
                 
@@ -106,19 +166,34 @@ export default function MyReviewsPage() {
                   </div>
                   
                   <div className="review-text">
-                    &ldquo;{review.text}&rdquo;
+                    &ldquo;{review.comment}&rdquo;
                   </div>
 
-                  {review.reply && (
+                  {review.replyComment && (
                     <div className="center-reply">
                       <div className="reply-header">
-                        <i className="fa-solid fa-reply" style={{color: '#10B981'}}></i> Response from {review.center}
+                        <i className="fa-solid fa-reply" style={{color: '#10B981'}}></i> Response from {review.serviceCenterName}
                       </div>
                       <div className="reply-text">
-                        &ldquo;{review.reply}&rdquo;
+                        &ldquo;{review.replyComment}&rdquo;
                       </div>
                     </div>
                   )}
+
+                  <div className="review-actions">
+                    <Link 
+                      href={`/reviews/edit?id=${review.id}&serviceCenterName=${encodeURIComponent(review.serviceCenterName)}&rating=${review.rating}&comment=${encodeURIComponent(review.comment)}`}
+                      className="btn-action btn-edit"
+                    >
+                      <i className="fa-solid fa-pen-to-square"></i> Edit
+                    </Link>
+                    <button 
+                      onClick={() => handleDelete(review.id)}
+                      className="btn-action btn-delete"
+                    >
+                      <i className="fa-solid fa-trash-can"></i> Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

@@ -662,10 +662,6 @@ export default function AdminDashboard() {
                   boxShadow: "0 10px 25px rgba(0,0,0,0.15)", border: `1px solid ${COLORS.border}`,
                   minWidth: "160px", overflow: "hidden", zIndex: 1000
                 }}>
-                  <Link href="/admin" style={{ display: "block", padding: "10px 16px", color: COLORS.text, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
-                     Admin Dashboard
-                  </Link>
-                  <div style={{ borderTop: `1px solid ${COLORS.border}` }} />
                   <Link href="/logout" style={{ display: "block", padding: "10px 16px", color: COLORS.primary, fontSize: "13px", fontWeight: 600, textDecoration: "none" }}>
                      Log Out <span className="logout-arrow">→</span>
                   </Link>

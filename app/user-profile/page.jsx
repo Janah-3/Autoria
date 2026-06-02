@@ -213,8 +213,8 @@ export default function UserProfilePage() {
       {/* Nav */}
       <nav className="top-nav">
         <Link href="/" className="logo">AUTO<span>RIA</span></Link>
-        <Link href="/user-dashboard" className="back-link">
-          <i className="fa-solid fa-arrow-left" /> Dashboard
+        <Link href="/" className="back-link">
+          <i className="fa-solid fa-arrow-left" /> Home
         </Link>
       </nav>
 
@@ -316,7 +316,7 @@ export default function UserProfilePage() {
             </div>
 
             <div className="form-footer">
-              <Link href="/user-dashboard" className="btn-cancel">Cancel</Link>
+              <Link href="/" className="btn-cancel">Cancel</Link>
               <button type="submit" className="btn-save" disabled={saving || loading}>
                 {saving ? (
                   <><i className="fa-solid fa-spinner fa-spin" /> Saving...</>

@@ -392,9 +392,24 @@ export default function CarsPage() {
             </div>
           </div>
 
-          <Link href="/cars/add-car" className="btn-add" style={{ textDecoration: 'none' }}>
-            + Add New Car
-          </Link>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <Link
+              href="/user-dashboard"
+              style={{
+                height: '46px', padding: '0 20px', borderRadius: '40px',
+                background: '#fff', color: 'var(--g700)',
+                border: '1.5px solid var(--g200)',
+                fontSize: '14px', fontWeight: '700',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                textDecoration: 'none', transition: 'all .2s'
+              }}
+            >
+              ← Dashboard
+            </Link>
+            <Link href="/cars/add-car" className="btn-add" style={{ textDecoration: 'none' }}>
+              + Add New Car
+            </Link>
+          </div>
         </div>
 
         {isLoading ? (

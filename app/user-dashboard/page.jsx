@@ -105,7 +105,16 @@ export default function UserDashboardPage() {
         const invoicesStored = sessionStorage.getItem("mock_invoices") || "[]";
         const invoices = JSON.parse(invoicesStored);
 
-        const hydrated = historyRes.data.map(tx => {
+        // Safely extract array from various API response shapes
+        const historyArray = Array.isArray(historyRes.data)
+          ? historyRes.data
+          : Array.isArray(historyRes.data?.items)
+          ? historyRes.data.items
+          : Array.isArray(historyRes.data?.data)
+          ? historyRes.data.data
+          : [];
+
+        const hydrated = historyArray.map(tx => {
           const inv = invoices.find(i => i.id === tx.invoiceId) || {};
           return {
             ...tx,
@@ -530,6 +539,9 @@ export default function UserDashboardPage() {
               </Link>
               <Link href="/reservations" className="action-btn btn-secondary" style={{ background: "#FEEBEB", color: "#E8192C" }}>
                 <i className="fa-solid fa-box-open"></i> Part Reservations
+              </Link>
+              <Link href="/reviews" className="action-btn btn-secondary" style={{ background: "#FFFBEB", color: "#D97706" }}>
+                <i className="fa-solid fa-star"></i> My Reviews
               </Link>
             </div>
           </div>

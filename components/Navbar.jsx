@@ -253,10 +253,6 @@ export default function Navbar({ user: initialUser }) {
                   👤 Profile
                 </Link>
 
-                <Link href={dashboardUrl} className="dropdown-item">
-                  🏠 Dashboard
-                </Link>
-
                 {userRole === "ServiceCenter" && (
                   <>
                     <Link

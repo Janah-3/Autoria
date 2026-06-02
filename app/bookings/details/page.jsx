@@ -410,6 +410,34 @@ export default function BookingDetailsPage() {
           </div>
         )}
 
+        {/* Rate section — only shown when Completed & Paid */}
+        {booking.status === "Completed" && invoice?.status === "Paid" && (
+          <div className="section-card" style={{ border: "1.5px solid #FDE68A", background: "#FFFBEB" }}>
+            <div className="section-title" style={{ color: "#92400E" }}>⭐ Rate Your Experience</div>
+            <p style={{ fontSize: "14px", color: "#78350F", marginBottom: "16px", lineHeight: 1.6 }}>
+              How was your service at <strong>{booking.serviceCenter?.name}</strong>? Your feedback helps others choose the right service center.
+            </p>
+            <Link
+              href={`/reviews/write?serviceCenterId=${booking.serviceCenter?.id}&serviceCenterName=${encodeURIComponent(booking.serviceCenter?.name || "")}&bookingId=${booking.id}`}
+              style={{
+                display: "block",
+                width: "100%",
+                padding: "14px",
+                background: "#F59E0B",
+                color: "#fff",
+                textAlign: "center",
+                borderRadius: "12px",
+                fontWeight: "800",
+                textDecoration: "none",
+                fontSize: "14px",
+                boxShadow: "0 4px 12px rgba(245, 158, 11, 0.3)"
+              }}
+            >
+              ⭐ Write a Review
+            </Link>
+          </div>
+        )}
+
         <div className="action-bar">
           <Link href="/bookings" className="btn-back">Back</Link>
           {isCancellable && (
