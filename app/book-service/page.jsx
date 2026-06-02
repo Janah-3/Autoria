@@ -8,6 +8,8 @@ import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceC
 import { getMe } from "@/lib/api/usersService";
 import { lookupsService } from "@/lib/api/lookupsService";
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const COLORS = {
   primary: "#E8272A",
   primaryDark: "#B81C1F",
@@ -17,17 +19,8 @@ const COLORS = {
   textLight: "#6C757D",
   border: "#E9ECEF",
   success: "#28A745",
+  errorBg: "#FFF4F4",
 };
-
-const FALLBACK_SLOTS = ["09:00 AM", "11:00 AM", "01:00 PM", "03:00 PM", "05:00 PM", "07:00 PM"];
-
-function parseSlotTime(slot) {
-  return slot?.startTime ?? slot?.time ?? slot?.label ?? "";
-}
-
-function getSlotId(slot) {
-  return slot?.id ?? slot?.timeSlotId ?? slot?.TimeSlotId ?? null;
-}
 
 const DB_SERVICE_TYPES_FALLBACK = [
   { id: "ED392799-AC48-4DF4-A43B-4067838C5782", name: "Body Work" },
@@ -37,123 +30,242 @@ const DB_SERVICE_TYPES_FALLBACK = [
   { id: "2F85B94E-C7A6-4FE3-8C62-C464EBC021B6", name: "Tires" },
   { id: "8E4EC0D1-4940-43D7-B809-D4F38111375E", name: "Oil Change" },
   { id: "07109B5A-5EFA-4234-A84B-EB5EFB32A877", name: "Electrical" },
-  { id: "09014C26-42D5-4742-8119-F33BB2B94D2D", name: "Engine Diagnostics" }
+  { id: "09014C26-42D5-4742-8119-F33BB2B94D2D", name: "Engine Diagnostics" },
 ];
+
+// ── Slot helpers ──────────────────────────────────────────────────────────────
+
+function parseSlotTime(slot) {
+  // Try the most common backend shapes first
+  const raw = slot?.startTime ?? slot?.time ?? slot?.label ?? slot?.StartTime ?? "";
+  if (!raw) return "";
+  // If already looks like "09:00 AM" return as-is
+  if (/\d{1,2}:\d{2}\s*(AM|PM)/i.test(raw)) return raw;
+  // If it's an ISO time like "09:00:00" → format to 12-hr
+  const match = raw.match(/^(\d{2}):(\d{2})/);
+  if (match) {
+    let h = parseInt(match[1], 10);
+    const m = match[2];
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${m} ${ampm}`;
+  }
+  return raw;
+}
+
+function getSlotId(slot) {
+  return slot?.id ?? slot?.Id ?? slot?.timeSlotId ?? slot?.TimeSlotId ?? null;
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function FieldLabel({ children }) {
+  return (
+    <label
+      style={{
+        display: "block",
+        fontSize: "11px",
+        fontWeight: 700,
+        color: COLORS.textLight,
+        marginBottom: "8px",
+        textTransform: "uppercase",
+        letterSpacing: "0.05em",
+      }}
+    >
+      {children}
+    </label>
+  );
+}
+
+function SelectInput({ value, onChange, children, disabled }) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      style={{
+        width: "100%",
+        padding: "12px 16px",
+        borderRadius: "12px",
+        border: `1.5px solid ${COLORS.border}`,
+        background: disabled ? "#f0f0f0" : COLORS.bg,
+        fontSize: "14px",
+        color: COLORS.text,
+        cursor: disabled ? "not-allowed" : "pointer",
+        appearance: "auto",
+      }}
+    >
+      {children}
+    </select>
+  );
+}
+
+function TextInput({ value, onChange, placeholder, type = "text" }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      style={{
+        width: "100%",
+        padding: "12px 16px",
+        borderRadius: "12px",
+        border: `1.5px solid ${COLORS.border}`,
+        background: COLORS.bg,
+        fontSize: "14px",
+        color: COLORS.text,
+      }}
+    />
+  );
+}
+
+function ValidationError({ message }) {
+  if (!message) return null;
+  return (
+    <div
+      style={{
+        fontSize: "12px",
+        color: COLORS.primary,
+        marginTop: "6px",
+        fontWeight: 600,
+      }}
+    >
+      {message}
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function BookServicePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const serviceCenterFromUrl = searchParams.get("serviceCenterId") || "";
+  const serviceCenterIdFromUrl = searchParams.get("serviceCenterId") || "";
 
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  // ── State ──────────────────────────────────────────────────────────────────
+
   const [initLoading, setInitLoading] = useState(true);
-  const [selectedCarId, setSelectedCarId] = useState("");
-  const [selectedServiceCenterId, setSelectedServiceCenterId] = useState(serviceCenterFromUrl);
-  const [serviceCenters, setServiceCenters] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  // Data loaded from API
+  const [cars, setCars] = useState([]);
+  const [serviceCenter, setServiceCenter] = useState(null); // the one passed via URL
   const [dbServiceTypes, setDbServiceTypes] = useState(DB_SERVICE_TYPES_FALLBACK);
+
+  // User selections
+  const [selectedCarId, setSelectedCarId] = useState("");
+  const [selectedServiceTypeId, setSelectedServiceTypeId] = useState("");
+  const [selectedServiceTypeName, setSelectedServiceTypeName] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedSlotId, setSelectedSlotId] = useState("");
+  const [selectedSlotLabel, setSelectedSlotLabel] = useState("");
+  const [notes, setNotes] = useState("");
+
+  // Slots
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    serviceType: "",
-    serviceTypeId: "",
-    carBrand: "",
-    carModel: "",
-    carYear: "",
-    date: "",
-    timeSlot: "",
-    timeSlotId: "",
-    name: "",
-    phone: "",
-    notes: "",
-  });
+  const [slotsError, setSlotsError] = useState("");
+
+  // ── Init: load cars, service center, service types ─────────────────────────
 
   useEffect(() => {
+    if (!serviceCenterIdFromUrl) {
+      // No service center ID in URL — go back
+      router.replace("/service-centers");
+      return;
+    }
+
     let cancelled = false;
 
-    async function loadBookingData() {
+    async function init() {
       try {
         if (typeof window !== "undefined" && !localStorage.getItem("token")) {
           router.push("/login");
           return;
         }
 
-        const [carsResponse, centersResponse, meResponse, serviceTypesRes] = await Promise.all([
+        const [carsRes, centersRes, serviceTypesRes] = await Promise.all([
           getAllCars(),
           serviceCentersService.getAll(),
-          getMe().catch(() => null),
-          lookupsService.getServiceTypes().catch(() => serviceCentersService.getServiceTypes()),
+          lookupsService
+            .getServiceTypes()
+            .catch(() => serviceCentersService.getServiceTypes())
+            .catch(() => null),
         ]);
 
         if (cancelled) return;
 
-        const cars = getCarItems(carsResponse);
-        const primary = cars.find((car) => car.isPrimary) || cars[0];
+        // Cars
+        const carItems = getCarItems(carsRes);
+        setCars(carItems);
+        // Pre-select primary car
+        const primary = carItems.find((c) => c.isPrimary) || carItems[0];
+        if (primary) setSelectedCarId(String(getCarId(primary) || ""));
 
-        if (primary) {
-          const carId = getCarId(primary);
-          setSelectedCarId(carId || "");
-          setFormData((prev) => ({
-            ...prev,
-            carBrand: primary.make || prev.carBrand,
-            carModel: primary.model || prev.carModel,
-            carYear: String(primary.year || prev.carYear),
-          }));
-        }
+        // Service center from URL
+        const allCenters = getServiceCenterItems(centersRes);
+        const found = allCenters.find(
+          (c) => String(c.id) === String(serviceCenterIdFromUrl)
+        );
+        setServiceCenter(found || null);
 
-        const centers = getServiceCenterItems(centersResponse);
-        setServiceCenters(centers);
-
-        if (serviceTypesRes?.data && serviceTypesRes.data.length > 0) {
+        // Service types
+        if (serviceTypesRes?.data?.length > 0) {
           setDbServiceTypes(serviceTypesRes.data);
         } else if (Array.isArray(serviceTypesRes) && serviceTypesRes.length > 0) {
           setDbServiceTypes(serviceTypesRes);
         }
-
-        if (!serviceCenterFromUrl && centers.length === 1) {
-          setSelectedServiceCenterId(centers[0].id);
-        }
-
-        const user = meResponse?.data;
-        if (user) {
-          setFormData((prev) => ({
-            ...prev,
-            name: user.fullName || user.FullName || prev.name,
-            phone: user.phoneNumber || user.PhoneNumber || user.phone || prev.phone,
-          }));
-        }
-      } catch (error) {
-        console.error("Failed to load booking data:", error);
+      } catch (err) {
+        console.error("BookService init failed:", err);
       } finally {
         if (!cancelled) setInitLoading(false);
       }
     }
 
-    loadBookingData();
+    init();
     return () => {
       cancelled = true;
     };
-  }, [router, serviceCenterFromUrl]);
+  }, [router, serviceCenterIdFromUrl]);
+
+  // ── Load slots when date changes ───────────────────────────────────────────
 
   useEffect(() => {
-    if (!formData.date || !selectedServiceCenterId) {
+    if (!selectedDate || !serviceCenterIdFromUrl) {
       setAvailableSlots([]);
+      setSlotsError("");
       return;
     }
 
     let cancelled = false;
     setSlotsLoading(true);
+    setSlotsError("");
+    // Reset slot selection when date changes
+    setSelectedSlotId("");
+    setSelectedSlotLabel("");
 
     bookingsService
-      .getAvailableSlots(selectedServiceCenterId, formData.date)
-      .then((response) => {
+      .getAvailableSlots(serviceCenterIdFromUrl, selectedDate)
+      .then((res) => {
         if (cancelled) return;
-        const items = response?.data?.items ?? response?.data ?? [];
-        setAvailableSlots(Array.isArray(items) ? items : []);
+        const items = res?.data?.items ?? res?.data ?? (Array.isArray(res) ? res : []);
+        const parsed = Array.isArray(items) ? items : [];
+        // Only keep slots with real IDs
+        const valid = parsed.filter((s) => getSlotId(s) && parseSlotTime(s));
+        setAvailableSlots(valid);
+        if (valid.length === 0) {
+          setSlotsError("No available time slots for this date. Please try another date.");
+        }
       })
-      .catch((error) => {
-        console.error("Failed to load time slots:", error);
-        if (!cancelled) setAvailableSlots([]);
+      .catch((err) => {
+        console.error("getAvailableSlots failed:", err);
+        if (!cancelled) {
+          setAvailableSlots([]);
+          setSlotsError("Failed to load time slots. Please try again.");
+        }
       })
       .finally(() => {
         if (!cancelled) setSlotsLoading(false);
@@ -162,442 +274,531 @@ export default function BookServicePage() {
     return () => {
       cancelled = true;
     };
-  }, [formData.date, selectedServiceCenterId]);
+  }, [selectedDate, serviceCenterIdFromUrl]);
 
-  const selectedCenter = serviceCenters.find(
-    (center) => String(center.id) === String(selectedServiceCenterId)
-  );
+  // ── Derived: service types to show ────────────────────────────────────────
 
-  const centerServiceTypes = selectedCenter
-    ? dbServiceTypes.filter((type) =>
-        selectedCenter.serviceTypes?.some(
-          (name) => name.toLowerCase() === type.name.toLowerCase()
-        )
+  const displayServiceTypes = (() => {
+    if (!serviceCenter) return dbServiceTypes;
+    if (!serviceCenter.serviceTypes?.length) return dbServiceTypes;
+    const matched = dbServiceTypes.filter((t) =>
+      serviceCenter.serviceTypes.some(
+        (name) => name.toLowerCase() === t.name.toLowerCase()
       )
-    : [];
+    );
+    return matched.length > 0 ? matched : dbServiceTypes;
+  })();
 
-  const nextStep = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (step === 1 && !selectedServiceCenterId) {
-      alert("Please select a service center");
+  // ── Validation ─────────────────────────────────────────────────────────────
+
+  function validate() {
+    const e = {};
+    if (!selectedCarId) e.car = "Please select a car.";
+    if (!selectedServiceTypeId) e.serviceType = "Please select a service type.";
+    if (!selectedDate) e.date = "Please select a date.";
+    if (!selectedSlotId) e.slot = "Please select a time slot.";
+    return e;
+  }
+
+  // ── Submit ─────────────────────────────────────────────────────────────────
+
+  async function handleSubmit() {
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
-    if (step === 1 && !formData.serviceType) {
-      alert("Please select a service type first");
-      return;
-    }
-    if (step === 2 && (!formData.date || !formData.timeSlot)) {
-      alert("Please select a date and time slot");
-      return;
-    }
-    if (step === 3 && (!formData.name.trim() || !formData.phone.trim())) {
-      alert("Please enter your name and phone number");
-      return;
-    }
-    setStep((s) => Math.min(s + 1, 4));
-  };
+    setErrors({});
+    setSubmitting(true);
 
-  const prevStep = (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setStep((s) => Math.max(s - 1, 1));
-  };
-
-  const handleBooking = async (e) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    if (!localStorage.getItem("token")) {
-      alert("Please log in to book a service");
-      router.push("/login");
-      return;
-    }
-
-    if (!selectedCarId) {
-      alert("Please add a car to your account before booking");
-      router.push("/cars/add-car");
-      return;
-    }
-
-    if (!selectedServiceCenterId) {
-      alert("Please select a service center");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const appointment = formData.date
-        ? `${formData.date}T00:00:00.000Z`
-        : new Date().toISOString();
-
       const payload = {
-        // PascalCase keys for .NET case-sensitive JSON deserialization
         CarId: selectedCarId,
-        ServiceCenterId: selectedServiceCenterId,
-        TimeSlotId: formData.timeSlotId || undefined,
-        ServiceTypeId: formData.serviceTypeId || undefined,
-        ServiceType: formData.serviceType,
-        CarBrand: formData.carBrand,
-        CarModel: formData.carModel || "Unknown",
-        CarYear: parseInt(formData.carYear, 10) || null,
-        AppointmentDate: formData.date,
-        Date: formData.date,
-        CustomerName: formData.name,
-        Phone: formData.phone,
-        Notes: formData.notes || "",
-        Status: "Pending",
-
-        // camelCase keys for standard JS/JSON compatibility
-        carId: selectedCarId,
-        serviceCenterId: selectedServiceCenterId,
-        timeSlotId: formData.timeSlotId || undefined,
-        serviceTypeId: formData.serviceTypeId || undefined,
-        serviceType: formData.serviceType,
-        carBrand: formData.carBrand,
-        carModel: formData.carModel || "Unknown",
-        carYear: parseInt(formData.carYear, 10) || null,
-        appointmentDate: formData.date,
-        date: formData.date,
-        appointment,
-        timeSlot: formData.timeSlot,
-        customerName: formData.name,
-        phone: formData.phone,
-        notes: formData.notes || "",
-        status: "Pending",
+        ServiceCenterId: serviceCenterIdFromUrl,
+        ServiceTypeId: selectedServiceTypeId,
+        TimeSlotId: selectedSlotId,
+        Notes: notes.trim() || "",
       };
 
-      await bookingsService.create(payload);
-      setStep(5);
+      await bookingsService.create({ request: payload });
+      setSubmitted(true);
     } catch (err) {
-      console.error("Booking error:", err);
-      alert(err.message || "Something went wrong while booking");
+      console.error("Booking submission failed:", err);
+      setErrors({ submit: err.message || "Something went wrong. Please try again." });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
-  };
+  }
 
-  const slotOptions =
-    availableSlots.length > 0
-      ? availableSlots.map((slot) => ({
-          id: getSlotId(slot),
-          label: parseSlotTime(slot),
-        }))
-      : FALLBACK_SLOTS.map((time) => ({ id: "", label: time }));
+  // ── Today string for date min ──────────────────────────────────────────────
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // ── Loading screen ─────────────────────────────────────────────────────────
 
   if (initLoading) {
     return (
-      <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        Loading...
+      <div
+        style={{
+          background: COLORS.bg,
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "16px",
+        }}
+      >
+        <div
+          style={{
+            width: "40px",
+            height: "40px",
+            border: `3px solid ${COLORS.border}`,
+            borderTop: `3px solid ${COLORS.primary}`,
+            borderRadius: "50%",
+            animation: "spin 0.8s linear infinite",
+          }}
+        />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <p style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading booking details…</p>
       </div>
     );
   }
 
-  return (
-    <div style={{ background: COLORS.bg, minHeight: "100vh", fontFamily: "sans-serif", padding: "40px 20px" }}>
-      <style>{`
-        * { box-sizing: border-box; }
-        input, select, textarea { transition: 0.2s; }
-        input:focus, select:focus, textarea:focus { border-color: ${COLORS.primary} !important; outline: none; }
-      `}</style>
+  // ── Success screen ─────────────────────────────────────────────────────────
 
-      <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "40px" }}>
-          <span style={{ color: COLORS.text, fontSize: "24px", fontWeight: 900, cursor: "default", letterSpacing: "-1px" }}>
-            AUTO<span style={{ color: COLORS.primary }}>RIA</span>
-          </span>
-          <h1 style={{ fontSize: "28px", fontWeight: 800, marginTop: "12px", color: COLORS.text }}>Book Your Service</h1>
-        </div>
-
-        {step < 5 && (
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "40px", position: "relative" }}>
-            <div style={{ position: "absolute", top: "15px", left: "0", right: "0", height: "2px", background: "#e5e7eb", zIndex: 0 }} />
-            <div style={{ position: "absolute", top: "15px", left: "0", width: `${((step - 1) / 3) * 100}%`, height: "2px", background: COLORS.primary, zIndex: 0, transition: "width 0.4s ease" }} />
-
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "50%",
-                  background: step >= i ? COLORS.primary : COLORS.white,
-                  color: step >= i ? COLORS.white : COLORS.textLight,
-                  border: `2px solid ${step >= i ? COLORS.primary : "#e5e7eb"}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  zIndex: 1,
-                  transition: "all 0.3s ease",
-                }}
-              >
-                {step > i ? "✓" : i}
-              </div>
-            ))}
-          </div>
-        )}
-
+  if (submitted) {
+    return (
+      <div
+        style={{
+          background: COLORS.bg,
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "40px 20px",
+          fontFamily: "sans-serif",
+        }}
+      >
         <div
           style={{
             background: COLORS.white,
             borderRadius: "24px",
-            padding: "40px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
+            padding: "60px 40px",
+            maxWidth: "480px",
+            width: "100%",
+            textAlign: "center",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.06)",
             border: `1px solid ${COLORS.border}`,
           }}
         >
-          {step === 1 && (
-            <div className="step-content">
-              <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "24px" }}>Vehicle & Service</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Service Center</label>
-                  <select
-                    value={selectedServiceCenterId}
-                    onChange={(e) => {
-                      setSelectedServiceCenterId(e.target.value);
-                      setFormData((prev) => ({ ...prev, timeSlot: "", timeSlotId: "" }));
-                    }}
-                    style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
-                  >
-                    <option value="">Select a service center</option>
-                    {serviceCenters.map((center) => (
-                      <option key={center.id} value={center.id}>
-                        {center.name}{center.loc ? ` — ${center.loc}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Service Type</label>
-                  <select
-                    value={formData.serviceType}
-                    onChange={(e) => {
-                      const selectedName = e.target.value;
-                      const matchedType = dbServiceTypes.find(
-                        (t) => t.name.toLowerCase() === selectedName.toLowerCase()
-                      );
-                      setFormData((prev) => ({
-                        ...prev,
-                        serviceType: selectedName,
-                        serviceTypeId: matchedType ? (matchedType.id || matchedType.Id || "") : "",
-                      }));
-                    }}
-                    style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
-                  >
-                    <option value="">Select a service</option>
-                    {centerServiceTypes.length > 0 ? (
-                      centerServiceTypes.map((t) => (
-                        <option key={t.id || t.Id} value={t.name}>{t.name}</option>
-                      ))
-                    ) : (
-                      ["Oil Change", "Brakes", "AC Repair", "Tires", "Body Work", "Suspension", "Electrical", "Engine Diagnostics"].map((name) => (
-                        <option key={name} value={name}>{name}</option>
-                      ))
-                    )}
-                  </select>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Car Brand</label>
-                    <input
-                      placeholder="e.g. Toyota"
-                      value={formData.carBrand}
-                      onChange={(e) => setFormData({ ...formData, carBrand: e.target.value })}
-                      style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Model Year</label>
-                    <input
-                      placeholder="e.g. 2022"
-                      value={formData.carYear}
-                      onChange={(e) => setFormData({ ...formData, carYear: e.target.value })}
-                      style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <div
+            style={{
+              width: "72px",
+              height: "72px",
+              borderRadius: "50%",
+              background: "#E8F5E9",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 24px",
+              fontSize: "32px",
+            }}
+          >
+            ✓
+          </div>
+          <h2
+            style={{ fontSize: "24px", fontWeight: 800, color: COLORS.text, marginBottom: "12px" }}
+          >
+            Booking Confirmed!
+          </h2>
+          <p
+            style={{
+              color: COLORS.textLight,
+              fontSize: "15px",
+              lineHeight: 1.7,
+              marginBottom: "32px",
+            }}
+          >
+            Your appointment at{" "}
+            <strong style={{ color: COLORS.text }}>
+              {serviceCenter?.name || "the service center"}
+            </strong>{" "}
+            on <strong style={{ color: COLORS.text }}>{selectedDate}</strong> at{" "}
+            <strong style={{ color: COLORS.text }}>{selectedSlotLabel}</strong> has been submitted.
+            The service center will confirm shortly.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/user-dashboard")}
+            style={{
+              background: COLORS.primary,
+              color: COLORS.white,
+              border: "none",
+              padding: "14px 32px",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 700,
+              cursor: "pointer",
+              width: "100%",
+            }}
+          >
+            Go to My Bookings
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-          {step === 2 && (
-            <div className="step-content">
-              <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "24px" }}>Schedule</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Preferred Date</label>
-                  <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value, timeSlot: "", timeSlotId: "" })}
-                    style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Time Slot</label>
-                  {slotsLoading ? (
-                    <div style={{ fontSize: "13px", color: COLORS.textLight }}>Loading available slots...</div>
-                  ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
-                      {slotOptions.map((slot) => (
-                        <button
-                          key={`${slot.id || "fallback"}-${slot.label}`}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setFormData({ ...formData, timeSlot: slot.label, timeSlotId: slot.id || "" });
-                          }}
-                          style={{
-                            padding: "10px",
-                            borderRadius: "10px",
-                            border: `1.5px solid ${formData.timeSlot === slot.label ? COLORS.primary : COLORS.border}`,
-                            background: formData.timeSlot === slot.label ? "#FFF4F4" : COLORS.bg,
-                            color: formData.timeSlot === slot.label ? COLORS.primary : COLORS.text,
-                            fontSize: "12px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          {slot.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+  // ── Main form ──────────────────────────────────────────────────────────────
 
-          {step === 3 && (
-            <div className="step-content">
-              <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "24px" }}>Contact Information</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Full Name</label>
-                  <input
-                    placeholder="Your Name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Phone Number</label>
-                  <input
-                    placeholder="01xxxxxxxxx"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px" }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: COLORS.textLight, marginBottom: "8px", textTransform: "uppercase" }}>Additional Notes</label>
-                  <textarea
-                    placeholder="Tell us more about the issue..."
-                    rows={3}
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    style={{ width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1.5px solid ${COLORS.border}`, background: COLORS.bg, fontSize: "14px", resize: "none" }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+  return (
+    <div
+      style={{
+        background: COLORS.bg,
+        minHeight: "100vh",
+        fontFamily: "sans-serif",
+        padding: "40px 20px",
+      }}
+    >
+      <style>{`
+        * { box-sizing: border-box; }
+        input:focus, select:focus, textarea:focus {
+          border-color: ${COLORS.primary} !important;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(232,39,42,0.08);
+        }
+        button:hover:not(:disabled) { opacity: 0.88; }
+      `}</style>
 
-          {step === 4 && (
-            <div className="step-content">
-              <h2 style={{ fontSize: "20px", fontWeight: 800, marginBottom: "24px" }}>Review Booking</h2>
-              <div style={{ background: COLORS.bg, borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: COLORS.textLight, fontSize: "14px" }}>Service Center:</span>
-                  <span style={{ fontWeight: 700 }}>{selectedCenter?.name || "—"}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: COLORS.textLight, fontSize: "14px" }}>Service:</span>
-                  <span style={{ fontWeight: 700 }}>{formData.serviceType}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: COLORS.textLight, fontSize: "14px" }}>Vehicle:</span>
-                  <span style={{ fontWeight: 700 }}>{formData.carBrand} ({formData.carYear})</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: COLORS.textLight, fontSize: "14px" }}>Appointment:</span>
-                  <span style={{ fontWeight: 700 }}>{formData.date} at {formData.timeSlot}</span>
-                </div>
-                <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "16px", marginTop: "4px" }}>
-                  <span style={{ color: COLORS.textLight, fontSize: "14px" }}>Customer:</span>
-                  <div style={{ fontWeight: 700, marginTop: "4px" }}>{formData.name}</div>
-                  <div style={{ fontSize: "13px", color: COLORS.textLight }}>{formData.phone}</div>
-                </div>
-              </div>
-            </div>
+      <div style={{ maxWidth: "560px", margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div
+            style={{ fontSize: "24px", fontWeight: 900, letterSpacing: "-1px", cursor: "default" }}
+          >
+            AUTO<span style={{ color: COLORS.primary }}>RIA</span>
+          </div>
+          <h1
+            style={{
+              fontSize: "26px",
+              fontWeight: 800,
+              color: COLORS.text,
+              marginTop: "12px",
+              marginBottom: "6px",
+            }}
+          >
+            Book a Service
+          </h1>
+          {serviceCenter && (
+            <p style={{ color: COLORS.textLight, fontSize: "14px" }}>
+              at{" "}
+              <strong style={{ color: COLORS.text }}>
+                {serviceCenter.name}
+              </strong>
+              {serviceCenter.address || serviceCenter.loc
+                ? ` · ${serviceCenter.address || serviceCenter.loc}`
+                : ""}
+            </p>
           )}
+        </div>
 
-          {step === 5 && (
-            <div className="step-content" style={{ textAlign: "center", padding: "30px 0" }}>
-              <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-              <div style={{ marginBottom: "24px" }}>
-                <i className="fas fa-check-circle" style={{ fontSize: "80px", color: "#28A745" }}></i>
-              </div>
-              <h2 style={{ fontSize: "26px", fontWeight: 900, marginBottom: "12px" }}>Booking Confirmed!</h2>
-              <p style={{ color: COLORS.textLight, fontSize: "15px", lineHeight: 1.6, marginBottom: "30px", maxWidth: "400px", margin: "0 auto 30px" }}>
-                Your appointment has been successfully scheduled. We have informed the service center of your upcoming booking.
-              </p>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  router.push("/user-dashboard");
+        {/* Form card */}
+        <div
+          style={{
+            background: COLORS.white,
+            borderRadius: "24px",
+            padding: "36px",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
+            border: `1px solid ${COLORS.border}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: "28px",
+          }}
+        >
+          {/* ── Car selection ── */}
+          <div>
+            <FieldLabel>Your Car</FieldLabel>
+            {cars.length === 0 ? (
+              <div
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: "12px",
+                  border: `1.5px solid ${COLORS.border}`,
+                  background: COLORS.errorBg,
+                  fontSize: "13px",
+                  color: COLORS.primary,
+                  fontWeight: 600,
                 }}
-                style={{ background: COLORS.primary, color: COLORS.white, border: "none", padding: "14px 32px", borderRadius: "12px", fontSize: "14px", fontWeight: 700, cursor: "pointer", transition: "opacity 0.2s" }}
               >
-                Go to Dashboard
-              </button>
-            </div>
-          )}
-
-          {step < 5 && (
-            <div style={{ display: "flex", gap: "15px", marginTop: "40px" }}>
-              {step > 1 && (
+                No cars found.{" "}
                 <button
                   type="button"
-                  onClick={prevStep}
-                  style={{ flex: 1, background: "transparent", color: COLORS.text, border: `1.5px solid ${COLORS.border}`, padding: "14px", borderRadius: "12px", fontSize: "14px", fontWeight: 700, cursor: "pointer" }}
+                  onClick={() => router.push("/cars/add-car")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: COLORS.primaryDark,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    padding: 0,
+                    fontSize: "13px",
+                  }}
                 >
-                  Back
+                  Add a car first →
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={(e) => (step === 4 ? handleBooking(e) : nextStep(e))}
-                disabled={loading}
-                style={{
-                  flex: 2,
-                  background: COLORS.primary,
-                  color: COLORS.white,
-                  border: "none",
-                  padding: "14px",
-                  borderRadius: "12px",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  opacity: loading ? 0.7 : 1,
+              </div>
+            ) : (
+              <SelectInput
+                value={selectedCarId}
+                onChange={(e) => {
+                  setSelectedCarId(e.target.value);
+                  setErrors((prev) => ({ ...prev, car: undefined }));
                 }}
               >
-                {loading ? "Processing..." : step === 4 ? "Confirm Booking" : "Continue"}
-              </button>
+                <option value="">Select a car</option>
+                {cars.map((car) => {
+                  const id = String(getCarId(car) || "");
+                  const label = [car.make, car.model, car.year, car.licensePlate]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <option key={id} value={id}>
+                      {label}
+                      {car.isPrimary ? " (Primary)" : ""}
+                    </option>
+                  );
+                })}
+              </SelectInput>
+            )}
+            <ValidationError message={errors.car} />
+          </div>
+
+          {/* ── Service type ── */}
+          <div>
+            <FieldLabel>Service Type</FieldLabel>
+            <SelectInput
+              value={selectedServiceTypeName}
+              onChange={(e) => {
+                const name = e.target.value;
+                const matched = dbServiceTypes.find(
+                  (t) => t.name.toLowerCase() === name.toLowerCase()
+                );
+                setSelectedServiceTypeName(name);
+                setSelectedServiceTypeId(matched?.id || matched?.Id || "");
+                setErrors((prev) => ({ ...prev, serviceType: undefined }));
+              }}
+            >
+              <option value="">Select a service</option>
+              {displayServiceTypes.map((t) => (
+                <option key={t.id || t.Id} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
+            </SelectInput>
+            <ValidationError message={errors.serviceType} />
+          </div>
+
+          {/* ── Date picker ── */}
+          <div>
+            <FieldLabel>Preferred Date</FieldLabel>
+            <TextInput
+              type="date"
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setErrors((prev) => ({ ...prev, date: undefined, slot: undefined }));
+              }}
+              // min={today} — add this via the DOM since TextInput doesn't pass it
+            />
+            {/* We need min on the date input, so render it directly */}
+            <style>{`input[type="date"] { min: ${today}; }`}</style>
+            <ValidationError message={errors.date} />
+          </div>
+
+          {/* ── Time slots ── */}
+          <div>
+            <FieldLabel>Available Time Slots</FieldLabel>
+
+            {!selectedDate ? (
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: COLORS.textLight,
+                  padding: "14px 16px",
+                  background: COLORS.bg,
+                  borderRadius: "12px",
+                  border: `1.5px solid ${COLORS.border}`,
+                  margin: 0,
+                }}
+              >
+                Select a date above to see available slots.
+              </p>
+            ) : slotsLoading ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "14px 16px",
+                  background: COLORS.bg,
+                  borderRadius: "12px",
+                  border: `1.5px solid ${COLORS.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    border: `2px solid ${COLORS.border}`,
+                    borderTop: `2px solid ${COLORS.primary}`,
+                    borderRadius: "50%",
+                    animation: "spin 0.8s linear infinite",
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: "13px", color: COLORS.textLight }}>
+                  Loading slots…
+                </span>
+              </div>
+            ) : slotsError ? (
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: COLORS.primary,
+                  padding: "14px 16px",
+                  background: COLORS.errorBg,
+                  borderRadius: "12px",
+                  border: `1.5px solid #f5c6c6`,
+                  margin: 0,
+                  fontWeight: 600,
+                }}
+              >
+                {slotsError}
+              </p>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "10px",
+                }}
+              >
+                {availableSlots.map((slot) => {
+                  const id = getSlotId(slot);
+                  const label = parseSlotTime(slot);
+                  const isSelected = selectedSlotId === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedSlotId(id);
+                        setSelectedSlotLabel(label);
+                        setErrors((prev) => ({ ...prev, slot: undefined }));
+                      }}
+                      style={{
+                        padding: "11px 8px",
+                        borderRadius: "10px",
+                        border: `1.5px solid ${isSelected ? COLORS.primary : COLORS.border}`,
+                        background: isSelected ? COLORS.errorBg : COLORS.bg,
+                        color: isSelected ? COLORS.primary : COLORS.text,
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <ValidationError message={errors.slot} />
+          </div>
+
+          {/* ── Notes ── */}
+          <div>
+            <FieldLabel>Notes (Optional)</FieldLabel>
+            <textarea
+              rows={3}
+              placeholder="Describe the issue or any special instructions…"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: "12px",
+                border: `1.5px solid ${COLORS.border}`,
+                background: COLORS.bg,
+                fontSize: "14px",
+                color: COLORS.text,
+                resize: "vertical",
+                fontFamily: "sans-serif",
+                lineHeight: 1.5,
+              }}
+            />
+          </div>
+
+          {/* ── Submit error ── */}
+          {errors.submit && (
+            <div
+              style={{
+                padding: "14px 16px",
+                borderRadius: "12px",
+                background: COLORS.errorBg,
+                border: `1.5px solid #f5c6c6`,
+                color: COLORS.primary,
+                fontSize: "13px",
+                fontWeight: 600,
+              }}
+            >
+              {errors.submit}
             </div>
           )}
+
+          {/* ── Actions ── */}
+          <div style={{ display: "flex", gap: "12px", marginTop: "4px" }}>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              style={{
+                flex: 1,
+                padding: "14px",
+                borderRadius: "12px",
+                border: `1.5px solid ${COLORS.border}`,
+                background: "transparent",
+                color: COLORS.text,
+                fontSize: "14px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting || cars.length === 0}
+              style={{
+                flex: 2,
+                padding: "14px",
+                borderRadius: "12px",
+                border: "none",
+                background: COLORS.primary,
+                color: COLORS.white,
+                fontSize: "14px",
+                fontWeight: 700,
+                cursor: submitting || cars.length === 0 ? "not-allowed" : "pointer",
+                opacity: submitting || cars.length === 0 ? 0.65 : 1,
+                transition: "opacity 0.2s",
+              }}
+            >
+              {submitting ? "Booking…" : "Confirm Booking"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

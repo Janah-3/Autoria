@@ -13,14 +13,9 @@ import Navbar from "@/components/Navbar";
 import { reportsService } from "@/lib/api/reportsService";
 import { premiumService } from "@/lib/api/premiumService";
 
-
-
 const R  = "#E8272A";
 const RD = "#B81C1F";
 const row  = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
-
-
-
 
 const MOCK_CENTERS = {
   "1": { id: "1", name: "ProCare Auto Center", district: "Nasr City", governorate: "Cairo", type: "Top Rated", phone: "01012345678", serviceTypes: ["Oil Change", "Brakes", "AC Service"], carBrands: ["Toyota", "Hyundai", "Kia"] },
@@ -142,7 +137,6 @@ export default function CenterProfilePage() {
       
       <Navbar user={user} />
 
-
       <div style={{ 
         height: 320, 
         background: center.coverPhoto ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url(${center.coverPhoto}) center/cover no-repeat` : `linear-gradient(135deg, #111, ${RD})`,
@@ -163,10 +157,8 @@ export default function CenterProfilePage() {
         </div>
       </div>
 
-
       <div style={{ maxWidth: 1200, margin: "40px auto", padding: "0 5%", display: "grid", gridTemplateColumns: "2fr 1fr", gap: 32 }}>
         
-
         <div>
           <Section title="Center Profile">
             <p style={{ color: "#6b7280", lineHeight: 1.8, fontSize: 15 }}>
@@ -213,8 +205,6 @@ export default function CenterProfilePage() {
             </a>
           </div>
         </div>
-
-
 
         <div style={{ position: "sticky", top: 100, height: "fit-content" }}>
           <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 24, boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
@@ -321,20 +311,48 @@ export default function CenterProfilePage() {
             </div>
 
             {/* Info note */}
-            <div style={{ padding: "12px 14px", background: "#fff7f7", borderRadius: 10, border: "1px solid #fecaca", ...row(10) }}>
+            <div style={{ marginBottom: 16, padding: "12px 14px", background: "#fff7f7", borderRadius: 10, border: "1px solid #fecaca", ...row(10) }}>
               <span style={{ fontSize: 18 }}>👁️</span>
               <p style={{ fontSize: 12, color: "#991b1b", fontWeight: 600, lineHeight: 1.5 }}>
                 Live preview — this is exactly how customers see your profile page.
               </p>
             </div>
 
+            {/* ── ADDED: Book Now Button ────────────────────────────────────── */}
+            <div style={{ marginBottom: 12 }}>
+              <Link href={`/book-service?serviceCenterId=${center.id}`} style={{ textDecoration: "none" }}>
+            
+                <button
+                  style={{
+                    width: "100%",
+                    background: "#991b1b",
+                    color: "#fff",
+                    border: "none",
+                    padding: "14px",
+                    borderRadius: "12px",
+                    fontWeight: 800,
+                    fontSize: "15px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    transition: "all 0.2s"
+                  }}
+                  className="btn-hover"
+                >
+                  <span></span> Book Now
+                </button>
+              </Link>
+            </div>
+
             {/* Report Button */}
-            <div style={{ marginTop: 16 }}>
+            <div>
               <button 
                 onClick={() => setReportDropdownOpen(true)}
                 style={{
                   width: "100%",
-                  background: R,
+                  background:" #0d0202",
                   color: "#fff",
                   border: "none",
                   padding: "12px",
@@ -346,7 +364,7 @@ export default function CenterProfilePage() {
                 }}
                 className="btn-hover"
               >
-                Report
+                Report Center
               </button>
             </div>
           </div>
