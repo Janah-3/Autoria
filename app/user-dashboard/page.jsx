@@ -66,8 +66,41 @@ export default function UserDashboardPage() {
         }))
       );
 
+      // const bookingsRes = await getAllBookings();
+      // const items = bookingsRes.data?.items || [];
+
       const bookingsRes = await getAllBookings();
-      const items = bookingsRes.data?.items || [];
+const raw = bookingsRes?.data;
+const items = Array.isArray(raw)
+  ? raw
+  : Array.isArray(raw?.items)
+  ? raw.items
+  : [];
+
+const upcomingItems = items.filter((b) => {
+  const s = (b.status || "").toLowerCase();
+  return s !== "completed" && s !== "cancelled";
+});
+
+setUpcomingBookings(
+  upcomingItems.map((b, i) => ({
+    id: b.id || b.Id || i,
+    center:
+      b.serviceCenter?.name ||
+      b.serviceCenterName ||
+      b.ServiceCenterName ||
+      "Service center",
+    service:
+      b.service?.type ||
+      b.serviceType ||
+      b.ServiceType ||
+      "Service",
+    date: b.date || b.appointmentDate || b.scheduledDate || "—",
+    time: b.timeSlot || b.time || "—",
+    status: b.status || "Pending",
+    invoice: null,
+  }))
+);
 
       // Only fetch invoices for completed bookings
       const completedBookings = items.filter(
@@ -89,21 +122,21 @@ export default function UserDashboardPage() {
       );
 
       // Upcoming bookings are non-completed / non-cancelled — no invoice fetch needed
-      const upcomingItems = items.filter(
-        (b) => b.status !== "Completed" && b.status !== "Cancelled"
-      );
+      // const upcomingItems = items.filter(
+      //   (b) => b.status !== "Completed" && b.status !== "Cancelled"
+      // );
 
-      setUpcomingBookings(
-        upcomingItems.map((b, i) => ({
-            id: b.id || i,
-            center: b.serviceCenter?.name || b.serviceCenterName || "Service center",
-            service: b.service?.type || b.serviceType || "Service",
-            date: b.date || b.scheduledDate || "—",
-            time: b.timeSlot || b.time || "—",
-            status: b.status || "Pending",
-            invoice: null,
-          }))
-      );
+      // setUpcomingBookings(
+      //   upcomingItems.map((b, i) => ({
+      //       id: b.id || i,
+      //       center: b.serviceCenter?.name || b.serviceCenterName || "Service center",
+      //       service: b.service?.type || b.serviceType || "Service",
+      //       date: b.date || b.scheduledDate || "—",
+      //       time: b.timeSlot || b.time || "—",
+      //       status: b.status || "Pending",
+      //       invoice: null,
+      //     }))
+      // );
 
       // Fetch payment history
       const historyRes = await paymentService.getMyHistory();
@@ -537,10 +570,7 @@ export default function UserDashboardPage() {
               </div>
             </div>
 
-            <div className="quick-actions">
-              <Link href="/book-service" className="action-btn btn-primary">
-                <i className="fa-solid fa-plus"></i> Book New Service
-              </Link>
+            <div className="quick-actions">           
               <Link href="/cars/add-car" className="action-btn btn-secondary">
                 <i className="fa-solid fa-car-side"></i> Add a Vehicle
               </Link>
