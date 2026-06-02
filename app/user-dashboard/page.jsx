@@ -67,34 +67,41 @@ export default function UserDashboardPage() {
       );
 
       const bookingsRes = await getAllBookings();
-      const items = bookingsRes.data || [];
+      const items = bookingsRes.data?.items || [];
 
-      // Fetch invoice details dynamically in parallel for all bookings
-      const bookingsWithInvoices = await Promise.all(
-        items.map(async (b) => {
+      // Only fetch invoices for completed bookings
+      const completedBookings = items.filter(
+        b => b.status === "Completed"
+      );
+
+      const completedWithInvoices = await Promise.all(
+        completedBookings.map(async (b) => {
           try {
-            const invRes = await paymentService.getInvoiceForBooking(b.id || b.Id);
+            const invRes = await paymentService.getInvoiceForBooking(b.id);
             if (invRes.success && invRes.data) {
               return { ...b, invoice: invRes.data };
             }
           } catch (e) {
-            console.warn(e);
+            console.warn("Invoice fetch failed for booking:", b.id, e);
           }
-          return b;
+          return { ...b, invoice: null };
         })
       );
 
+      // Upcoming bookings are non-completed / non-cancelled — no invoice fetch needed
+      const upcomingItems = items.filter(
+        (b) => b.status !== "Completed" && b.status !== "Cancelled"
+      );
+
       setUpcomingBookings(
-        bookingsWithInvoices
-          .filter((b) => b.status !== "Completed" && b.status !== "Cancelled")
-          .map((b, i) => ({
+        upcomingItems.map((b, i) => ({
             id: b.id || i,
             center: b.serviceCenter?.name || b.serviceCenterName || "Service center",
             service: b.service?.type || b.serviceType || "Service",
             date: b.date || b.scheduledDate || "—",
             time: b.timeSlot || b.time || "—",
             status: b.status || "Pending",
-            invoice: b.invoice || null,
+            invoice: null,
           }))
       );
 

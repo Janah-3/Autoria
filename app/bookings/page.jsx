@@ -35,13 +35,14 @@ function BookingCard({ booking }) {
   const [invoice, setInvoice] = useState(null);
 
   useEffect(() => {
+    if (booking.status !== "Completed") return;
     paymentService.getInvoiceForBooking(booking.id || booking.Id)
       .then(res => {
         if (res.success && res.data) {
           setInvoice(res.data);
         }
       }).catch(() => {});
-  }, [booking.id, booking.status]);
+  }, [booking.id, booking.Id, booking.status]);
 
   return (
     <div className="booking-card">

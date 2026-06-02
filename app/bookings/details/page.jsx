@@ -70,7 +70,7 @@ export default function BookingDetailsPage() {
       .then((response) => {
         const b = response.data;
         setBooking(b);
-        if (b) {
+        if (b && b.status === "Completed") {
           paymentService.getInvoiceForBooking(bookingId)
             .then(res => {
               if (res.success && res.data) {
