@@ -62,7 +62,6 @@ namespace Autoria.features.Subscribtion
         {
             var result = await _mediator.Send(new PaySubscriptionCommand(
                 request.SubscriptionId,
-                request.Method,
                 request.CardToken));
             return Ok(ApiResponse<PaySubscriptionResult>.Ok(result, result.Message));
         }
@@ -77,6 +76,6 @@ namespace Autoria.features.Subscribtion
         }
     }
 
-    public record PaySubscriptionRequest(Guid SubscriptionId, PaymentMethod Method, string? CardToken);
+    public record PaySubscriptionRequest(Guid SubscriptionId, string CardToken);
     public record CancelSubscriptionRequest(string? Reason);
 }

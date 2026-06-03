@@ -5,8 +5,7 @@ namespace Autoria.features.Subscribtion.Commands.PaySubscription
 {
     public record PaySubscriptionCommand(
         Guid SubscriptionId,
-        PaymentMethod Method,
-        string? CardToken = null
+        string CardToken
     ) : IRequest<PaySubscriptionResult>;
 
     public record PaySubscriptionResult(

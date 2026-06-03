@@ -47,32 +47,20 @@ namespace Autoria.features.Subscribtion.Commands.PaySubscription
             if (subscription.Status != SubscriptionStatus.PendingPayment)
                 throw new BadRequestException("This subscription is not awaiting payment.");
 
-            if (request.Method == PaymentMethod.Card)
-            {
-                if (string.IsNullOrWhiteSpace(request.CardToken))
-                    throw new BadRequestException("Card token is required for card payments.");
+            if (string.IsNullOrWhiteSpace(request.CardToken))
+                throw new BadRequestException("Card token is required.");
 
-                var gatewayResult = await _paymentGateway.ProcessCardPaymentAsync(
-                    subscription.AmountPaid,
-                    request.CardToken);
+            var gatewayResult = await _paymentGateway.ProcessCardPaymentAsync(
+                subscription.AmountPaid,
+                request.CardToken);
 
-                if (!gatewayResult.Success)
-                    return new PaySubscriptionResult(false, null, gatewayResult.FailureReason ?? "Payment failed.");
+            if (!gatewayResult.Success)
+                return new PaySubscriptionResult(false, null, gatewayResult.FailureReason ?? "Payment failed.");
 
-                subscription.Status = SubscriptionStatus.Active;
-                subscription.TransactionId = gatewayResult.TransactionId;
-            }
-            else
-            {
-                // Cash — mark as active immediately (trust-based for in-person payment)
-                subscription.Status = SubscriptionStatus.Active;
-                subscription.TransactionId = $"CASH-{Guid.NewGuid().ToString()[..8].ToUpper()}";
-            }
-
-            // Activate service center
+            subscription.Status = SubscriptionStatus.Active;
+            subscription.TransactionId = gatewayResult.TransactionId;
             subscription.StartDate = DateTime.UtcNow;
-            subscription.EndDate = DateTime.UtcNow.AddMonths(
-                (int)Math.Round((subscription.EndDate - subscription.StartDate).TotalDays / 30.0));
+            subscription.EndDate = DateTime.UtcNow.AddMonths(1);
 
             await _db.SaveChangesAsync(cancellationToken);
 
@@ -85,7 +73,7 @@ namespace Autoria.features.Subscribtion.Commands.PaySubscription
 
             return new PaySubscriptionResult(
                 true,
-                subscription.TransactionId,
+                gatewayResult.TransactionId,
                 $"Payment successful. Premium plan activated until {subscription.EndDate:dd MMM yyyy}.");
         }
     }
