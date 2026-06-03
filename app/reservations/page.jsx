@@ -341,9 +341,8 @@ export default function PartReservationsPage() {
                           width: "55px", height: "55px", borderRadius: "12px",
                           background: isPending ? (isServiceCenter ? "#E7F5EA" : "#FEEBEB") : "#F3F4F6",
                           display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: "24px"
                         }}>
-                          ⚙️
+                          <i className="fa-solid fa-gears" style={{ fontSize: "24px", color: isPending ? (isServiceCenter ? COLORS.success : COLORS.primary) : COLORS.textLight }}></i>
                         </div>
 
                         <div>
@@ -466,7 +465,7 @@ export default function PartReservationsPage() {
                     background: "#FFF", borderRadius: "16px", padding: "80px 20px",
                     textAlign: "center", border: `1px solid ${COLORS.border}`
                   }}>
-                    <span style={{ fontSize: "50px", display: "block", marginBottom: "15px" }}>📦</span>
+                    <i className="fa-solid fa-box-open" style={{ fontSize: "50px", display: "block", marginBottom: "15px", color: COLORS.textLight }}></i>
                     <h3 style={{ fontSize: "18px", fontWeight: "700", color: COLORS.text, marginBottom: "8px" }}>
                       No Reservations Found
                     </h3>

@@ -86,7 +86,7 @@ export default function CenterCard({ center }) {
         }}>
           <div>
             {center.price && center.price.toLowerCase().includes("contact for price") ? (
-              <div style={{ fontSize: "12px", fontWeight: 600, color: COLORS.textLight }}>Contact for price</div>
+              <div style={{ fontSize: "13px", fontWeight: 800, color: COLORS.primary, background: "#FFF4F4", padding: "4px 10px", borderRadius: "8px", border: `1px solid ${COLORS.primary}20`, display: "inline-block" }}>Contact for price</div>
             ) : (
               <div style={{ fontSize: "16px", fontWeight: 900, color: COLORS.primary }}>{center.price || "250 EGP"}</div>
             )}

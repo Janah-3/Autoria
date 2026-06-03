@@ -37,7 +37,7 @@ function SearchBanner({ query, setQuery, location, setLocation, onSearch }) {
       <div style={{ maxWidth: "820px", margin: "0 auto" }}>
         <div style={{ background: "#fff", borderRadius: 12, display: "flex", alignItems: "center", boxShadow: "0 4px 24px rgba(0,0,0,.22)", overflow: "hidden" }}>
           <div style={{ flex: 1, ...row(8), padding: "0 18px", borderRight: "1px solid #e5e7eb", height: 52 }}>
-            <span style={{ fontSize: 15, opacity: .35 }}>🔍</span>
+            <i className="fa-solid fa-magnifying-glass" style={{ fontSize: 15, opacity: .35, color: "#374151" }}></i>
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
@@ -210,7 +210,7 @@ function CenterCard({ c }) {
             <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 4 }}>{c.rating} ({c.reviews})</span>
           </div>
           {c.price && c.price.toLowerCase().includes("contact for price") ? (
-            <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>Contact for price</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: R, background: "#FFF4F4", padding: "4px 8px", borderRadius: "6px", border: `1px solid ${R}20` }}>Contact for price</span>
           ) : (
             <span style={{ fontSize: 12, fontWeight: 900, color: R }}>{c.price}</span>
           )}
@@ -233,7 +233,7 @@ function CenterCard({ c }) {
             transition: "all 0.2s ease",
           }}
         >
-          Book Now
+          View Profile
         </button>
       </div>
     </div>
@@ -244,7 +244,7 @@ function CenterCard({ c }) {
 function EmptyState({ onReset }) {
   return (
     <div style={{ textAlign: "center", padding: "64px 24px" }}>
-      <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
+      <i className="fa-solid fa-magnifying-glass" style={{ fontSize: "48px", color: "#9ca3af", display: "block", marginBottom: 16 }}></i>
       <h3 style={{ fontSize: 18, fontWeight: 800, color: "#111", marginBottom: 8 }}>No centers found</h3>
       <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 20 }}>Try adjusting your filters or search term.</p>
       <button className="btn-hover" onClick={onReset} style={{ background: R, color: "#fff", border: "none", padding: "10px 24px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>

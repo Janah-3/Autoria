@@ -231,7 +231,7 @@ export default function CenterProfilePage() {
                   gap: "8px"
                 }}
               >
-                <i className="fa-solid fa-calendar-check"></i> Book Service
+                <i className="fa-solid fa-calendar-check"></i> Book Now
               </button>
             </Link>
 
@@ -310,41 +310,7 @@ export default function CenterProfilePage() {
               </div>
             </div>
 
-            {/* Info note */}
-            <div style={{ marginBottom: 16, padding: "12px 14px", background: "#fff7f7", borderRadius: 10, border: "1px solid #fecaca", ...row(10) }}>
-              <span style={{ fontSize: 18 }}>👁️</span>
-              <p style={{ fontSize: 12, color: "#991b1b", fontWeight: 600, lineHeight: 1.5 }}>
-                Live preview — this is exactly how customers see your profile page.
-              </p>
-            </div>
 
-            {/* ── ADDED: Book Now Button ────────────────────────────────────── */}
-            <div style={{ marginBottom: 12 }}>
-              <Link href={`/book-service?serviceCenterId=${center.id}`} style={{ textDecoration: "none" }}>
-            
-                <button
-                  style={{
-                    width: "100%",
-                    background: "#991b1b",
-                    color: "#fff",
-                    border: "none",
-                    padding: "14px",
-                    borderRadius: "12px",
-                    fontWeight: 800,
-                    fontSize: "15px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    transition: "all 0.2s"
-                  }}
-                  className="btn-hover"
-                >
-                  <span></span> Book Now
-                </button>
-              </Link>
-            </div>
 
             {/* Report Button */}
             <div>

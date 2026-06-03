@@ -178,7 +178,7 @@ const CenterCard = ({ center }) => {
         }}>
           <div>
             {center.price && center.price.toLowerCase().includes("contact for price") ? (
-              <div style={{ fontSize: "12px", fontWeight: 600, color: COLORS.textLight }}>Contact for price</div>
+              <div style={{ fontSize: "13px", fontWeight: 800, color: COLORS.primary, background: "#FFF4F4", padding: "4px 10px", borderRadius: "8px", border: `1px solid ${COLORS.primary}20`, display: "inline-block" }}>Contact for price</div>
             ) : (
               <div style={{ fontSize: "16px", fontWeight: 900, color: COLORS.primary }}>{center.price || "250 EGP"}</div>
             )}
@@ -322,7 +322,7 @@ function SearchResultsContent() {
           border: `1px solid ${COLORS.border}`
         }}>
           <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "0 12px", gap: "10px" }}>
-            <span style={{ opacity: 0.5 }}>🔍</span>
+            <i className="fa-solid fa-magnifying-glass" style={{ opacity: 0.5, color: COLORS.textLight }}></i>
             <input 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -371,7 +371,7 @@ function SearchResultsContent() {
             </div>
 
             <FilterSection title="Location">
-              {["All", "Cairo", "Giza", "Alexandria"].map(city => (
+              {["All", "Cairo", "Giza"].map(city => (
                 <Checkbox 
                   key={city} 
                   label={city} 
@@ -450,7 +450,7 @@ function SearchResultsContent() {
               textAlign: "center",
               border: `1px solid ${COLORS.border}`
             }}>
-              <div style={{ fontSize: "60px", marginBottom: "20px" }}>🔍</div>
+              <i className="fa-solid fa-magnifying-glass" style={{ fontSize: "60px", color: COLORS.textLight, display: "block", marginBottom: "20px" }}></i>
               <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "12px" }}>No Results Found</h2>
               <p style={{ color: COLORS.textLight, fontSize: "16px", maxWidth: "400px", margin: "0 auto 30px" }}>
                 We couldn't find any service centers matching your search. Try adjusting your filters or search for something else.

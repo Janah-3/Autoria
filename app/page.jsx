@@ -162,14 +162,7 @@ function Hero({ setCenters, onAiSupportClick }) {
         </button>
       </div>
 
-      <div style={{ ...row(40), justifyContent: "center" }}>
-        {stats.map(([v, l]) => (
-          <div key={l} style={{ textAlign: "center" }}>
-            <strong style={{ display: "block", color: "#fff", fontSize: 22, fontWeight: 900, letterSpacing: -.5 }}>{v}</strong>
-            <span style={{ color: "rgba(255,255,255,.4)", fontSize: 10, textTransform: "uppercase", letterSpacing: .6, fontWeight: 600 }}>{l}</span>
-          </div>
-        ))}
-      </div>
+
     </section>
   );
 }
@@ -208,7 +201,7 @@ function ServiceCenters({ centers }) {
                     <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 3 }}>{c.rating} ({c.reviews})</span>
                   </span>
                   {c.price && c.price.toLowerCase().includes("contact for price") ? (
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>Contact for price</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: R, background: "#FFF4F4", padding: "4px 8px", borderRadius: "6px", border: `1px solid ${R}20` }}>Contact for price</span>
                   ) : (
                     <span style={{ fontSize: 13, fontWeight: 900, color: R }}>{c.price}</span>
                   )}
@@ -356,9 +349,7 @@ function CTA() {
         <a href="/book-service" style={{ textDecoration: "none" }}>
           <button className="btn-hover" style={{ background: "#fff", color: R, border: "none", padding: "13px 28px", borderRadius: 9, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Book a Service Now</button>
         </a>
-        <a href="/search-results" style={{ textDecoration: "none" }}>
-          <button className="btn-hover" style={{ background: "transparent", color: "#fff", border: "2px solid rgba(255,255,255,.4)", padding: "13px 28px", borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Explore Centers</button>
-        </a>
+
       </div>
     </section>
   );

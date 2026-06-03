@@ -197,7 +197,7 @@ export default function Navbar({ user: initialUser }) {
             ["Home", "/"],
             ...(userRole === "User" || !user
               ? [
-                  ["Services", "/search-results"],
+                  ["Services", "/service-centers"],
                   ["Spare Parts", "/spare-parts-search"],
                 ]
               : []),
