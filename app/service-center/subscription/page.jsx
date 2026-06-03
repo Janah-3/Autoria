@@ -158,6 +158,11 @@ export default function SubscriptionPage() {
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
 
+  // Cancel subscription modal state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
+
   const handleFormatCardNumber = (value) => {
     const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
     const matches = v.match(/\d{4,16}/g);
@@ -211,10 +216,15 @@ export default function SubscriptionPage() {
       }
 
       // 2. Process Payment (expects subscriptionId, method, cardToken)
+      // Build token from raw card number (strip spaces)
+      const rawCard = cardNumber.replace(/\s+/g, "");
+      const cardToken = paymentMethod === "Visa"
+        ? `tok_${rawCard.slice(-4)}_${Date.now()}`
+        : null;
       const payRes = await subscriptionService.pay(centerId, {
         subscriptionId: subId,
         method: paymentMethod === "Visa" ? "Card" : "Cash",
-        cardToken: paymentMethod === "Visa" ? "mock_card_visa_token" : null
+        cardToken,
       });
 
       if (payRes.success || payRes.data) {
@@ -238,22 +248,27 @@ export default function SubscriptionPage() {
   };
 
   // ── Cancel Active Subscription ───────────────────────────────────────────
-  const handleCancelSubscription = async () => {
-    if (!centerId) return;
-    const reason = prompt("Please enter the reason for cancelling your Premium subscription (optional):");
-    if (reason === null) return; // User cancelled prompt
+  const handleCancelSubscription = () => {
+    setCancelReason("");
+    setShowCancelModal(true);
+  };
 
+  const handleConfirmCancel = async () => {
+    if (!centerId) return;
+    setCancelLoading(true);
     try {
       await subscriptionService.cancelSubscription(centerId, {
-        reason: reason || "No reason provided",
+        reason: cancelReason.trim() || "No reason provided",
       });
-
       const updatedStatus = await subscriptionService.getStatus(centerId);
       setStatus(updatedStatus?.data || updatedStatus);
+      setShowCancelModal(false);
       alert("Subscription cancelled successfully. Your premium features will remain active until the end of your billing cycle.");
     } catch (err) {
       console.error(err);
       alert("Cancellation failed: " + (err.message || "Please try again later."));
+    } finally {
+      setCancelLoading(false);
     }
   };
 
@@ -815,6 +830,89 @@ export default function SubscriptionPage() {
           </div>
         )}
       </main>
+
+      {/* ── Cancel Subscription Modal ───────────────────────────────────── */}
+      {showCancelModal && (
+        <div style={{
+          position: "fixed", inset: 0,
+          background: "rgba(15, 23, 42, 0.45)",
+          backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 99999, padding: "20px",
+        }}>
+          <div style={{
+            background: "#ffffff", borderRadius: "24px", padding: "40px",
+            maxWidth: "460px", width: "100%",
+            boxShadow: "0 20px 60px rgba(15,23,42,0.18)",
+            border: "1px solid #E9ECEF",
+            animation: "scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1)",
+          }}>
+            <style>{`
+              @keyframes scaleIn {
+                from { transform: scale(0.92); opacity: 0; }
+                to   { transform: scale(1);    opacity: 1; }
+              }
+            `}</style>
+
+            {/* Icon */}
+            <div style={{
+              width: 60, height: 60, borderRadius: "50%",
+              background: "#FEF2F2", border: "2px solid #FCA5A5",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              margin: "0 auto 20px",
+            }}>
+              <span style={{ fontSize: 28 }}>🚫</span>
+            </div>
+
+            <h3 style={{ fontSize: 20, fontWeight: 900, textAlign: "center", marginBottom: 8, color: "#0F172A" }}>
+              Cancel Subscription?
+            </h3>
+            <p style={{ fontSize: 14, color: "#64748B", textAlign: "center", marginBottom: 24, lineHeight: 1.6 }}>
+              Your premium features stay active until the billing cycle ends. Optionally tell us why you&apos;re leaving.
+            </p>
+
+            <textarea
+              rows={4}
+              placeholder="Reason for cancellation (optional)..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              style={{
+                width: "100%", padding: "12px 14px", borderRadius: "12px",
+                border: "1.5px solid #E9ECEF", fontSize: 14, resize: "none",
+                fontFamily: "inherit", color: "#0F172A", outline: "none",
+                marginBottom: 24, boxSizing: "border-box",
+              }}
+            />
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelLoading}
+                style={{
+                  flex: 1, padding: "13px", borderRadius: "12px",
+                  border: "1.5px solid #E9ECEF", background: "#F8F9FA",
+                  fontWeight: 700, fontSize: 14, cursor: "pointer", color: "#475569",
+                }}
+              >
+                Keep Premium
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                disabled={cancelLoading}
+                style={{
+                  flex: 1, padding: "13px", borderRadius: "12px",
+                  background: "#E8272A", border: "none",
+                  fontWeight: 700, fontSize: 14, cursor: "pointer", color: "#fff",
+                  boxShadow: "0 4px 12px rgba(232,39,42,0.25)",
+                  opacity: cancelLoading ? 0.6 : 1,
+                }}
+              >
+                {cancelLoading ? "Cancelling..." : "Confirm Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,6 +5,22 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { reviewsService } from "@/lib/api/reviewsService";
 
+const Toast = ({ show, type, message }) => (
+  <div style={{
+    position: "fixed", top: "24px", right: "24px", zIndex: 9999,
+    transform: show ? "translateY(0)" : "translateY(-80px)",
+    opacity: show ? 1 : 0,
+    transition: "all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    background: type === "success" ? "#10B981" : "#EF4444",
+    color: "#fff", borderRadius: "12px", padding: "14px 20px",
+    fontSize: "14px", fontWeight: 700, boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+    display: "flex", alignItems: "center", gap: "10px", maxWidth: "340px",
+  }}>
+    <i className={`fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-xmark"}`} />
+    {message}
+  </div>
+);
+
 const StarSelector = ({ label, rating, onRatingChange }) => {
   const [hoverRating, setHoverRating] = useState(0);
 
@@ -39,6 +55,13 @@ export default function WriteReviewPage() {
   const [reviewText, setReviewText] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Toast state
+  const [toast, setToast] = useState({ show: false, type: "success", message: "" });
+  const triggerToast = (message, type = "success") => {
+    setToast({ show: true, type, message });
+    setTimeout(() => setToast((t) => ({ ...t, show: false })), 4000);
+  };
+
   const handleSubRating = (key, value) => {
     setSubRatings(prev => ({ ...prev, [key]: value }));
   };
@@ -52,20 +75,13 @@ export default function WriteReviewPage() {
           bookingId,
           rating: mainRating,
           comment: reviewText,
-          // sub-ratings as extra fields if backend supports them
-          qualityRating: subRatings.quality || mainRating,
-          valueRating: subRatings.value || mainRating,
-          waitTimeRating: subRatings.waitTime || mainRating,
-          staffRating: subRatings.staff || mainRating,
         });
       }
-      alert("Review submitted successfully! Thank you for your feedback.");
-      router.push("/user-dashboard");
+      triggerToast("Review submitted! Thank you for your feedback.", "success");
+      setTimeout(() => router.push("/user-dashboard"), 1500);
     } catch (err) {
       console.error("Review submit failed:", err);
-      // Even if API fails, still redirect (review endpoint might not exist yet)
-      alert("Review submitted! Thank you for your feedback.");
-      router.push("/user-dashboard");
+      triggerToast(err.message || "Failed to submit review. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -75,6 +91,7 @@ export default function WriteReviewPage() {
 
   return (
     <div className="page-container">
+      <Toast show={toast.show} type={toast.type} message={toast.message} />
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
         .page-container { min-height: 100vh; background: #F4F7F6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; }

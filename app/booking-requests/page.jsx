@@ -8,6 +8,23 @@ import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 import { paymentService } from "@/lib/api/paymentService";
 
+const Toast = ({ show, type, message }) => (
+  <div style={{
+    position: "fixed", top: "24px", right: "24px", zIndex: 9999,
+    transform: show ? "translateY(0)" : "translateY(-80px)",
+    opacity: show ? 1 : 0,
+    transition: "all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
+    background: type === "success" ? "#10B981" : type === "error" ? "#EF4444" : "#F59E0B",
+    color: "#fff", borderRadius: "12px", padding: "14px 20px",
+    fontSize: "14px", fontWeight: 700, boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+    display: "flex", alignItems: "center", gap: "10px", maxWidth: "360px",
+    pointerEvents: "none",
+  }}>
+    <span style={{ fontSize: "18px" }}>{type === "success" ? "✅" : type === "error" ? "❌" : "⚠️"}</span>
+    {message}
+  </div>
+);
+
 const COLORS = {
   primary: "#E8272A",
   bg: "#F8F9FA",
@@ -58,10 +75,12 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel, onCreateInvoice,
   const carModel = request.carModel ?? request.CarModel ?? "";
   const serviceType = request.serviceType ?? request.ServiceType ?? "";
   const date = request.date ?? request.Date ?? "";
-  const time = request.time ?? request.Time ?? "";
+  const time = request.time ?? request.Time ?? request.timeSlot ?? "";
   const timeAgo = request.timeAgo ?? request.TimeAgo ?? "";
   const note = request.note ?? request.Note ?? "";
   const id = request.id ?? request.Id;
+  // userId for "View profile" link
+  const userId = request.userId ?? request.UserId ?? request.customerId ?? null;
 
   const [invoice, setInvoice] = useState(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
@@ -145,7 +164,21 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel, onCreateInvoice,
             </>
           )
         )}
-        <button style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>View profile</button>
+        {userId ? (
+          <Link
+            href={`/user-profile?id=${userId}`}
+            style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            👤 View client profile
+          </Link>
+        ) : (
+          <button
+            disabled
+            style={{ background: "transparent", color: COLORS.textLight, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "not-allowed", opacity: 0.5 }}
+          >
+            👤 View profile
+          </button>
+        )}
       </div>
     </div>
   );
@@ -166,6 +199,13 @@ export default function BookingRequestsPage() {
   const [updateTrigger, setUpdateTrigger] = useState(0);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Toast state
+  const [toast, setToast] = useState({ show: false, type: "success", message: "" });
+  const triggerToast = (message, type = "success") => {
+    setToast({ show: true, type, message });
+    setTimeout(() => setToast((t) => ({ ...t, show: false })), 4000);
+  };
 
   useEffect(() => {
     getMe()
@@ -189,11 +229,15 @@ export default function BookingRequestsPage() {
   }, []);
 
   const fetchBookings = async () => {
-    setLoading(true);
-    try {
-      const res = await bookingService.getServiceCenterBookings();
-      setRequests(getBookingItems(res));
-    } catch (error) {
+  setLoading(true);
+  try {
+    const res = await bookingService.getServiceCenterBookings();
+
+    console.log("BOOKINGS RESPONSE", res);
+    console.log("BOOKINGS ITEMS", getBookingItems(res));
+
+    setRequests(getBookingItems(res));
+  } catch (error) {
       console.error("Failed to load bookings:", error);
       setRequests([]);
     } finally {
@@ -213,7 +257,7 @@ export default function BookingRequestsPage() {
         )
       );
     } catch (error) {
-      alert("Failed to confirm booking: " + error.message);
+      triggerToast("Failed to confirm booking: " + error.message, "error");
     }
   };
 
@@ -226,7 +270,7 @@ export default function BookingRequestsPage() {
         )
       );
     } catch (error) {
-      alert("Failed to decline booking: " + error.message);
+      triggerToast("Failed to decline booking: " + error.message, "error");
     }
   };
 
@@ -270,14 +314,14 @@ export default function BookingRequestsPage() {
         notes: invoiceNotes
       });
       if (res.success) {
-        alert("Invoice issued successfully!");
+        triggerToast("Invoice issued successfully!", "success");
         setShowInvoiceModal(false);
         setUpdateTrigger(prev => prev + 1);
       } else {
-        alert("Failed to create invoice: " + res.message);
+        triggerToast("Failed to create invoice: " + res.message, "error");
       }
     } catch (err) {
-      alert("Error: " + err.message);
+      triggerToast("Error: " + err.message, "error");
     }
   };
 
@@ -285,13 +329,13 @@ export default function BookingRequestsPage() {
     try {
       const res = await paymentService.confirmCashReceived(invoiceId);
       if (res.success) {
-        alert("Cash payment confirmed successfully!");
+        triggerToast("Cash payment confirmed successfully!", "success");
         setUpdateTrigger(prev => prev + 1);
       } else {
-        alert("Failed to confirm cash: " + res.message);
+        triggerToast("Failed to confirm cash: " + res.message, "error");
       }
     } catch (err) {
-      alert("Error: " + err.message);
+      triggerToast("Error: " + err.message, "error");
     }
   };
 
@@ -307,6 +351,7 @@ export default function BookingRequestsPage() {
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
+      <Toast show={toast.show} type={toast.type} message={toast.message} />
       <header style={{ height: "70px", background: COLORS.surface, borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 30px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ fontSize: "18px", fontWeight: 800 }}>{centerName}</div>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>

@@ -1,19 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { signup } from "../../src/API/authService";
+import { usersService } from "@/lib/api/usersService";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+const MapPicker = dynamic(() => import("@/components/MapPicker"), {
+  ssr: false,
+});
 
 const validatePasswordStrength = (password) => {
   let score = 0;
-  if (password.length >= 8) score++; 
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++; 
-  if (/\d/.test(password)) score++; 
+  if (password.length >= 8) score++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
   if (/[!@#$%^&*()]/.test(password)) score++;
   return score;
 };
 
 export default function SignupPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -25,280 +32,280 @@ export default function SignupPage() {
   const [errors, setErrors] = useState({});
   const [showPw, setShowPw] = useState(false);
   const [strength, setStrength] = useState(0);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // ── Location (OpenStreetMap)
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  const [location, setLocation] = useState({
+    latitude: 30.0626,
+    longitude: 31.3397,
+    address: "",
+    city: "",
+    pinned: false,
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-
-    if (name === "password") {
-      setStrength(validatePasswordStrength(value));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "password") setStrength(validatePasswordStrength(value));
   };
 
   const validate = () => {
-    let err = {};
+    const err = {};
     if (!formData.name) err.name = "Full Name is required";
     if (!formData.email) err.email = "Email is required";
     if (!formData.phone) err.phone = "Phone number is required";
     if (strength < 3) err.password = "Password is too weak";
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.confirmPassword)
       err.confirmPassword = "Passwords do not match";
-    }
+
     setErrors(err);
     return Object.keys(err).length === 0;
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      try {
+    if (!validate()) return;
 
-        const result = await signup(formData); 
-        
+    try {
+      await signup(formData);
 
-        alert("Account created successfully");
-        window.location.href = "/login"; 
-      } catch (err) {
-        alert(err.message); 
+      if (location.pinned) {
+        try {
+          await usersService.setMyLocation(
+            location.latitude,
+            location.longitude
+          );
+        } catch (_) { }
+
+        localStorage.setItem(
+          "userLocation",
+          JSON.stringify({
+            lat: location.latitude,
+            lng: location.longitude,
+            city: location.city,
+            address: location.address,
+          })
+        );
       }
+
+      router.push("/signup-success");
+    } catch (err) {
+      setErrorMsg(err.message || "Signup failed. Please try again.");
     }
+  };
+
+  // ── Browser location (بديل Google)
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setErrorMsg("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setGeoLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+
+        setLocation((prev) => ({
+          ...prev,
+          latitude,
+          longitude,
+          pinned: true,
+        }));
+
+        setGeoLoading(false);
+      },
+      () => {
+        setGeoLoading(false);
+        setErrorMsg("Could not retrieve your location. Please allow location access.");
+      }
+    );
+  };
+
+  const clearLocation = () => {
+    setLocation({
+      latitude: 30.0626,
+      longitude: 31.3397,
+      address: "",
+      city: "",
+      pinned: false,
+    });
   };
 
   return (
     <div className="main-wrapper">
       <style>{`
+        * { box-sizing: border-box; }
+
         .main-wrapper {
           display: flex;
           justify-content: center;
           align-items: center;
           min-height: 100vh;
-          background: #f0f2f5;
-          padding: 20px;
-          font-family: sans-serif;
+          background: linear-gradient(135deg, #1a0000, #3a0000);
+          padding: 24px;
         }
 
         .container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          width: 85%;
-          max-width: 1100px;
-          min-height: 600px;
-          background: white;
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 90%;
+  max-width: 1000px;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+}
 
-        .left {
-          background: linear-gradient(rgba(212, 43, 43, 0.85), rgba(0, 0, 0, 0.8)), 
-                      url('https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=1000');
-          background-size: cover;
-          background-position: center;
-          color: white;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 40px;
-        }
+/* LEFT SIDE */
+.left {
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(212, 43, 43, 0.8), rgba(58, 0, 0, 0.95)),
+              url("/signup-car-bg.png");
+  background-size: cover;
+  background-position: center;
+  color: white;
+}
 
-        .left h1 {
-          font-size: 4rem;
-          font-weight: 900;
-          text-transform: uppercase;
-          margin-bottom: 10px;
-        }
-
-        .left h2 {
-          font-size: 1.8rem;
-          font-weight: 300;
-          opacity: 0.9;
-        }
-
-        .right {
-          padding: 40px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
-
-        .form h3 {
-          font-size: 2rem;
-          font-weight: 800;
-          color: #222;
-          margin-bottom: 20px;
-        }
-
-        .form {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .input-group {
-          position: relative;
-          display: flex;
-          align-items: center;
-          width: 100%;
-        }
+/* RIGHT SIDE */
+.right {
+  padding: 40px;
+}
+        .form { display: flex; flex-direction: column; gap: 12px; }
 
         input {
           padding: 12px;
-          border: 1.5px solid #ddd;
+          border: 1px solid #ddd;
           border-radius: 10px;
-          font-size: 15px;
-          width: 100%;
         }
 
-        input:focus {
-          border-color: #d42b2b;
-          outline: none;
-        }
-
-        .strength-meter {
-          height: 4px;
-          width: 100%;
-          background: #eee;
-          margin-top: -5px;
-          border-radius: 2px;
-          overflow: hidden;
-        }
-
-        .strength-bar {
-          height: 100%;
-          transition: 0.4s ease;
-        }
-
-        .eye-btn {
-          position: absolute;
-          right: 15px;
-          background: none;
-          border: none;
-          color: #888;
-          cursor: pointer;
-          font-size: 18px;
-          display: flex;
-          align-items: center;
-        }
-
-        .signup-btn {
-          padding: 16px;
+        .btn {
+          padding: 14px;
           background: #d42b2b;
-          color: white;
+          color: #fff;
           border: none;
           border-radius: 10px;
-          font-weight: bold;
-          font-size: 17px;
           cursor: pointer;
-          transition: 0.3s;
+        }
+
+        .loc-box {
+          border: 1px dashed #d42b2b;
+          padding: 12px;
+          border-radius: 10px;
+          cursor: pointer;
           margin-top: 10px;
         }
 
-        .signup-btn:disabled {
-          background: #ccc;
-          cursor: not-allowed;
-        }
-
-        .signup-btn:hover:not(:disabled) {
-          background: #b32424;
-          transform: translateY(-2px);
-        }
-
-        .error-msg {
-          color: #d42b2b;
-          font-size: 12px;
-          font-weight: bold;
-          margin-top: -5px;
-        }
-
-        .link {
-          color: #d42b2b;
-          text-align: center;
-          margin-top: 15px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
-          text-decoration: none;
-        }
-
-        @media (max-width: 900px) {
-          .container {
-            grid-template-columns: 1fr;
-            width: 100%;
-          }
-          .left {
-            display: none;
-          }
+        .map-box {
+          margin-top: 10px;
+          border-radius: 12px;
+          overflow: hidden;
         }
       `}</style>
 
-      <div className="container">
-        <div className="left">
-          <h1>Autoria</h1>
-          <h2>Expert Care</h2>
-          <p>Join thousands of car owners and get access to the best mechanics and genuine spare parts.</p>
-        </div>
+<div className="container">
 
-        <div className="right">
-          <form className="form" onSubmit={handleSubmit}>
-            <h3>Create Account</h3>
-            
-            <input name="name" placeholder="Full Name" onChange={handleChange} />
-            {errors.name && <span className="error-msg">{errors.name}</span>}
+  {/* LEFT SIDE */}
+  <div className="left">
+    <h1 className="logo-title" style={{ fontSize: "3.5rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "-1.5px", margin: 0, lineHeight: 1 }}>Autoria</h1>
+    <p style={{ fontSize: "1.15rem", fontWeight: 300, opacity: 0.9, marginTop: "12px", letterSpacing: "0.5px" }}>Expert Car Care, Simplified.</p>
+  </div>
 
-            <input name="email" placeholder="Email Address" onChange={handleChange} />
-            {errors.email && <span className="error-msg">{errors.email}</span>}
+  {/* RIGHT SIDE */}
+  <div className="right">
 
-            <input name="phone" placeholder="Phone Number" onChange={handleChange} />
-            {errors.phone && <span className="error-msg">{errors.phone}</span>}
+    <h2>Create Account</h2>
 
-            <div className="input-group">
-              <input 
-                name="password" 
-                type={showPw ? "text" : "password"} 
-                placeholder="Password" 
-                onChange={handleChange} 
-              />
-              <button type="button" className="eye-btn" onClick={() => setShowPw(!showPw)}>
-                <i className={`fa-solid ${showPw ? "fa-eye-slash" : "fa-eye"}`}></i>
-              </button>
-            </div>
+    <form className="form" onSubmit={handleSubmit}>
+      
+      <input name="name" placeholder="Full Name" onChange={handleChange} />
+      {errors.name && <p>{errors.name}</p>}
 
-            {/* شريط القوة يظهر فقط عند الكتابة */}
-            {formData.password && (
-              <div className="strength-meter">
-                <div 
-                  className="strength-bar" 
-                  style={{
-                    width: `${(strength / 4) * 100}%`,
-                    backgroundColor: strength < 2 ? "#d42b2b" : strength < 4 ? "#ffcc00" : "#2ecc71"
-                  }}
-                ></div>
-              </div>
-            )}
-            {errors.password && <span className="error-msg">{errors.password}</span>}
+      <input name="email" placeholder="Email" onChange={handleChange} />
+      {errors.email && <p>{errors.email}</p>}
 
-            <input 
-              name="confirmPassword" 
-              type="password" 
-              placeholder="Confirm Password" 
-              onChange={handleChange} 
-            />
-            {errors.confirmPassword && <span className="error-msg">{errors.confirmPassword}</span>}
-            
-            <button 
-              type="submit" 
-              className="signup-btn" 
-              disabled={strength < 3} 
-            >
-              Sign Up Now
-            </button>
+      <input name="phone" placeholder="Phone" onChange={handleChange} />
+      {errors.phone && <p>{errors.phone}</p>}
 
-            <Link href="/login" className="link">
-  Already have an account? Login
-</Link>
-          </form>
-        </div>
+      <input
+        name="password"
+        type={showPw ? "text" : "password"}
+        placeholder="Password"
+        onChange={handleChange}
+      />
+      {errors.password && <p>{errors.password}</p>}
+
+      <input
+        name="confirmPassword"
+        type="password"
+        placeholder="Confirm Password"
+        onChange={handleChange}
+      />
+      {errors.confirmPassword && <p>{errors.confirmPassword}</p>}
+
+      {/* Location Toggle */}
+      <div
+        className="loc-box"
+        onClick={() => setLocationOpen(!locationOpen)}
+      >
+        📍 Add My Location (Optional)
       </div>
-    </div>
+
+      {/* MAP */}
+      {locationOpen && (
+        <div className="map-box">
+          <button type="button" onClick={handleUseMyLocation}>
+            {geoLoading ? "Locating..." : "Use My Location"}
+          </button>
+
+          <MapPicker location={location} setLocation={setLocation} />
+
+          <p>
+            Lat: {location.latitude.toFixed(5)} | Lng: {location.longitude.toFixed(5)}
+          </p>
+
+          {location.pinned && (
+            <button type="button" onClick={clearLocation}>
+              Clear
+            </button>
+          )}
+        </div>
+      )}
+
+      {errorMsg && (
+        <div style={{
+          background: "#FEF2F2",
+          border: "1px solid #FCA5A5",
+          borderRadius: "8px",
+          padding: "12px 16px",
+          color: "#DC2626",
+          fontSize: "14px",
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          ⚠️ {errorMsg}
+        </div>
+      )}
+
+      <button className="btn" type="submit">
+        Sign Up
+      </button>
+
+      <Link href="/login">Already have account?</Link>
+
+    </form>
+
+  </div>
+</div>
+</div>
   );
 }
+  

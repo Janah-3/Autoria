@@ -183,14 +183,23 @@ export default function ServiceCenterRegistration() {
   useEffect(() => {
     if (typeof window === "undefined" || currentStep !== 2) return;
     if (window.google?.maps) { setMapLoaded(true); return; }
-    if (document.getElementById("gmap-script")) return;
 
     window.__initGoogleMaps = () => setMapLoaded(true);
-    const s = document.createElement("script");
-    s.id    = "gmap-script";
-    s.src   = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=__initGoogleMaps`;
-    s.async = true; s.defer = true;
-    document.head.appendChild(s);
+    let s = document.getElementById("gmap-script");
+    if (!s) {
+      s = document.createElement("script");
+      s.id = "gmap-script";
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&callback=__initGoogleMaps`;
+      s.async = true;
+      s.defer = true;
+      document.head.appendChild(s);
+    }
+
+    const handleLoad = () => setMapLoaded(true);
+    s.addEventListener("load", handleLoad);
+    return () => {
+      s.removeEventListener("load", handleLoad);
+    };
   }, [currentStep]);
 
   const initMap = useCallback(() => {
@@ -569,12 +578,13 @@ await serviceCentersService.updateOperatingHours(payload);
 
                 <div style={{ gridColumn: "span 2" }}>
                   <label className="form-label">Pin your location on the map</label>
-                  <div ref={mapRef} style={{ width: "100%", height: 340, borderRadius: 14, overflow: "hidden", border: "1.5px solid #CBD5E1", background: "#F1F5F9" }}>
+                  <div style={{ width: "100%", height: 340, borderRadius: 14, overflow: "hidden", border: "1.5px solid #CBD5E1", background: "#F1F5F9", position: "relative" }}>
                     {!mapLoaded && (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748B", fontSize: 14 }}>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#64748B", fontSize: 14, background: "#F1F5F9", zIndex: 10 }}>
                         Loading Google Maps…
                       </div>
                     )}
+                    <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "rgba(232,39,42,0.05)", borderRadius: 8, fontSize: 12, color: "#B91C1C", fontWeight: 600, marginTop: 8 }}>
                     📍 Click anywhere or drag the red pin to set your exact location
