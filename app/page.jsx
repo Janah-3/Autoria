@@ -207,7 +207,11 @@ function ServiceCenters({ centers }) {
                     <span style={{ color: "#f59e0b", fontSize: 11 }}>{"★".repeat(Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}{"☆".repeat(5 - Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}</span>
                     <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 3 }}>{c.rating} ({c.reviews})</span>
                   </span>
-                  <span style={{ fontSize: 13, fontWeight: 900, color: R }}>{c.price}</span>
+                  {c.price && c.price.toLowerCase().includes("contact for price") ? (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "#6b7280" }}>Contact for price</span>
+                  ) : (
+                    <span style={{ fontSize: 13, fontWeight: 900, color: R }}>{c.price}</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -230,7 +234,7 @@ const SPARE_PART_CATEGORIES = [
   { iconClass: "fa-solid fa-filter", title: "Filters" },
   { iconClass: "fa-solid fa-bolt", title: "Electrical" },
   { iconClass: "fa-solid fa-compress", title: "Suspension" },
-  { iconClass: "fa-solid fa-wind", title: "Exhaust" },
+  { iconClass: "fa-solid fa-snowflake", title: "Air Conditioning" },
 ];
 
 function SpareParts() {

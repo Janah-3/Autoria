@@ -9,8 +9,8 @@ import { adminService } from "@/lib/api/adminService";
 import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
 import { sparePartsService } from "@/lib/sparePartsService";
 import { reportsService } from "@/lib/api/reportsService";
-import { contactUsService } from "@/lib/api/contactUsService";
 import { paymentService } from "@/lib/api/paymentService";
+import { addAdmin } from "@/lib/api/authService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -44,9 +44,11 @@ const StatCard = ({ label, value, trend, trendUp }) => (
   <div style={{ background: COLORS.white, borderRadius: "16px", padding: "24px", border: `1px solid ${COLORS.border}`, flex: 1, boxShadow: SHADOW }}>
     <div style={{ color: COLORS.textLight, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px" }}>{label}</div>
     <div style={{ fontSize: "28px", fontWeight: 900, marginBottom: "8px" }}>{value}</div>
-    <div style={{ fontSize: "12px", color: trendUp ? COLORS.success : COLORS.textLight, fontWeight: 600 }}>
-      {trendUp ? "↑" : "→"} {trend} <span style={{ color: COLORS.textLight, fontWeight: 400 }}>vs last month</span>
-    </div>
+    {trend && (
+      <div style={{ fontSize: "12px", color: trendUp === true ? COLORS.success : (trendUp === false ? COLORS.primary : COLORS.textLight), fontWeight: 600 }}>
+        {trendUp === true ? "↑ " : (trendUp === false ? "↓ " : "→ ")}{trend}
+      </div>
+    )}
   </div>
 );
 
@@ -62,6 +64,17 @@ export default function AdminDashboard() {
     window.addEventListener("click", closeDropdown);
     return () => window.removeEventListener("click", closeDropdown);
   }, []);
+
+  // Add Admin State
+  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
+  const [newAdminData, setNewAdminData] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    phoneNumber: ""
+  });
+  const [addAdminSubmitting, setAddAdminSubmitting] = useState(false);
+  const [addAdminError, setAddAdminError] = useState("");
 
   const [sparePartsList, setSparePartsList] = useState([]);
   const [sparePartsLoading, setSparePartsLoading] = useState(false);
@@ -82,15 +95,7 @@ export default function AdminDashboard() {
   const [reportResolutionNote, setReportResolutionNote] = useState("");
   const [submittingResolution, setSubmittingResolution] = useState(false);
 
-  // Contact Us Messages State
-  const [contactMessagesList, setContactMessagesList] = useState([]);
-  const [contactMessagesLoading, setContactMessagesLoading] = useState(false);
-  const [contactMessagesError, setContactMessagesError] = useState("");
-  const [contactMessagesFilter, setContactMessagesFilter] = useState("pending"); // "all", "pending", "resolved"
-  const [selectedContactMessage, setSelectedContactMessage] = useState(null);
-  const [showContactMessageModal, setShowContactMessageModal] = useState(false);
-  const [contactResolutionNote, setContactResolutionNote] = useState("");
-  const [submittingContactResolution, setSubmittingContactResolution] = useState(false);
+
 
   // Pending Service Center Verification Modal State
   const [selectedPendingCenter, setSelectedPendingCenter] = useState(null);
@@ -103,7 +108,7 @@ export default function AdminDashboard() {
 
   const [newPartData, setNewPartData] = useState({
     name: "",
-    category: "Brake Pads",
+    category: "Brakes",
     brand: "",
     model: "",
     productionDate: "",
@@ -295,27 +300,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchContactMessages = (filterValue = contactMessagesFilter) => {
-    setContactMessagesLoading(true);
-    setContactMessagesError("");
-    
-    let params = {};
-    if (filterValue === "pending") params.isResolved = "false";
-    else if (filterValue === "resolved") params.isResolved = "true";
 
-    contactUsService.getAdminMessages(params)
-      .then((res) => {
-        const items = res?.data?.items ?? res?.data ?? res ?? [];
-        setContactMessagesList(Array.isArray(items) ? items : []);
-      })
-      .catch((err) => {
-        console.error("Failed to load contact messages:", err);
-        setContactMessagesError(err.message || "Failed to load messages from backend");
-      })
-      .finally(() => {
-        setContactMessagesLoading(false);
-      });
-  };
 
   const fetchUrgentReports = () => {
     reportsService.getAll({ Status: 0, Page: 1, PageSize: 5 })
@@ -328,25 +313,7 @@ export default function AdminDashboard() {
       });
   };
 
-  const handleViewContactMessage = (msg) => {
-    setSelectedContactMessage(msg);
-    setContactResolutionNote(msg.adminNotes || msg.AdminNotes || "");
-    setShowContactMessageModal(true);
-  };
 
-  const handleResolveContactMessage = async (id, note) => {
-    setSubmittingContactResolution(true);
-    try {
-      await contactUsService.resolveMessage(id, note || "Resolved by Admin");
-      alert("Contact message marked as resolved successfully!");
-      setShowContactMessageModal(false);
-      fetchContactMessages();
-    } catch (err) {
-      alert("Failed to resolve message: " + err.message);
-    } finally {
-      setSubmittingContactResolution(false);
-    }
-  };
 
   const fetchPaymentsData = () => {
     if (!currentUser || currentUser.role !== "Admin") return;
@@ -399,7 +366,6 @@ export default function AdminDashboard() {
       fetchPendingCenters();
       fetchMetrics();
       fetchReports();
-      fetchContactMessages();
       fetchUrgentReports();
       fetchAllCenters();
     }
@@ -411,11 +377,7 @@ export default function AdminDashboard() {
     }
   }, [reportsStatusFilter]);
 
-  useEffect(() => {
-    if (currentUser && currentUser.role === "Admin") {
-      fetchContactMessages();
-    }
-  }, [contactMessagesFilter]);
+
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin" && activeTab === "Payments & Revenue") {
@@ -481,6 +443,29 @@ export default function AdminDashboard() {
       });
   };
 
+  // Add Admin Handler
+  const handleAddAdmin = async (e) => {
+    e.preventDefault();
+    if (!newAdminData.fullName || !newAdminData.email || !newAdminData.password || !newAdminData.phoneNumber) {
+      alert("Please fill all fields");
+      return;
+    }
+    setAddAdminSubmitting(true);
+    setAddAdminError("");
+    try {
+      await addAdmin(newAdminData);
+      alert("Admin added successfully!");
+      setShowAddAdminModal(false);
+      setNewAdminData({ fullName: "", email: "", password: "", phoneNumber: "" });
+      fetchUsers(); // Refresh users list
+    } catch (err) {
+      console.error("Failed to add admin:", err);
+      setAddAdminError(err.message || "Failed to add admin");
+    } finally {
+      setAddAdminSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
       fetchUsers();
@@ -532,7 +517,8 @@ export default function AdminDashboard() {
     sparePartsService.getAdminSpareParts({
       q: sparePartsSearch,
       category: sparePartsCategoryFilter || undefined,
-      includeInactive: sparePartsIncludeInactive
+      includeInactive: sparePartsIncludeInactive,
+      pageSize: 500
     })
       .then((res) => {
         const items = res?.items ?? res ?? [];
@@ -571,7 +557,7 @@ export default function AdminDashboard() {
       setShowAddPartModal(false);
       setNewPartData({
         name: "",
-        category: "Brake Pads",
+        category: "Brakes",
         brand: "",
         model: "",
         productionDate: "",
@@ -628,7 +614,7 @@ export default function AdminDashboard() {
         .back-link { transition: background 0.2s ease; }
         .back-link:hover { background: #f5f5f5 !important; }
       `}</style>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reports: reportsList.filter(r => r.status === 0 || r.status === "Pending").length, users: usersList.length, spareParts: sparePartsList.length, contacts: contactMessagesList.filter(m => !m.isResolved && !m.IsResolved).length }} colors={COLORS} />
+      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reports: reportsList.filter(r => r.status === 0 || r.status === "Pending").length, users: usersList.length, spareParts: sparePartsList.length }} colors={COLORS} />
 
       <main style={{ flex: 1, padding: "40px", maxWidth: "1600px" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
@@ -1147,8 +1133,27 @@ export default function AdminDashboard() {
         {/* User Management View */}
         {activeTab === "User management" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
               <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>View, moderate, and manage roles or ban status for platform users.</p>
+              <button 
+                onClick={() => setShowAddAdminModal(true)}
+                className="admin-btn"
+                style={{
+                  background: COLORS.primary,
+                  color: "#fff",
+                  border: "none",
+                  padding: "10px 20px",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <i className="fa-solid fa-user-plus"></i> Add Admin
+              </button>
             </div>
             
             <div style={{ display: "flex", gap: "20px" }}>
@@ -1387,10 +1392,14 @@ export default function AdminDashboard() {
                    style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px", background: "#fff" }}
                  >
                    <option value="">All Categories</option>
-                   <option value="Brake Pads">Brake Pads</option>
-                   <option value="Engine Parts">Engine Parts</option>
-                   <option value="Filters">Filters</option>
+                   <option value="Air Conditioning">Air Conditioning</option>
+                   <option value="Brakes">Brakes</option>
+                   <option value="Cooling">Cooling</option>
                    <option value="Electrical">Electrical</option>
+                   <option value="Engine">Engine</option>
+                   <option value="Filters">Filters</option>
+                   <option value="Ignition">Ignition</option>
+                   <option value="Oils & Fluids">Oils & Fluids</option>
                    <option value="Suspension">Suspension</option>
                    <option value="Exhaust">Exhaust</option>
                  </select>
@@ -1524,10 +1533,14 @@ export default function AdminDashboard() {
                            onChange={(e) => setNewPartData({ ...newPartData, category: e.target.value })}
                            style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", background: "#fff" }}
                          >
-                           <option value="Brake Pads">Brake Pads</option>
-                           <option value="Engine Parts">Engine Parts</option>
-                           <option value="Filters">Filters</option>
+                           <option value="Air Conditioning">Air Conditioning</option>
+                           <option value="Brakes">Brakes</option>
+                           <option value="Cooling">Cooling</option>
                            <option value="Electrical">Electrical</option>
+                           <option value="Engine">Engine</option>
+                           <option value="Filters">Filters</option>
+                           <option value="Ignition">Ignition</option>
+                           <option value="Oils & Fluids">Oils & Fluids</option>
                            <option value="Suspension">Suspension</option>
                            <option value="Exhaust">Exhaust</option>
                          </select>
@@ -1683,151 +1696,10 @@ export default function AdminDashboard() {
                  </div>
                </div>
              )}
+
             </div>
          )}
 
-        {/* Contact Messages View */}
-        {activeTab === "Contact Messages" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>View, moderate, and resolve support/inquiry messages submitted by users.</p>
-            </div>
-            
-            <div style={{ display: "flex", gap: "20px" }}>
-              <StatCard label="Pending Messages" value={contactMessagesList.filter(m => !m.isResolved && !m.IsResolved).length.toString()} trend="Requires response" trendUp={false} />
-              <StatCard label="Resolved Messages" value={contactMessagesList.filter(m => m.isResolved || m.IsResolved).length.toString()} trend="Closed support" trendUp />
-              <StatCard label="Total Messages" value={contactMessagesList.length.toString()} trend="All inquiries" />
-              <StatCard label="System SLA" value="100%" trend="Active backend" trendUp />
-            </div>
-
-            {/* Filter controls */}
-            <div style={{ display: "flex", gap: "6px" }}>
-              {[
-                { value: "all", label: `All Inquiries (${contactMessagesList.length})` },
-                { value: "pending", label: `Pending (${contactMessagesList.filter(m => !m.isResolved && !m.IsResolved).length})` },
-                { value: "resolved", label: `Resolved (${contactMessagesList.filter(m => m.isResolved || m.IsResolved).length})` }
-              ].map(tab => (
-                <button 
-                  key={tab.value}
-                  onClick={() => setContactMessagesFilter(tab.value)}
-                  style={{ 
-                    background: contactMessagesFilter === tab.value ? "#FFF1F1" : "#fff", 
-                    color: contactMessagesFilter === tab.value ? COLORS.primary : COLORS.textLight, 
-                    border: `1px solid ${contactMessagesFilter === tab.value ? COLORS.primary : COLORS.border}`, 
-                    padding: "8px 24px", 
-                    borderRadius: "20px", 
-                    fontSize: "13px", 
-                    fontWeight: 700,
-                    cursor: "pointer"
-                  }}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {contactMessagesError && (
-              <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
-                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> Error: {contactMessagesError}
-              </div>
-            )}
-
-            <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden", boxShadow: SHADOW }}>
-              {contactMessagesLoading ? (
-                <div style={{ padding: "60px", textAlign: "center" }}>
-                  <div style={{ width: 30, height: 30, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 16px" }} />
-                  <div style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading messages...</div>
-                </div>
-              ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <thead style={{ background: COLORS.bg }}>
-                    <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
-                      <th style={{ padding: "16px 24px" }}>SENDER DETAILS</th>
-                      <th style={{ padding: "16px 24px" }}>SUBJECT</th>
-                      <th style={{ padding: "16px 24px" }}>MESSAGE PREVIEW</th>
-                      <th style={{ padding: "16px 24px" }}>SUBMITTED DATE</th>
-                      <th style={{ padding: "16px 24px" }}>STATUS</th>
-                      <th style={{ padding: "16px 24px", textAlign: "right" }}>ACTIONS</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contactMessagesList.map(msg => {
-                      const initials = msg.fullName
-                        ? msg.fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-                        : "U";
-                      const isMsgResolved = msg.isResolved || msg.IsResolved;
-                      return (
-                        <tr key={msg.id} style={{ borderTop: `1px solid ${COLORS.border}` }}>
-                          <td style={{ padding: "16px 24px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                              <div style={{ 
-                                width: "36px", 
-                                height: "36px", 
-                                borderRadius: "50%", 
-                                background: isMsgResolved ? "#F3F4F6" : "#FEEBEB", 
-                                color: isMsgResolved ? "#9CA3AF" : COLORS.primary, 
-                                display: "flex", 
-                                alignItems: "center", 
-                                justifyContent: "center", 
-                                fontWeight: 800,
-                                fontSize: "13px"
-                              }}>
-                                {initials}
-                              </div>
-                              <div>
-                                <div style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{msg.fullName || "User"}</div>
-                                <div style={{ fontSize: "11px", color: COLORS.textLight }}>{msg.email}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td style={{ padding: "16px 24px", fontSize: "13px", fontWeight: 700, color: COLORS.text }}>
-                            {msg.subject || "No Subject"}
-                          </td>
-                          <td style={{ padding: "16px 24px", fontSize: "13px", color: COLORS.textLight, maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {msg.message}
-                          </td>
-                          <td style={{ padding: "16px 24px", fontSize: "12px", color: COLORS.textLight }}>
-                            {msg.createdAt ? new Date(msg.createdAt).toLocaleDateString() : "—"}
-                          </td>
-                          <td style={{ padding: "16px 24px" }}>
-                            <span style={{ 
-                              color: isMsgResolved ? COLORS.success : COLORS.primary, 
-                              background: isMsgResolved ? "#E8F5E9" : "#FFF1F1", 
-                              padding: "4px 8px", 
-                              borderRadius: "4px", 
-                              fontSize: "11px", 
-                              fontWeight: 800 
-                            }}>
-                              {isMsgResolved ? "Resolved" : "Pending"}
-                            </span>
-                          </td>
-                          <td style={{ padding: "16px 24px", textAlign: "right" }}>
-                            <button 
-                              onClick={() => handleViewContactMessage(msg)}
-                              className="admin-btn" 
-                              style={{ background: "transparent", border: `1px solid ${COLORS.border}`, padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, cursor: "pointer" }}
-                            >
-                              Review & Reply
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {contactMessagesList.length === 0 && (
-                      <tr>
-                        <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
-                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-envelope"></i></div>
-                          <div style={{ fontWeight: 800 }}>No messages found</div>
-                          <div style={{ fontSize: "12px" }}>There are no {contactMessagesFilter} support inquiries currently.</div>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Payments & Revenue View */}
         {activeTab === "Payments & Revenue" && (
@@ -2193,110 +2065,6 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Contact Message Details Modal Overlay */}
-      {showContactMessageModal && selectedContactMessage && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
-          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "600px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>
-                <i className="fa-solid fa-envelope" style={{ color: COLORS.primary, marginRight: "10px" }}></i> Support Inquiry Details
-              </h3>
-              <button 
-                onClick={() => setShowContactMessageModal(false)}
-                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Sender Metadata */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: COLORS.bg, padding: "16px", borderRadius: "12px" }}>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Sender Name</div>
-                  <div style={{ fontSize: "14px", fontWeight: 800 }}>{selectedContactMessage.fullName || "Platform User"}</div>
-                  <div style={{ fontSize: "11px", color: COLORS.textLight }}>{selectedContactMessage.email}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight, textTransform: "uppercase" }}>Submitted Date</div>
-                  <div style={{ fontSize: "14px", fontWeight: 700 }}>
-                    {selectedContactMessage.createdAt ? new Date(selectedContactMessage.createdAt).toLocaleString() : "—"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Subject */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Inquiry Subject</label>
-                <div style={{ fontSize: "15px", fontWeight: 800, color: COLORS.text, background: COLORS.bg, padding: "10px 14px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}` }}>
-                  {selectedContactMessage.subject || "No Subject"}
-                </div>
-              </div>
-
-              {/* Message Details */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Message Description</label>
-                <div style={{ fontSize: "13.5px", background: COLORS.bg, padding: "12px 16px", borderRadius: "8px", border: `1.5px solid ${COLORS.border}`, minHeight: "80px", color: COLORS.text, whiteSpace: "pre-wrap" }}>
-                  {selectedContactMessage.message}
-                </div>
-              </div>
-
-              {/* Status information */}
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "8px 0" }}>
-                <span style={{ fontSize: "13px", fontWeight: 700 }}>Resolution Status:</span>
-                <span style={{ 
-                  color: (selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? COLORS.success : COLORS.primary, 
-                  background: (selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? "#E8F5E9" : "#FFF1F1", 
-                  padding: "4px 10px", 
-                  borderRadius: "6px", 
-                  fontSize: "12px", 
-                  fontWeight: 800 
-                }}>
-                  {(selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? "Resolved" : "Pending Support"}
-                </span>
-              </div>
-
-              {/* Resolution Input / Display */}
-              <div style={{ borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                <label style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text }}>Resolution Action & Admin Notes</label>
-                
-                {!(selectedContactMessage.isResolved || selectedContactMessage.IsResolved) ? (
-                  <>
-                    <textarea 
-                      value={contactResolutionNote}
-                      onChange={(e) => setContactResolutionNote(e.target.value)}
-                      placeholder="Enter resolution notes, actions taken, or instructions sent to the user..."
-                      rows="3"
-                      style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", fontFamily: "inherit", width: "100%" }}
-                    />
-                    <div style={{ display: "flex", gap: "12px", marginTop: "10px" }}>
-                      <button 
-                        type="button" 
-                        disabled={submittingContactResolution}
-                        onClick={() => handleResolveContactMessage(selectedContactMessage.id, contactResolutionNote)}
-                        style={{ flex: 1, background: COLORS.primary, color: "#fff", border: "none", padding: "10px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", cursor: "pointer", opacity: submittingContactResolution ? 0.6 : 1 }}
-                      >
-                        {submittingContactResolution ? "Resolving Inbound..." : "Mark as Resolved"}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ background: "#F8F9FA", padding: "14px", borderRadius: "10px", border: `1.5px solid ${COLORS.border}` }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "8px", fontSize: "11px", color: COLORS.textLight }}>
-                      <div>Status: Closed Ticket</div>
-                      <div style={{ textAlign: "right" }}>Resolved Successfully</div>
-                    </div>
-                    <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.text }}>
-                      <strong>Resolution Note:</strong> {selectedContactMessage.adminNotes || selectedContactMessage.AdminNotes || "None provided."}
-                    </div>
-                  </div>
-                )}
-              </div>
               </div>
             </div>
           </div>
@@ -2566,6 +2334,96 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add New Admin Modal Overlay */}
+      {showAddAdminModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "550px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>Add New System Admin</h3>
+              <button 
+                onClick={() => setShowAddAdminModal(false)}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {addAdminError && (
+              <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, marginBottom: "16px" }}>
+                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> {addAdminError}
+              </div>
+            )}
+            
+            <form onSubmit={handleAddAdmin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Full Name</label>
+                <input 
+                  type="text"
+                  value={newAdminData.fullName}
+                  onChange={(e) => setNewAdminData({ ...newAdminData, fullName: e.target.value })}
+                  placeholder="e.g. Yasmine Fawzy"
+                  required
+                  style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Email Address</label>
+                <input 
+                  type="email"
+                  value={newAdminData.email}
+                  onChange={(e) => setNewAdminData({ ...newAdminData, email: e.target.value })}
+                  placeholder="e.g. yasmine.fawzy@autoria.com"
+                  required
+                  style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Password</label>
+                <input 
+                  type="password"
+                  value={newAdminData.password}
+                  onChange={(e) => setNewAdminData({ ...newAdminData, password: e.target.value })}
+                  placeholder="••••••••"
+                  required
+                  style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Phone Number</label>
+                <input 
+                  type="tel"
+                  value={newAdminData.phoneNumber}
+                  onChange={(e) => setNewAdminData({ ...newAdminData, phoneNumber: e.target.value })}
+                  placeholder="e.g. 01001234567"
+                  required
+                  style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px", marginTop: "16px", borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px", justifyContent: "flex-end" }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddAdminModal(false)}
+                  style={{ background: "#F3F4F6", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", color: COLORS.textLight, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={addAdminSubmitting}
+                  style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "10px 24px", borderRadius: "8px", fontWeight: 800, fontSize: "13px", cursor: "pointer", opacity: addAdminSubmitting ? 0.7 : 1 }}
+                >
+                  {addAdminSubmitting ? "Adding..." : "Add Admin"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

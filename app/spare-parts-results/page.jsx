@@ -76,10 +76,16 @@ const PartCard = ({ part }) => {
       <div style={{ padding: "18px" }}>
         <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: "15px", fontWeight: 700, marginBottom: "4px", color: COLORS.text }}>{part.name}</h3>
         <p style={{ fontSize: "12px", color: COLORS.muted2, marginBottom: "10px" }}>{part.brand} {part.model}</p>
-        <div style={{ fontFamily: "'Syne', sans-serif", fontSize: "20px", fontWeight: 800, color: COLORS.accent, marginBottom: "4px" }}>
-           <span style={{ fontSize: "13px", marginRight: "4px" }}>EGP</span>
-           {part.lowestPrice ? part.lowestPrice : "Contact for Price"}
-        </div>
+        {part.lowestPrice ? (
+          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: "20px", fontWeight: 800, color: COLORS.accent, marginBottom: "4px" }}>
+             <span style={{ fontSize: "13px", marginRight: "4px" }}>EGP</span>
+             {part.lowestPrice}
+          </div>
+        ) : (
+          <div style={{ fontFamily: "'Inter', sans-serif", fontSize: "11px", fontWeight: 500, color: COLORS.muted2, marginBottom: "12px" }}>
+            Contact for Price
+          </div>
+        )}
         <div style={{ fontSize: "11px", color: COLORS.success, fontWeight: 700 }}>
           ✓ {part.totalAvailableCenters > 0 ? "Available on order" : "Available on order"}
         </div>
@@ -105,10 +111,10 @@ const mapSearchToCategory = (searchStr) => {
   if (!searchStr) return null;
   const s = searchStr.toLowerCase().trim();
   if (s === "brakes & pads" || s === "brakes" || s === "brake pads" || s === "pads") {
-    return "Brake Pads";
+    return "Brakes";
   }
   if (s === "engine parts" || s === "engine" || s === "engines") {
-    return "Engine Parts";
+    return "Engine";
   }
   if (s === "filters" || s === "filter") {
     return "Filters";
@@ -121,6 +127,9 @@ const mapSearchToCategory = (searchStr) => {
   }
   if (s === "exhaust" || s === "wind" || s === "muffler") {
     return "Exhaust";
+  }
+  if (s === "air conditioning" || s === "ac" || s === "cooling" || s === "air condition") {
+    return "Air Conditioning";
   }
   return null;
 };
@@ -138,33 +147,37 @@ function ResultsContent() {
   const [year, setYear] = useState(searchParams.get("year") || "");
   
   // Filtering states
-  const [selectedCategories, setSelectedCategories] = useState([]);
+  const urlQ = searchParams.get("q") || "";
+  const isSearchAll = urlQ.toLowerCase().trim() === "all";
+  const mappedCategory = isSearchAll ? null : mapSearchToCategory(urlQ);
+
+  const [prevQ, setPrevQ] = useState(urlQ);
+  const [selectedCategories, setSelectedCategories] = useState(
+    mappedCategory ? [mappedCategory] : []
+  );
   const [governorate, setGovernorate] = useState("All Cairo");
 
   // Sync category selection with search query q if it matches a category
-  useEffect(() => {
-    const urlQ = searchParams.get("q") || "";
-    const mapped = mapSearchToCategory(urlQ);
-    if (mapped) {
-      setSelectedCategories([mapped]);
-    } else {
-      setSelectedCategories([]);
-    }
-  }, [searchParams]);
+  if (urlQ !== prevQ) {
+    setPrevQ(urlQ);
+    setSelectedCategories(mappedCategory ? [mappedCategory] : []);
+  }
 
   useEffect(() => {
     const fetchParts = async () => {
       setLoading(true);
       try {
         const urlQ = searchParams.get("q") || "";
-        const mappedCategory = mapSearchToCategory(urlQ);
+        const isSearchAll = urlQ.toLowerCase().trim() === "all";
+        const mappedCategory = isSearchAll ? null : mapSearchToCategory(urlQ);
 
         const query = {
-          q: mappedCategory ? "" : urlQ, // Clear search text if we're filtering by category
+          q: isSearchAll ? "" : (mappedCategory ? "" : urlQ),
           brand: searchParams.get("brand") || "",
           model: searchParams.get("model") || "",
           year: searchParams.get("year") || "",
-          category: selectedCategories.length > 0 ? selectedCategories[0] : (mappedCategory || undefined)
+          category: selectedCategories.length === 1 ? selectedCategories[0] : undefined,
+          pageSize: 100
         };
 
         const data = await sparePartsService.getSpareParts(query);
@@ -172,8 +185,7 @@ function ResultsContent() {
         // Filter by category 
         if (selectedCategories.length > 0) {
           const filtered = data.filter(item => 
-            selectedCategories.includes(item.category) || 
-            selectedCategories.includes(item.type === "Used" ? "Engine Parts" : "Brake Pads")
+            selectedCategories.some(cat => cat.toLowerCase() === item.category?.toLowerCase())
           );
           setParts(filtered);
         } else {
@@ -206,6 +218,10 @@ function ResultsContent() {
   };
 
   const toggleCategory = (cat) => {
+    if (cat === "All") {
+      setSelectedCategories([]);
+      return;
+    }
     if (selectedCategories.includes(cat)) {
       setSelectedCategories(selectedCategories.filter(c => c !== cat));
     } else {
@@ -279,14 +295,22 @@ function ResultsContent() {
           
           <div style={{ marginBottom: "35px" }}>
             <div style={{ fontSize: "11px", fontWeight: 900, marginBottom: "15px", color: COLORS.text }}>PART CATEGORY</div>
-            {["Brake Pads", "Engine Parts", "Filters", "Electrical", "Suspension", "Exhaust"].map(cat => (
-              <label key={cat} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", fontSize: "13px", color: COLORS.muted2, cursor: "pointer" }}>
+            {[
+              { value: "All", label: "All" },
+              { value: "Brakes", label: "Brakes & Pads" },
+              { value: "Engine", label: "Engine Parts" },
+              { value: "Filters", label: "Filters" },
+              { value: "Electrical", label: "Electrical" },
+              { value: "Suspension", label: "Suspension" },
+              { value: "Air Conditioning", label: "Air Conditioning" }
+            ].map(cat => (
+              <label key={cat.value} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px", fontSize: "13px", color: COLORS.muted2, cursor: "pointer" }}>
                 <input 
                   type="checkbox" 
-                  checked={selectedCategories.includes(cat)}
-                  onChange={() => toggleCategory(cat)}
+                  checked={cat.value === "All" ? selectedCategories.length === 0 : selectedCategories.includes(cat.value)}
+                  onChange={() => toggleCategory(cat.value)}
                   style={{ accentColor: COLORS.primary }} 
-                /> {cat}
+                /> {cat.label}
               </label>
             ))}
           </div>
@@ -310,7 +334,20 @@ function ResultsContent() {
             Spare Parts 
             {brand && <> <span style={{ color: COLORS.muted }}>/</span> {brand} </>}
             {model && <> <span style={{ color: COLORS.muted }}>/</span> {model} </>}
-            {q && <> <span style={{ color: COLORS.muted }}>/</span> <span style={{ color: COLORS.text, fontWeight: 700 }}>{q}</span> </>}
+            {selectedCategories.length > 0 ? (
+              <>
+                <span style={{ color: COLORS.muted }}>/</span>
+                <span style={{ color: COLORS.text, fontWeight: 700 }}>
+                  {selectedCategories.map(cat => {
+                    if (cat === "Brakes") return "Brakes & Pads";
+                    if (cat === "Engine") return "Engine Parts";
+                    return cat;
+                  }).join(", ")}
+                </span>
+              </>
+            ) : (
+              (q && !mapSearchToCategory(q) && q.toLowerCase().trim() !== "all") && <> <span style={{ color: COLORS.muted }}>/</span> <span style={{ color: COLORS.text, fontWeight: 700 }}>{q}</span> </>
+            )}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "25px" }}>

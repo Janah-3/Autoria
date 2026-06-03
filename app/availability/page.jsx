@@ -117,7 +117,7 @@ export default function AvailabilityPage() {
     }
 
     try {
-      const response = await bookingsService.addAvailableSlot({
+      const response = await bookingsService.blockSlot({
         serviceCenterId: centerId,
         date: blockForm.date,
         startTime: blockForm.startTime,
@@ -127,10 +127,7 @@ export default function AvailabilityPage() {
       if (response?.success || response?.message === "Success") {
         alert("Slot blocked successfully!");
         setIsModalOpen(false);
-        setTimeSlots(prev => [
-          ...prev,
-          { time: `${blockForm.startTime} - ${blockForm.endTime}`, status: "blocked" }
-        ]);
+        fetchTimeSlots();
       } else {
         alert(response?.message || "Failed to block slot. Slot might already be booked or blocked.");
       }
@@ -139,8 +136,33 @@ export default function AvailabilityPage() {
     }
   };
 
-  useEffect(() => {
+  const fetchTimeSlots = () => {
+    if (!centerId || !selectedDate) return;
+    
+    let formattedDate = selectedDate;
+    if (selectedDate === "Monday 16 March") {
+      formattedDate = "2026-03-16";
+    }
 
+    bookingsService.getAvailableSlots(centerId, formattedDate)
+      .then((res) => {
+        const slots = res?.data ?? res ?? [];
+        if (Array.isArray(slots) && slots.length > 0) {
+          setTimeSlots(slots.map(s => ({
+            time: s.time ?? s.startTime ?? s.timeSlot ?? s.Time ?? s.StartTime ?? s.TimeSlot ?? "09:00",
+            status: s.status ?? s.Status ?? "available"
+          })));
+        } else {
+          loadMockSlots();
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to load slots from API, using fallback mock data.", err);
+        loadMockSlots();
+      });
+  };
+
+  const loadMockSlots = () => {
     setTimeSlots([
       { time: "09:00", status: "available" },
       { time: "09:30", status: "available" },
@@ -155,7 +177,11 @@ export default function AvailabilityPage() {
       { time: "14:00", status: "available" },
       { time: "14:30", status: "available" },
     ]);
-  }, [selectedDate]);
+  };
+
+  useEffect(() => {
+    fetchTimeSlots();
+  }, [centerId, selectedDate]);
 
   useEffect(() => {
     getMe()
@@ -173,7 +199,7 @@ export default function AvailabilityPage() {
           const name = d.name ?? d.Name;
           if (name) setCenterName(name);
           
-          // Robust ID fallbacks to match any backend variation
+          
           const cid = d.id ?? d.Id ?? d.serviceCenterId ?? d.ServiceCenterId ?? d.centerId ?? d.CenterId;
           if (cid) {
             setCenterId(cid);
@@ -286,16 +312,22 @@ export default function AvailabilityPage() {
               
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "10px", textAlign: "center", fontSize: "12px" }}>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <div key={d} style={{ fontWeight: 800, color: COLORS.textLight, marginBottom: "10px" }}>{d}</div>)}
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
-                  <div key={day} style={{ 
-                    padding: "10px 0", borderRadius: "8px", cursor: "pointer", fontWeight: 600,
-                    background: day === 16 ? COLORS.activeBg : (day === 19 || day === 21 ? "#FEEBEB" : "transparent"),
-                    border: day === 16 ? `1px solid ${COLORS.primary}` : "none",
-                    color: day === 16 || day === 19 || day === 21 ? COLORS.primary : COLORS.text
-                  }}>
-                    {day}
-                  </div>
-                ))}
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                  const dateStr = `2026-03-${day < 10 ? '0' + day : day}`;
+                  const isSelected = selectedDate === dateStr || (selectedDate === "Monday 16 March" && day === 16);
+                  return (
+                    <div key={day} 
+                      onClick={() => setSelectedDate(dateStr)}
+                      style={{ 
+                        padding: "10px 0", borderRadius: "8px", cursor: "pointer", fontWeight: 600,
+                        background: isSelected ? COLORS.activeBg : (day === 19 || day === 21 ? "#FEEBEB" : "transparent"),
+                        border: isSelected ? `1px solid ${COLORS.primary}` : "none",
+                        color: isSelected || day === 19 || day === 21 ? COLORS.primary : COLORS.text
+                      }}>
+                      {day}
+                    </div>
+                  );
+                })}
               </div>
               <button 
                 onClick={() => setIsModalOpen(true)}

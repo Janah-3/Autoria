@@ -9,7 +9,6 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
     { id: "User reports", iconClass: "fa-solid fa-flag", badge: badges.reports },
     { id: "User management", iconClass: "fa-solid fa-users", badge: badges.users },
     { id: "Spare Parts", iconClass: "fa-solid fa-cubes", badge: badges.spareParts },
-    { id: "Contact Messages", iconClass: "fa-solid fa-envelope", badge: badges.contacts },
     { id: "Payments & Revenue", iconClass: "fa-solid fa-credit-card" },
   ];
 
@@ -23,8 +22,24 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
       position: "sticky",
       top: 0,
       display: "flex",
-      flexDirection: "column"
+      flexDirection: "column",
+      overflowY: "auto"
     }}>
+      <style>{`
+        aside::-webkit-scrollbar {
+          width: 5px;
+        }
+        aside::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        aside::-webkit-scrollbar-thumb {
+          background: #e0e0e0;
+          border-radius: 4px;
+        }
+        aside::-webkit-scrollbar-thumb:hover {
+          background: #cccccc;
+        }
+      `}</style>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
       
       <div style={{ padding: "0 32px", marginBottom: "48px" }}>
@@ -62,35 +77,6 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
             )}
           </div>
         ))}
-      </div>
-
-      <div style={{ padding: "0 16px", marginTop: "auto" }}>
-        <div style={{ 
-          padding: "16px", 
-          background: "#FFF1F1", 
-          borderRadius: "16px", 
-          border: "1px solid #FFDCDC", 
-          textAlign: "center" 
-        }}>
-          <div style={{ fontSize: "12px", fontWeight: 800, color: colors.primary, marginBottom: "4px" }}>Need help?</div>
-          <div style={{ fontSize: "11px", color: colors.textLight, marginBottom: "12px" }}>Contact system support</div>
-          <Link href="/contact-us" style={{ textDecoration: "none", display: "block" }}>
-            <button style={{ 
-              width: "100%", 
-              background: colors.primary, 
-              color: "#fff", 
-              border: "none", 
-              padding: "8px", 
-              borderRadius: "8px", 
-              fontSize: "11px", 
-              fontWeight: 800, 
-              cursor: "pointer",
-              transition: "opacity 0.2s" 
-            }}>
-              Contact Us
-            </button>
-          </Link>
-        </div>
       </div>
     </aside>
   );

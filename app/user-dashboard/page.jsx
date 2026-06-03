@@ -23,33 +23,53 @@ export default function UserDashboardPage() {
       return;
     }
     setDetectingLoc(true);
+
+    // 1. Safety fallback timeout to unlock the UI under any browser hang conditions
+    const safetyTimeout = setTimeout(() => {
+      setDetectingLoc(false);
+      alert("Location request timed out. Please check your browser location permissions.");
+    }, 12000);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        clearTimeout(safetyTimeout);
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         try {
-          await usersService.setMyLocation(lat, lng);
+          // 2. Race API request with a 6-second timeout to handle slow/hanging backend calls
+          const apiCall = usersService.setMyLocation(lat, lng);
+          const apiTimeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("API request timed out")), 6000)
+          );
+
+          await Promise.race([apiCall, apiTimeout]);
           alert("Location detected and updated in your profile successfully!");
         } catch (err) {
           console.warn("Failed to sync location:", err);
-          alert("Location detected but failed to update profile: " + err.message);
+          if (err.status === 401) {
+            alert("Session expired. Please log in again.");
+            router.push("/login");
+          } else {
+            alert("Location detected but failed to update profile: " + err.message);
+          }
         } finally {
           setDetectingLoc(false);
         }
       },
       (error) => {
+        clearTimeout(safetyTimeout);
         console.warn("Location error:", error);
         alert("Failed to acquire location: " + (error.message || "Permission denied"));
         setDetectingLoc(false);
       },
-      { enableHighAccuracy: true, timeout: 5000 }
+      { enableHighAccuracy: false, timeout: 10000 }
     );
   };
 
   // Checkout Modal State
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState("Visa"); // "Visa" | "Cash"
+  const [paymentMethod, setPaymentMethod] = useState("Visa"); 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // Card details state

@@ -177,7 +177,11 @@ const CenterCard = ({ center }) => {
           borderTop: `1px solid ${COLORS.border}`
         }}>
           <div>
-            <div style={{ fontSize: "16px", fontWeight: 900, color: COLORS.primary }}>{center.price || "250 EGP"}</div>
+            {center.price && center.price.toLowerCase().includes("contact for price") ? (
+              <div style={{ fontSize: "12px", fontWeight: 600, color: COLORS.textLight }}>Contact for price</div>
+            ) : (
+              <div style={{ fontSize: "16px", fontWeight: 900, color: COLORS.primary }}>{center.price || "250 EGP"}</div>
+            )}
           </div>
           <a href={`/service-center-profile/${center.id}`} style={{ textDecoration: "none" }}>
             <button style={{

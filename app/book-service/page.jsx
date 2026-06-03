@@ -253,7 +253,7 @@ export default function BookServicePage() {
         if (cancelled) return;
         const items = res?.data?.items ?? res?.data ?? (Array.isArray(res) ? res : []);
         const parsed = Array.isArray(items) ? items : [];
-        // Only keep slots with real IDs
+
         const valid = parsed.filter((s) => getSlotId(s) && parseSlotTime(s));
         setAvailableSlots(valid);
         if (valid.length === 0) {

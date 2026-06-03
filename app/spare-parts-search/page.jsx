@@ -65,7 +65,7 @@ export default function SparePartsSearchPage() {
     { iconClass: "fa-solid fa-filter", title: "Filters" },
     { iconClass: "fa-solid fa-bolt", title: "Electrical" },
     { iconClass: "fa-solid fa-compress", title: "Suspension" },
-    { iconClass: "fa-solid fa-wind", title: "Exhaust" },
+    { iconClass: "fa-solid fa-snowflake", title: "Air Conditioning" },
   ];
 
   const brands = ["TOYOTA", "BMW", "MERCEDES", "HYUNDAI", "NISSAN", "KIA", "MITSUBISHI", "HONDA"];
