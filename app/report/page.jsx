@@ -145,7 +145,7 @@ const handleSubmit = async (e) => {
 
   setSubmitting(true);
   try {
-    await reportsService.createReport({
+    await reportsService.create({
       targetType,
       targetId,
       reason,

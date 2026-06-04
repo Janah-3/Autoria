@@ -70,8 +70,8 @@ export default function SignupSuccessPage() {
       }}>
         {/* Autoria Logo */}
         <div style={{ marginBottom: "32px" }}>
-          <span style={{ fontSize: "22px", fontWeight: 900, color: "#E8272A", letterSpacing: "-0.5px" }}>
-            Auto<span style={{ color: "#1a0000" }}>ria</span>
+          <span style={{ fontSize: "22px", fontWeight: 900, color: "#111827", letterSpacing: "-0.5px" }}>
+            AUTO<span style={{ color: "#E8272A" }}>RIA</span>
           </span>
         </div>
 

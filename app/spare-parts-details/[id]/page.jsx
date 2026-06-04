@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { sparePartsService } from "../../../lib/sparePartsService";
 import { reservationsService } from "../../../lib/api/reservationsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const COLORS = {
   primary: "#E8272A",
@@ -19,6 +20,7 @@ const COLORS = {
 };
 
 export default function SparePartDetailsPage() {
+  const { authorized, checking } = useRoleGuard();
   const params = useParams();
   const router = useRouter();
   
@@ -61,6 +63,9 @@ export default function SparePartDetailsPage() {
 
     fetchPartDetails();
   }, [params?.id]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   if (loading) {
     return (

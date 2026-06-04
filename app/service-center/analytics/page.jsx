@@ -450,25 +450,7 @@ export default function AnalyticsPage() {
               )}
             </Section>
 
-            {/* Quick links footer */}
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {[
-                { label: "📬 Manage Bookings",   href: "/booking-requests" },
-                { label: "⚙️ Spare Parts",        href: "/spare-parts-inventory" },
-                { label: "⭐ Reviews",             href: "/reviews" },
-                { label: "🏢 Edit Profile",        href: "/service-center/edit" },
-                { label: "💎 Subscription",        href: "/service-center/subscription" },
-                { label: "📣 Promotions",          href: "/service-center/promotions" },
-              ].map(link => (
-                <Link key={link.href} href={link.href} style={{
-                  padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 700,
-                  background: WH, color: "#1A1A1A", border: `1px solid ${BRD}`,
-                  textDecoration: "none", transition: "all 0.2s",
-                }}>
-                  {link.label}
-                </Link>
-              ))}
-            </div>
+
           </>
         )}
 

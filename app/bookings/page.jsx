@@ -405,7 +405,7 @@ export default function BookingHistoryPage() {
 
       <nav className="top-nav">
         <span className="logo">Autoria</span>
-        <Link href="/cars" className="nav-back">Back to Dashboard</Link>
+        <Link href="/" className="nav-back">Back to Home</Link>
       </nav>
 
       <div className="page-content">

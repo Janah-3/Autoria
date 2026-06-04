@@ -18,7 +18,7 @@ export default function Footer() {
           
           <div>
             <div style={{ fontSize: "20px", fontWeight: 900, marginBottom: "15px", letterSpacing: "-0.5px" }}>
-              AUTO<span style={{ opacity: 0.4, fontWeight: 400 }}>RIA</span>
+              AUTO<span style={{ opacity: 0.4 }}>RIA</span>
             </div>
             <p style={{ color: COLORS.textLight, fontSize: "12px", lineHeight: "1.8", maxWidth: "250px" }}>
               Egypt's leading platform connecting car owners with verified service centers and genuine spare parts.

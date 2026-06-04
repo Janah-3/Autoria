@@ -269,11 +269,11 @@ export default function SparePartsInventory() {
         .logo {
           font-size: 24px;
           font-weight: 900;
-          color: #E8272A;
+          color: #1E293B;
           text-decoration: none;
           letter-spacing: -0.5px;
         }
-        .logo span { color: #1E293B; font-weight: 300; }
+        .logo span { color: #E8272A; }
         .nav-right { display: flex; align-items: center; gap: 16px; }
         .back-btn {
           font-size: 13.5px;

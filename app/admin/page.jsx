@@ -2239,13 +2239,6 @@ export default function AdminDashboard() {
                             <td style={{ padding: "18px 24px", textAlign: "right" }}>
                               <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                                 <button 
-                                  onClick={() => openEditInventory(item)}
-                                  className="admin-btn"
-                                  style={{ background: "#F1F5F9", border: `1px solid ${COLORS.border}`, color: "#475569", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800 }}
-                                >
-                                  Edit Stock
-                                </button>
-                                <button 
                                   onClick={() => handleViewInventoryHistory(item)}
                                   className="admin-btn"
                                   style={{ background: "#FEF2F2", border: `1px solid #FFDCDC`, color: COLORS.primary, padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800 }}

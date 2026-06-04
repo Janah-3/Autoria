@@ -71,20 +71,24 @@ const Sidebar = ({ active }) => (
 );
 
 const RequestCard = ({ request, onConfirm, onDecline, onCancel, onCreateInvoice, onConfirmCash, updateTrigger }) => {
-  const customerName = request.customerName ?? request.CustomerName ?? "";
+  const customerName = request.customerName ?? request.CustomerName ?? request.userName ?? request.UserName ?? "";
+  const customerEmail = request.customerEmail ?? request.CustomerEmail ?? request.email ?? request.Email ?? "";
+  const customerPhone = request.customerPhone ?? request.CustomerPhone ?? request.phone ?? request.Phone ?? "";
   const status = request.status ?? request.Status ?? "Pending";
   const carModel = request.carModel ?? request.CarModel ?? "";
   const serviceType = request.serviceType ?? request.ServiceType ?? "";
   const date = request.date ?? request.Date ?? "";
   const time = request.time ?? request.Time ?? request.timeSlot ?? "";
   const timeAgo = request.timeAgo ?? request.TimeAgo ?? "";
-  const note = request.note ?? request.Note ?? "";
+  const note = request.note ?? request.Note ?? request.notes ?? request.Notes ?? "";
   const id = request.id ?? request.Id;
   // userId for "View profile" link
-  const userId = request.userId ?? request.UserId ?? request.customerId ?? null;
+  const userId = request.userId ?? request.UserId ?? request.customerId ?? request.CustomerId
+    ?? request.customer?.id ?? request.Customer?.Id ?? request.user?.id ?? request.User?.Id ?? null;
 
   const [invoice, setInvoice] = useState(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
+  const [showClientModal, setShowClientModal] = useState(false);
 
   useEffect(() => {
     setLoadingInvoice(true);
@@ -136,7 +140,7 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel, onCreateInvoice,
 
       {note && (
         <div style={{ background: "#F8F9FA", padding: "12px 20px", borderRadius: "10px", fontSize: "13px", color: COLORS.textLight, marginBottom: "20px" }}>
-          Note: "{note}"
+          Note: &quot;{note}&quot;
         </div>
       )}
 
@@ -174,13 +178,91 @@ const RequestCard = ({ request, onConfirm, onDecline, onCancel, onCreateInvoice,
           </Link>
         ) : (
           <button
-            disabled
-            style={{ background: "transparent", color: COLORS.textLight, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "not-allowed", opacity: 0.5 }}
+            onClick={() => setShowClientModal(true)}
+            style={{ background: "transparent", color: COLORS.text, border: `1px solid ${COLORS.border}`, padding: "10px 25px", borderRadius: "8px", fontSize: "13px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px" }}
           >
-            👤 View profile
+            👤 View client info
           </button>
         )}
       </div>
+
+      {/* Client Info Modal */}
+      {showClientModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 2000, padding: "20px"
+        }} onClick={() => setShowClientModal(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#fff", borderRadius: "20px", width: "100%", maxWidth: "440px",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.15)", padding: "32px", position: "relative",
+          }}>
+            <button onClick={() => setShowClientModal(false)} style={{
+              position: "absolute", top: 16, right: 16, background: "none", border: "none",
+              fontSize: "18px", cursor: "pointer", color: COLORS.textLight, padding: "4px"
+            }}>✕</button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
+              <div style={{
+                width: "56px", height: "56px", borderRadius: "50%", background: "#FEF2F2",
+                border: `2px solid ${COLORS.primary}`, display: "flex", alignItems: "center",
+                justifyContent: "center", fontSize: "20px", fontWeight: 800, color: COLORS.primary
+              }}>
+                {customerName?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "U"}
+              </div>
+              <div>
+                <h3 style={{ fontSize: "18px", fontWeight: 800, margin: 0 }}>{customerName || "Client"}</h3>
+                <span style={{ fontSize: "12px", color: COLORS.textLight, fontWeight: 600 }}>Booking Client</span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {customerEmail && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#F8F9FA", borderRadius: "10px" }}>
+                  <span style={{ fontSize: "13px", color: COLORS.textLight, fontWeight: 600 }}>📧 Email</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700 }}>{customerEmail}</span>
+                </div>
+              )}
+              {customerPhone && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#F8F9FA", borderRadius: "10px" }}>
+                  <span style={{ fontSize: "13px", color: COLORS.textLight, fontWeight: 600 }}>📱 Phone</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700 }}>{customerPhone}</span>
+                </div>
+              )}
+              {carModel && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#F8F9FA", borderRadius: "10px" }}>
+                  <span style={{ fontSize: "13px", color: COLORS.textLight, fontWeight: 600 }}>🚗 Vehicle</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700 }}>{carModel}</span>
+                </div>
+              )}
+              {serviceType && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#F8F9FA", borderRadius: "10px" }}>
+                  <span style={{ fontSize: "13px", color: COLORS.textLight, fontWeight: 600 }}>🔧 Service</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700 }}>{serviceType}</span>
+                </div>
+              )}
+              {date && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "#F8F9FA", borderRadius: "10px" }}>
+                  <span style={{ fontSize: "13px", color: COLORS.textLight, fontWeight: 600 }}>📅 Appointment</span>
+                  <span style={{ fontSize: "13px", fontWeight: 700 }}>{date}{time ? `, ${time}` : ""}</span>
+                </div>
+              )}
+              {note && (
+                <div style={{ padding: "10px 14px", background: "#F8F9FA", borderRadius: "10px" }}>
+                  <span style={{ fontSize: "13px", color: COLORS.textLight, fontWeight: 600 }}>📝 Note</span>
+                  <p style={{ fontSize: "13px", fontWeight: 600, marginTop: "4px", color: COLORS.text }}>{note}</p>
+                </div>
+              )}
+            </div>
+
+            <button onClick={() => setShowClientModal(false)} style={{
+              width: "100%", marginTop: "20px", padding: "12px", background: COLORS.primary,
+              color: "#fff", border: "none", borderRadius: "10px", fontSize: "14px",
+              fontWeight: 700, cursor: "pointer"
+            }}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -13,6 +13,8 @@ import Navbar from "@/components/Navbar";
 import { reportsService } from "@/lib/api/reportsService";
 import { premiumService } from "@/lib/api/premiumService";
 import { getTokenRole } from "@/lib/utils/toast";
+import { reviewsService } from "@/lib/api/reviewsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const R  = "#E8272A";
 const RD = "#B81C1F";
@@ -26,10 +28,13 @@ const MOCK_CENTERS = {
 
 // ── Main Page Component ────────────────────────────────────────────────────
 export default function CenterProfilePage() {
+  const { authorized, checking } = useRoleGuard();
   const params = useParams();
   const [center, setCenter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   const role = getTokenRole();
   const isServiceCenterOrAdmin = role && [
@@ -61,7 +66,7 @@ export default function CenterProfilePage() {
 
     setSubmittingReport(true);
     try {
-      await reportsService.createReport({
+      await reportsService.create({
         targetType: "ServiceCenter",
         targetId: center.id,
         reason: reason,
@@ -117,7 +122,19 @@ export default function CenterProfilePage() {
         }
       })
       .finally(() => setLoading(false));
+
+    reviewsService
+      .getServiceCenterReviews(params.id)
+      .then((res) => {
+        const items = res?.data ?? res ?? [];
+        setReviews(items);
+      })
+      .catch((err) => console.warn("Failed to load reviews:", err))
+      .finally(() => setReviewsLoading(false));
   }, [params.id]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   if (loading) return (
     <div style={{ height: "100vh", ...row(0), justifyContent: "center", background: "#f7f7f8" }}>
@@ -158,7 +175,9 @@ export default function CenterProfilePage() {
           <h1 style={{ fontSize: 48, fontWeight: 900, letterSpacing: -2, marginBottom: 8 }}>{center.name}</h1>
           <div style={{ ...row(16) }}>
             <span style={{ ...row(4), fontSize: 14 }}>📍 {center.district}, {center.governorate}</span>
-            <span style={{ ...row(4), fontSize: 14, color: "#f59e0b" }}>★ 4.8 (120 reviews)</span>
+            <span style={{ ...row(4), fontSize: 14, color: "#f59e0b" }}>
+              ★ {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + (r.rating ?? r.Rating ?? 0), 0) / reviews.length).toFixed(1) : "0.0"} ({reviews.length} {reviews.length === 1 ? "review" : "reviews"})
+            </span>
           </div>
         </div>
       </div>
@@ -186,9 +205,53 @@ export default function CenterProfilePage() {
           <Section title="Supported Brands">
              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {center.carBrands?.map(brand => (
-                  <span key={brand} style={{ background: "#111", color: "#fff", padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>{brand}</span>
+                   <span key={brand} style={{ background: "#111", color: "#fff", padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600 }}>{brand}</span>
                 ))}
              </div>
+          </Section>
+
+          <Section title="Customer Reviews">
+            {reviewsLoading ? (
+              <div style={{ color: "#6b7280", fontSize: 14 }}>Loading reviews...</div>
+            ) : reviews.length === 0 ? (
+              <div style={{ color: "#6b7280", fontSize: 14, fontStyle: "italic" }}>No reviews yet for this service center. Be the first to leave one!</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {reviews.map((r) => (
+                  <div key={r.id || r.Id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div>
+                        <span style={{ color: "#f59e0b", fontSize: 13, letterSpacing: 1 }}>
+                          {"★".repeat(Number(r.rating) || Number(r.Rating) || 5)}{"☆".repeat(5 - (Number(r.rating) || Number(r.Rating) || 5))}
+                        </span>
+                        <span style={{ background: "#fff0f0", color: R, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: 6 }}>
+                          <i className="fa-solid fa-check" style={{ marginRight: 3 }}></i>Verified
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                        {r.createdAt ? new Date(r.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : ""}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.7, marginBottom: 14, borderLeft: `3px solid ${R}`, paddingLeft: 12, fontStyle: "italic" }}>
+                      {r.comment || r.Comment}
+                    </p>
+                    <div style={row(8)}>
+                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#fff0f0", border: `2px solid ${R}`, display: "flex", alignItems: "center", justifyContent: "center", color: RD, fontSize: 11, fontWeight: 800 }}>
+                        {(r.userName || r.UserName || "C")[0].toUpperCase()}
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{r.userName || r.UserName || "Customer"}</span>
+                    </div>
+                    
+                    {(r.replyComment || r.ReplyComment) && (
+                      <div style={{ marginTop: 14, background: "#f9fafb", borderRadius: 8, padding: 12, borderLeft: "3px solid #6b7280" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 4 }}>Reply from owner:</div>
+                        <p style={{ fontSize: 12, color: "#475569", margin: 0, lineHeight: 1.6 }}>{r.replyComment || r.ReplyComment}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
 
           <div style={{ marginTop: 20 }}>
@@ -313,8 +376,10 @@ export default function CenterProfilePage() {
               <div style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Rating</div>
               <div style={{ ...row(8) }}>
                 <span style={{ color: "#f59e0b", fontSize: 16 }}>★</span>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#374151" }}>4.8</span>
-                <span style={{ fontSize: 13, color: "#9ca3af" }}>(120 reviews)</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#374151" }}>
+                  {reviews.length > 0 ? (reviews.reduce((acc, r) => acc + (r.rating ?? r.Rating ?? 0), 0) / reviews.length).toFixed(1) : "0.0"}
+                </span>
+                <span style={{ fontSize: 13, color: "#9ca3af" }}>({reviews.length} {reviews.length === 1 ? "review" : "reviews"})</span>
               </div>
             </div>
 

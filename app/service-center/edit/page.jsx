@@ -536,14 +536,14 @@ export default function EditServiceCenterProfile() {
         .logo {
           font-size: 26px;
           font-weight: 900;
-          color: #E8272A;
+          color: #1E293B;
           text-decoration: none;
           letter-spacing: -0.5px;
           display: flex;
           align-items: center;
           gap: 6px;
         }
-        .logo span { color: #1E293B; font-weight: 300; }
+        .logo span { color: #E8272A; }
 
         .nav-actions {
           display: flex;

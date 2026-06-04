@@ -71,7 +71,7 @@ export default function BookingSuccessPage() {
 
 
         <button 
-          onClick={() => router.push("/")}
+          onClick={() => router.push("/user-dashboard")}
           style={{ 
             width: "100%",
             background: COLORS.primary, 
@@ -85,7 +85,7 @@ export default function BookingSuccessPage() {
             marginBottom: "12px"
           }}
         >
-          Back to Home
+          Go to Dashboard
         </button>
         
         <button 

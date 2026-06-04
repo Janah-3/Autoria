@@ -102,7 +102,7 @@ export default function WriteReviewPage() {
         .page-container { min-height: 100vh; background: #F4F7F6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; }
         
         .top-nav { background: #fff; border-bottom: 2px solid #E8192C; height: 70px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(232, 25, 44, 0.07); }
-        .logo { font-size: 24px; font-weight: 900; color: #E8192C; letter-spacing: -0.5px; text-decoration: none; }
+        .logo { font-size: 24px; font-weight: 900; color: #111827; letter-spacing: -0.5px; text-decoration: none; }
         .nav-back { font-size: 14px; font-weight: 600; color: #6B7280; text-decoration: none; display: flex; align-items: center; gap: 8px; }
         .nav-back:hover { color: #E8192C; }
 
@@ -148,7 +148,7 @@ export default function WriteReviewPage() {
       `}</style>
 
       <nav className="top-nav">
-        <Link href="/user-dashboard" className="logo">Autoria</Link>
+        <Link href="/user-dashboard" className="logo">AUTO<span style={{ color: "#E8272A" }}>RIA</span></Link>
         <Link href="/bookings" className="nav-back">
           <i className="fa-solid fa-arrow-left"></i> Back to Bookings
         </Link>
