@@ -2,191 +2,465 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { reviewsService } from "@/lib/api/reviewsService";
 import { getTokenRole } from "@/lib/utils/toast";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
-const StarRating = ({ rating }) => (
-  <div style={{ display: "flex" }}>
-    {[1, 2, 3, 4, 5].map((i) => (
-      <i
-        key={i}
-        className="fa-solid fa-star"
-        style={{ color: i <= rating ? "#F59E0B" : "#E5E7EB", marginRight: "2px", fontSize: "14px" }}
-      />
-    ))}
-  </div>
-);
+// ── Brand colors ──────────────────────────────────────────────────────────────
+const R   = "#E8272A";
+const BG  = "#F4F6F8";
+const WH  = "#FFFFFF";
+const BRD = "#E5E7EB";
+const TL  = "#6B7280";
 
-/** Inline toast that sits at top of page */
-const Toast = ({ show, type, message }) => (
-  <div style={{
-    position: "fixed", top: "24px", right: "24px", zIndex: 9999,
-    transform: show ? "translateY(0)" : "translateY(-80px)",
-    opacity: show ? 1 : 0,
-    transition: "all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)",
-    background: type === "success" ? "#10B981" : type === "error" ? "#EF4444" : "#F59E0B",
-    color: "#fff", borderRadius: "12px", padding: "14px 20px",
-    fontSize: "14px", fontWeight: 700, boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-    display: "flex", alignItems: "center", gap: "10px", maxWidth: "340px",
-  }}>
-    <i className={`fa-solid ${type === "success" ? "fa-circle-check" : type === "error" ? "fa-circle-xmark" : "fa-circle-exclamation"}`} />
-    {message}
-  </div>
-);
+// ── Star Rating (interactive) ─────────────────────────────────────────────────
+function StarRating({ rating, onChange }) {
+  const [hovered, setHovered] = useState(0);
+  const effective = hovered || rating;
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          onClick={() => onChange?.(i)}
+          onMouseEnter={() => onChange && setHovered(i)}
+          onMouseLeave={() => onChange && setHovered(0)}
+          style={{
+            fontSize: 22,
+            color: i <= effective ? "#F59E0B" : "#D1D5DB",
+            cursor: onChange ? "pointer" : "default",
+            transition: "color 0.15s",
+          }}
+        >
+          ★
+        </span>
+      ))}
+    </div>
+  );
+}
 
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({ show, type, message }) {
+  return (
+    <div style={{
+      position: "fixed", top: 24, right: 24, zIndex: 99999,
+      transform: show ? "translateY(0)" : "translateY(-100px)",
+      opacity: show ? 1 : 0,
+      transition: "all 0.35s cubic-bezier(0.34,1.56,0.64,1)",
+      background: type === "success" ? "#10B981" : type === "error" ? "#EF4444" : "#F59E0B",
+      color: "#fff", borderRadius: 12, padding: "14px 20px",
+      fontSize: 14, fontWeight: 700, boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+      display: "flex", alignItems: "center", gap: 10, maxWidth: 340,
+      pointerEvents: "none",
+    }}>
+      <span>{type === "success" ? "✅" : type === "error" ? "❌" : "⚠️"}</span>
+      {message}
+    </div>
+  );
+}
+
+// ── Edit Modal ────────────────────────────────────────────────────────────────
+function EditModal({ review, onClose, onSave }) {
+  const [rating, setRating]   = useState(review.rating ?? review.Rating ?? 5);
+  const [comment, setComment] = useState(review.comment ?? review.Comment ?? "");
+  const [saving, setSaving]   = useState(false);
+
+  const handleSave = async () => {
+    if (!comment.trim()) return;
+    setSaving(true);
+    try {
+      await onSave(review.id ?? review.Id, { rating, comment });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999, padding: 20, backdropFilter: "blur(4px)",
+    }}>
+      <div style={{
+        background: WH, borderRadius: 20, padding: 36, width: "100%", maxWidth: 480,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.18)", animation: "scaleIn 0.25s ease",
+      }}>
+        <style>{`@keyframes scaleIn { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }`}</style>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ fontSize: 20, fontWeight: 900, color: "#111" }}>✏️ Edit Review</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: TL }}>✕</button>
+        </div>
+
+        {/* Rating */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: TL, textTransform: "uppercase", display: "block", marginBottom: 10, letterSpacing: "0.5px" }}>
+            Your Rating
+          </label>
+          <StarRating rating={rating} onChange={setRating} />
+        </div>
+
+        {/* Comment */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: TL, textTransform: "uppercase", display: "block", marginBottom: 8, letterSpacing: "0.5px" }}>
+            Comment
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={4}
+            maxLength={500}
+            placeholder="Share your experience..."
+            style={{
+              width: "100%", padding: "12px 14px", borderRadius: 10,
+              border: `1.5px solid ${BRD}`, fontSize: 14, resize: "vertical",
+              fontFamily: "inherit", outline: "none", color: "#111",
+              boxSizing: "border-box",
+            }}
+          />
+          <div style={{ fontSize: 11, color: TL, textAlign: "right", marginTop: 4 }}>{comment.length}/500</div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 12 }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, padding: "12px", borderRadius: 10, border: `1.5px solid ${BRD}`,
+              background: "#F9FAFB", fontWeight: 700, fontSize: 14, cursor: "pointer", color: TL,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !comment.trim()}
+            style={{
+              flex: 1, padding: "12px", borderRadius: 10, border: "none",
+              background: saving ? "#ccc" : R, color: "#fff",
+              fontWeight: 800, fontSize: 14, cursor: saving ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Delete Confirm Modal ──────────────────────────────────────────────────────
+function DeleteModal({ review, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirm = async () => {
+    setDeleting(true);
+    try { await onConfirm(review.id ?? review.Id); }
+    finally { setDeleting(false); }
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 9999, padding: 20, backdropFilter: "blur(4px)",
+    }}>
+      <div style={{
+        background: WH, borderRadius: 20, padding: 36, width: "100%", maxWidth: 400,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.18)", textAlign: "center",
+      }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🗑️</div>
+        <h3 style={{ fontSize: 20, fontWeight: 900, color: "#111", marginBottom: 10 }}>Delete Review?</h3>
+        <p style={{ fontSize: 14, color: TL, lineHeight: 1.6, marginBottom: 28 }}>
+          This action is permanent and cannot be undone. Your review for <strong>{review.serviceCenterName ?? review.ServiceCenterName ?? "this center"}</strong> will be removed.
+        </p>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, padding: "12px", borderRadius: 10, border: `1.5px solid ${BRD}`,
+              background: "#F9FAFB", fontWeight: 700, fontSize: 14, cursor: "pointer", color: TL,
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={deleting}
+            style={{
+              flex: 1, padding: "12px", borderRadius: 10, border: "none",
+              background: deleting ? "#ccc" : R, color: "#fff",
+              fontWeight: 800, fontSize: 14, cursor: deleting ? "not-allowed" : "pointer",
+            }}
+          >
+            {deleting ? "Deleting..." : "Yes, Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Review Card ───────────────────────────────────────────────────────────────
+function ReviewCard({ review, onEdit, onDelete }) {
+  const name = review.serviceCenterName ?? review.ServiceCenterName ?? "Service Center";
+  const rating = review.rating ?? review.Rating ?? 0;
+  const comment = review.comment ?? review.Comment ?? "";
+  const date = review.createdAt ?? review.CreatedAt;
+  const reply = review.replyComment ?? review.ReplyComment;
+
+  return (
+    <div style={{
+      background: WH, borderRadius: 16, border: `1px solid ${BRD}`,
+      boxShadow: "0 2px 12px rgba(0,0,0,0.04)", overflow: "hidden",
+      transition: "box-shadow 0.2s",
+    }}>
+      {/* Card Header */}
+      <div style={{
+        padding: "18px 24px", background: "#FAFAFA", borderBottom: `1px solid ${BRD}`,
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: "#FEE2E2", color: R,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+          }}>
+            🔧
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#111" }}>{name}</div>
+            {date && (
+              <div style={{ fontSize: 12, color: TL, marginTop: 2 }}>
+                {new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => onEdit(review)}
+            style={{
+              padding: "7px 16px", borderRadius: 8, border: `1.5px solid ${BRD}`,
+              background: WH, color: "#374151", fontSize: 13, fontWeight: 700,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#6366F1"; e.currentTarget.style.color = "#6366F1"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = BRD; e.currentTarget.style.color = "#374151"; }}
+          >
+            ✏️ Edit
+          </button>
+          <button
+            onClick={() => onDelete(review)}
+            style={{
+              padding: "7px 16px", borderRadius: 8, border: `1.5px solid #FCA5A5`,
+              background: "#FFF5F5", color: R, fontSize: 13, fontWeight: 700,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#FEE2E2"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#FFF5F5"; }}
+          >
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+
+      {/* Card Body */}
+      <div style={{ padding: "20px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <StarRating rating={rating} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#374151" }}>{rating}.0</span>
+        </div>
+
+        {comment && (
+          <p style={{ fontSize: 15, color: "#4B5563", lineHeight: 1.7, fontStyle: "italic" }}>
+            &ldquo;{comment}&rdquo;
+          </p>
+        )}
+
+        {/* Center Reply */}
+        {reply && (
+          <div style={{
+            background: "#F0FDF4", borderLeft: `3px solid #10B981`,
+            padding: "14px 16px", borderRadius: "0 10px 10px 0", marginTop: 18,
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#059669", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+              💬 Response from {name}
+            </div>
+            <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>&ldquo;{reply}&rdquo;</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 export default function MyReviewsPage() {
-  const router = useRouter();
-  const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { authorized, checking } = useRoleGuard();
+  const role = getTokenRole();
+  const isServiceCenter = ["servicecenter", "servicecenterowner", "mechanic"].includes(role?.toLowerCase());
 
-  // Toast state
+  const [reviews, setReviews]       = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const [toast, setToast] = useState({ show: false, type: "success", message: "" });
+
   const triggerToast = (message, type = "success") => {
     setToast({ show: true, type, message });
     setTimeout(() => setToast((t) => ({ ...t, show: false })), 4000);
   };
 
-  // Role detection — service centers and mechanics should have appropriate back nav
-  const role = getTokenRole();
-  const isServiceCenter = 
-    role?.toLowerCase() === "servicecenter" || 
-    role?.toLowerCase() === "servicecenterowner" || 
-    role?.toLowerCase() === "mechanic";
-
-  // Back destination based on role
-  const backHref = isServiceCenter ? "/service-center" : "/user-dashboard";
-  const backLabel = "Back to Dashboard";
-
-  const fetchReviews = async () => {
+  const loadReviews = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await reviewsService.getMyReviews();
-      setReviews(res?.data || []);
+      const items = res?.data ?? res ?? [];
+      setReviews(Array.isArray(items) ? items : []);
     } catch (err) {
       console.warn("Failed to load reviews:", err);
-      setError("Failed to load your reviews. Please try again.");
+      setReviews([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchReviews(); }, []);
+  useEffect(() => { loadReviews(); }, []);
+
+  const handleEdit = async (reviewId, payload) => {
+    try {
+      await reviewsService.editReview(reviewId, payload);
+      triggerToast("Review updated successfully!", "success");
+      setEditTarget(null);
+      loadReviews();
+    } catch (err) {
+      triggerToast(err.message || "Failed to update review", "error");
+    }
+  };
+
+  const handleDelete = async (reviewId) => {
+    try {
+      await reviewsService.deleteReview(reviewId);
+      triggerToast("Review deleted.", "success");
+      setDeleteTarget(null);
+      loadReviews();
+    } catch (err) {
+      triggerToast(err.message || "Failed to delete review", "error");
+    }
+  };
+
+  if (checking || !authorized) return null;
+
+  const backHref = isServiceCenter ? "/service-center" : "/user-dashboard";
 
   return (
-    <div className="page-container">
-      <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        .page-container { min-height: 100vh; background: #F4F7F6; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; }
-        .top-nav { background: #fff; border-bottom: 2px solid #E8192C; height: 70px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(232, 25, 44, 0.07); position: sticky; top: 0; z-index: 10; }
-        .logo { font-size: 24px; font-weight: 900; color: #E8192C; letter-spacing: -0.5px; text-decoration: none; }
-        .nav-back { font-size: 14px; font-weight: 600; color: #6B7280; text-decoration: none; display: flex; align-items: center; gap: 8px; transition: color 0.2s; }
-        .nav-back:hover { color: #E8192C; }
-        .content { max-width: 900px; margin: 40px auto; width: 100%; padding: 0 24px; }
-        .page-header { margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .page-title { font-size: 28px; font-weight: 800; color: #111827; margin-bottom: 4px; }
-        .page-subtitle { font-size: 15px; color: #6B7280; }
-        .reviews-list { display: flex; flex-direction: column; gap: 24px; }
-        .review-card { background: #fff; border-radius: 12px; border: 1px solid #E5E7EB; box-shadow: 0 2px 4px rgba(0,0,0,0.02); overflow: hidden; }
-        .card-header { padding: 20px 24px; border-bottom: 1px solid #F3F4F6; display: flex; justify-content: space-between; align-items: center; background: #FAFAFA; }
-        .center-info { display: flex; align-items: center; gap: 12px; }
-        .center-icon { width: 40px; height: 40px; background: #FEE2E2; color: #E8192C; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-        .center-name { font-size: 16px; font-weight: 700; color: #111827; }
-        .review-date { font-size: 13px; color: #6B7280; }
-        .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; background: #D1FAE5; color: #059669; }
-        .card-body { padding: 24px; }
-        .rating-row { margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
-        .rating-text { font-size: 14px; font-weight: 700; color: #374151; }
-        .review-text { font-size: 15px; color: #4B5563; line-height: 1.6; }
-        .center-reply { background: #F9FAFB; border-left: 3px solid #10B981; padding: 16px; border-radius: 0 8px 8px 0; margin-top: 20px; }
-        .reply-header { font-size: 13px; font-weight: 700; color: #111827; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-        .reply-text { font-size: 14px; color: #4B5563; line-height: 1.5; }
-        .empty-state { background: #fff; border-radius: 12px; border: 1px dashed #D1D5DB; padding: 60px 20px; text-align: center; }
-        .empty-icon { font-size: 48px; color: #D1D5DB; margin-bottom: 16px; }
-        .empty-title { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px; }
-        .empty-desc { font-size: 14px; color: #6B7280; }
-        .loading-container { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 100px 20px; color: #6B7280; gap: 16px; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #E8192C; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      `}</style>
-
+    <div style={{ minHeight: "100vh", background: BG, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <Toast show={toast.show} type={toast.type} message={toast.message} />
 
-      <nav className="top-nav">
-        <Link href={backHref} className="logo">Autoria</Link>
-        <Link href={backHref} className="nav-back">
-          <i className="fa-solid fa-arrow-left" /> {backLabel}
+      {/* Modals */}
+      {editTarget && (
+        <EditModal
+          review={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSave={handleEdit}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteModal
+          review={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleDelete}
+        />
+      )}
+
+      {/* Nav */}
+      <nav style={{
+        background: WH, borderBottom: `2px solid ${R}`, height: 68,
+        padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        boxShadow: "0 2px 8px rgba(232,39,42,0.07)", position: "sticky", top: 0, zIndex: 10,
+      }}>
+        <Link href={backHref} style={{ fontSize: 22, fontWeight: 900, color: R, textDecoration: "none" }}>
+          Autoria
+        </Link>
+        <Link href={backHref} style={{ fontSize: 14, fontWeight: 600, color: TL, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+          ← Back to Dashboard
         </Link>
       </nav>
 
-      <main className="content">
-        <div className="page-header">
+      {/* Content */}
+      <main style={{ maxWidth: 860, margin: "40px auto", padding: "0 24px" }}>
+
+        {/* Header */}
+        <div style={{ marginBottom: 32, display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
           <div>
-            <h1 className="page-title">My Reviews</h1>
-            <p className="page-subtitle">Feedback you&apos;ve left for service centers.</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: TL, letterSpacing: "1.5px", textTransform: "uppercase", marginBottom: 4 }}>YOUR FEEDBACK</p>
+            <h1 style={{ fontSize: 30, fontWeight: 900, color: "#111", margin: 0 }}>My Reviews</h1>
+            <p style={{ fontSize: 14, color: TL, marginTop: 6 }}>
+              {reviews.length > 0 ? `${reviews.length} review${reviews.length > 1 ? "s" : ""} submitted` : "No reviews yet"}
+            </p>
           </div>
+          {!isServiceCenter && (
+            <Link href="/reviews/write" style={{ textDecoration: "none" }}>
+              <button style={{
+                background: R, color: "#fff", border: "none", padding: "11px 22px",
+                borderRadius: 10, fontWeight: 800, fontSize: 14, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 8,
+                boxShadow: "0 4px 14px rgba(232,39,42,0.25)", transition: "all 0.2s",
+              }}>
+                ✍️ Write a Review
+              </button>
+            </Link>
+          )}
         </div>
 
+        {/* Content */}
         {loading ? (
-          <div className="loading-container">
-            <div className="spinner" />
-            <p>Loading your reviews...</p>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "100px 0", gap: 16 }}>
+            <div style={{
+              width: 40, height: 40, border: "4px solid #F3F4F6",
+              borderTop: `4px solid ${R}`, borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }} />
+            <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
+            <p style={{ color: TL, fontSize: 14, fontWeight: 600 }}>Loading your reviews...</p>
           </div>
-        ) : error ? (
-          <div className="empty-state" style={{ borderColor: "#FCA5A5" }}>
-            <i className="fa-solid fa-circle-exclamation empty-icon" style={{ color: "#EF4444" }} />
-            <h2 className="empty-title">{error}</h2>
-            <button onClick={fetchReviews} className="btn-action btn-edit" style={{ marginTop: "12px" }}>
-              Try Again
-            </button>
-          </div>
-        ) : reviews.length > 0 ? (
-          <div className="reviews-list">
-            {reviews.map((review) => (
-              <div className="review-card" key={review.id}>
-                <div className="card-header">
-                  <div className="center-info">
-                    <div className="center-icon"><i className="fa-solid fa-wrench" /></div>
-                    <div>
-                      <div className="center-name">{review.serviceCenterName}</div>
-                      <div className="review-date">
-                        Posted on {new Date(review.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="status-badge">Published</div>
-                </div>
-
-                <div className="card-body">
-                  <div className="rating-row">
-                    <StarRating rating={review.rating} />
-                    <span className="rating-text">{review.rating}.0 Rating</span>
-                  </div>
-
-                  <div className="review-text">&ldquo;{review.comment}&rdquo;</div>
-
-                  {review.replyComment && (
-                    <div className="center-reply">
-                      <div className="reply-header">
-                        <i className="fa-solid fa-reply" style={{ color: "#10B981" }} />
-                        Response from {review.serviceCenterName}
-                      </div>
-                      <div className="reply-text">&ldquo;{review.replyComment}&rdquo;</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+        ) : reviews.length === 0 ? (
+          <div style={{
+            background: WH, borderRadius: 16, border: `2px dashed ${BRD}`,
+            padding: "70px 20px", textAlign: "center",
+          }}>
+            <div style={{ fontSize: 56, marginBottom: 16 }}>💬</div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111", marginBottom: 10 }}>No Reviews Yet</h2>
+            <p style={{ fontSize: 14, color: TL, maxWidth: 340, margin: "0 auto 24px", lineHeight: 1.6 }}>
+              After visiting a service center, share your experience to help others choose the right one.
+            </p>
+            {!isServiceCenter && (
+              <Link href="/reviews/write" style={{ textDecoration: "none" }}>
+                <button style={{
+                  background: R, color: "#fff", border: "none", padding: "12px 28px",
+                  borderRadius: 10, fontWeight: 800, fontSize: 14, cursor: "pointer",
+                }}>
+                  ✍️ Write Your First Review
+                </button>
+              </Link>
+            )}
           </div>
         ) : (
-          <div className="empty-state">
-            <i className="fa-regular fa-comment-dots empty-icon" />
-            <h2 className="empty-title">No reviews yet</h2>
-            <p className="empty-desc">
-              You haven&apos;t left any reviews for service centers. After your next booking, come back here to share your experience!
-            </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {reviews.map((review) => (
+              <ReviewCard
+                key={review.id ?? review.Id ?? Math.random()}
+                review={review}
+                onEdit={setEditTarget}
+                onDelete={setDeleteTarget}
+              />
+            ))}
           </div>
         )}
       </main>

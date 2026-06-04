@@ -5,6 +5,7 @@ import Link from "next/link";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 import { bookingsService } from "@/lib/api/bookingsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 
 const COLORS = {
@@ -240,6 +241,11 @@ export default function AvailabilityPage() {
       alert("Failed to save: " + err.message);
     }
   };
+
+  const { authorized, checking } = useRoleGuard();
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>

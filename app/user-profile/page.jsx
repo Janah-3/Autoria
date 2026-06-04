@@ -4,12 +4,14 @@ import React, { useState, useEffect, useRef, useCallback, Suspense } from "react
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { usersService } from "@/lib/api/usersService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const R  = "#E8272A";
 const RD = "#B81C1F";
 const GOOGLE_MAPS_API_KEY = "AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8";
 
 function UserProfileContent() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetId = searchParams.get("id");
@@ -254,6 +256,9 @@ function UserProfileContent() {
     if (mapInstanceRef.current) mapInstanceRef.current.setCenter({ lat: 30.0626, lng: 31.3397 });
     if (markerRef.current) markerRef.current.setPosition({ lat: 30.0626, lng: 31.3397 });
   };
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ minHeight: "100vh", background: "#F8FAFC", fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>

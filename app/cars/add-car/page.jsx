@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addCar } from "../../../src/API/carsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const BRANDS = [
   "Toyota", "BMW", "Mercedes", "Hyundai", "Kia", "Honda", 
@@ -37,6 +38,7 @@ const CarSVG = ({ color = "#E8192C", size = 180 }) => (
 );
 
 export default function AddCarPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -54,6 +56,9 @@ export default function AddCarPage() {
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   const handleInputChange = (field, value) => {
     setFormData((prevData) => ({

@@ -2,16 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { getAllCars, getCarItems } from "@/lib/api/carsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 // import CarCard from "../AddCar/page";
 // import CarForm from "../EditCar/page";
 
 export default function CarsPage() {
+  const { authorized, checking } = useRoleGuard();
   const [cars, setCars] = useState([]);
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     loadCars();
   }, []);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   const loadCars = async () => {
     try {

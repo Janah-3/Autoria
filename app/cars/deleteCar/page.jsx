@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCarById, deleteCar } from "../../../src/API/carsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const FUELS = ["Petrol", "Diesel", "Hybrid", "Electric", "LPG"];
 
@@ -41,6 +42,7 @@ const TrashIcon = ({ size = 28 }) => (
 );
 
 export default function DeleteCarPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const searchParams = useSearchParams();
   const carId = searchParams.get("id");
@@ -68,6 +70,9 @@ export default function DeleteCarPage() {
       router.push("/cars");
     }
   }, [carId, router]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   // Handlers
   const handleDeleteCar = async () => {

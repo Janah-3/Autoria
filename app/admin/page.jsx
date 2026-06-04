@@ -11,6 +11,7 @@ import { sparePartsService } from "@/lib/sparePartsService";
 import { reportsService } from "@/lib/api/reportsService";
 import { paymentService } from "@/lib/api/paymentService";
 import { addAdmin } from "@/lib/api/authService";
+import { inventoryService } from "@/lib/api/inventoryService";
 
 const COLORS = {
   primary: "#E8272A",
@@ -150,10 +151,33 @@ export default function AdminDashboard() {
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [refundReason, setRefundReason] = useState("");
-  const [submittingRefund, setSubmittingRefund] = useState(false);
-  const [paymentsMethodFilter, setPaymentsMethodFilter] = useState("all");
   const [paymentsStatusFilter, setPaymentsStatusFilter] = useState("all");
   const [paymentsSearch, setPaymentsSearch] = useState("");
+
+  // Global Inventory State Hooks
+  const [inventoryList, setInventoryList] = useState([]);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState("");
+  const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryCenterFilter, setInventoryCenterFilter] = useState("");
+  const [inventoryStockFilter, setInventoryStockFilter] = useState("all"); // all, low, available, unavailable
+  
+  // Edit Inventory Modal
+  const [showEditInventoryModal, setShowEditInventoryModal] = useState(false);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
+  const [editInventoryForm, setEditInventoryForm] = useState({
+    quantity: 0,
+    price: 0,
+    isAvailable: true,
+    lowStockThreshold: 5,
+    reason: ""
+  });
+  const [editInventorySubmitting, setEditInventorySubmitting] = useState(false);
+
+  // Inventory History Modal
+  const [showInventoryHistoryModal, setShowInventoryHistoryModal] = useState(false);
+  const [inventoryHistoryList, setInventoryHistoryList] = useState([]);
+  const [inventoryHistoryLoading, setInventoryHistoryLoading] = useState(false);
 
   const fetchPendingCenters = () => {
     serviceCentersService.getPending()
@@ -385,6 +409,101 @@ export default function AdminDashboard() {
     }
   }, [currentUser, activeTab]);
 
+  const fetchGlobalInventory = () => {
+    if (!currentUser || currentUser.role !== "Admin") return;
+    setInventoryLoading(true);
+    setInventoryError("");
+    const params = {};
+    if (inventoryCenterFilter) params.serviceCenterId = inventoryCenterFilter;
+    
+    inventoryService.getAdminInventory(params)
+      .then((res) => {
+        const data = res?.data ?? res;
+        const items = data?.items ?? [];
+        setInventoryList(items);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch global inventory:", err);
+        setInventoryError(err.message || "Failed to load global inventory");
+      })
+      .finally(() => {
+        setInventoryLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "Admin" && (activeTab === "Global Inventory" || activeTab === "Dashboard")) {
+      fetchGlobalInventory();
+    }
+  }, [currentUser, activeTab, inventoryCenterFilter]);
+
+  const handleToggleFlagLowStock = async (item) => {
+    try {
+      const newFlag = !item.isFlaggedLowStock;
+      const res = await inventoryService.flagLowStock(item.inventoryId, newFlag);
+      if (res.success || res) {
+        setInventoryList(prev => prev.map(p => p.inventoryId === item.inventoryId ? { ...p, isFlaggedLowStock: newFlag } : p));
+      }
+    } catch (err) {
+      alert("Failed to toggle low stock flag: " + err.message);
+    }
+  };
+
+  const openEditInventory = (item) => {
+    setSelectedInventoryItem(item);
+    setEditInventoryForm({
+      quantity: item.quantity ?? 0,
+      price: item.price ?? 0,
+      isAvailable: item.isAvailable ?? true,
+      lowStockThreshold: item.lowStockThreshold ?? 5,
+      reason: ""
+    });
+    setShowEditInventoryModal(true);
+  };
+
+  const handleSaveAdminEditStock = async (e) => {
+    e.preventDefault();
+    if (!selectedInventoryItem) return;
+    setEditInventorySubmitting(true);
+    try {
+      const body = {
+        quantity: parseInt(editInventoryForm.quantity, 10),
+        price: parseFloat(editInventoryForm.price),
+        isAvailable: editInventoryForm.isAvailable,
+        lowStockThreshold: parseInt(editInventoryForm.lowStockThreshold, 10),
+        reason: editInventoryForm.reason || "Updated by Admin"
+      };
+      const res = await inventoryService.adminEditStock(selectedInventoryItem.inventoryId, body);
+      if (res.success || res) {
+        alert("Stock updated successfully!");
+        setShowEditInventoryModal(false);
+        fetchGlobalInventory();
+      }
+    } catch (err) {
+      alert("Failed to update stock: " + err.message);
+    } finally {
+      setEditInventorySubmitting(false);
+    }
+  };
+
+  const handleViewInventoryHistory = async (item) => {
+    setSelectedInventoryItem(item);
+    setInventoryHistoryLoading(true);
+    setInventoryHistoryList([]);
+    setShowInventoryHistoryModal(true);
+    try {
+      const res = await inventoryService.getHistory(item.inventoryId);
+      const data = res?.data ?? res;
+      const items = data?.items ?? [];
+      setInventoryHistoryList(items);
+    } catch (err) {
+      console.error("Failed to load inventory history:", err);
+      alert("Failed to load history: " + err.message);
+    } finally {
+      setInventoryHistoryLoading(false);
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       await serviceCentersService.approve(id);
@@ -614,7 +733,7 @@ export default function AdminDashboard() {
         .back-link { transition: background 0.2s ease; }
         .back-link:hover { background: #f5f5f5 !important; }
       `}</style>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reports: reportsList.filter(r => r.status === 0 || r.status === "Pending").length, users: usersList.length, spareParts: sparePartsList.length }} colors={COLORS} />
+      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reports: reportsList.filter(r => r.status === 0 || r.status === "Pending").length, users: usersList.length, spareParts: sparePartsList.length, globalInventory: inventoryList.filter(p => p.isFlaggedLowStock).length }} colors={COLORS} />
 
       <main style={{ flex: 1, padding: "40px", maxWidth: "1600px" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
@@ -1938,6 +2057,222 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Global Inventory View */}
+        {activeTab === "Global Inventory" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+              <p style={{ color: COLORS.textLight, fontSize: "14px", margin: 0 }}>View, update, flag low stock, and view update histories for all service center inventory items.</p>
+            </div>
+
+            {/* Metrics Row */}
+            <div style={{ display: "flex", gap: "24px" }}>
+              <StatCard label="Total Stocked Items" value={inventoryList.length.toString()} trend="Across all centers" />
+              <StatCard 
+                label="Flagged Low Stock" 
+                value={inventoryList.filter(item => item.isFlaggedLowStock).length.toString()} 
+                trend="Requires ordering" 
+                trendUp={inventoryList.filter(item => item.isFlaggedLowStock).length > 0 ? false : undefined} 
+              />
+              <StatCard label="Available Items" value={inventoryList.filter(item => item.isAvailable).length.toString()} trend="Ready for booking" trendUp />
+              <StatCard 
+                label="Total Inventory Value" 
+                value={`EGP ${inventoryList.reduce((sum, item) => sum + ((item.price ?? 0) * (item.quantity ?? 0)), 0).toLocaleString()}`} 
+                trend="Asset valuation" 
+              />
+            </div>
+
+            {/* Filters panel */}
+            <div style={{ display: "flex", gap: "12px", background: COLORS.white, padding: "16px", borderRadius: "12px", border: `1px solid ${COLORS.border}`, alignItems: "center", flexWrap: "wrap" }}>
+              {/* Search by Part Name / SKU */}
+              <div style={{ flex: 1, minWidth: "200px" }}>
+                <input 
+                  type="text"
+                  placeholder="Search by part name or part number..." 
+                  value={inventorySearch}
+                  onChange={(e) => setInventorySearch(e.target.value)}
+                  style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px" }} 
+                />
+              </div>
+
+              {/* Filter by Service Center */}
+              <div style={{ minWidth: "200px" }}>
+                <select 
+                  value={inventoryCenterFilter}
+                  onChange={(e) => setInventoryCenterFilter(e.target.value)}
+                  style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px", background: "#fff" }}
+                >
+                  <option value="">All Service Centers</option>
+                  {centersList.map(center => (
+                    <option key={center.id} value={center.id}>{center.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter by Stock Status */}
+              <div style={{ minWidth: "180px" }}>
+                <select 
+                  value={inventoryStockFilter}
+                  onChange={(e) => setInventoryStockFilter(e.target.value)}
+                  style={{ width: "100%", padding: "10px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, fontSize: "14px", background: "#fff" }}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="low">Flagged Low Stock</option>
+                  <option value="available">Available Only</option>
+                  <option value="unavailable">Unavailable Only</option>
+                </select>
+              </div>
+            </div>
+
+            {inventoryError && (
+              <div style={{ background: "#FEE2E2", color: COLORS.primary, padding: "12px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}>
+                <i className="fa-solid fa-triangle-exclamation" style={{ marginRight: "6px" }}></i> Error: {inventoryError}
+              </div>
+            )}
+
+            {/* Table */}
+            <div style={{ background: COLORS.white, borderRadius: "16px", padding: "0", border: `1px solid ${COLORS.border}`, overflow: "hidden", boxShadow: SHADOW }}>
+              {inventoryLoading ? (
+                <div style={{ padding: "60px", textAlign: "center" }}>
+                  <div style={{ width: 30, height: 30, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 16px" }} />
+                  <div style={{ color: COLORS.textLight, fontSize: "14px" }}>Loading global inventory...</div>
+                </div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead style={{ background: COLORS.bg }}>
+                    <tr style={{ textAlign: "left", color: COLORS.textLight, fontSize: "11px", fontWeight: 800 }}>
+                      <th style={{ padding: "16px 24px" }}>PART DETAILS</th>
+                      <th style={{ padding: "16px 24px" }}>SERVICE CENTER</th>
+                      <th style={{ padding: "16px 24px" }}>PRICE (EGP)</th>
+                      <th style={{ padding: "16px 24px" }}>QTY / THRESHOLD</th>
+                      <th style={{ padding: "16px 24px" }}>AVAILABILITY</th>
+                      <th style={{ padding: "16px 24px" }}>LOW STOCK FLAG</th>
+                      <th style={{ padding: "16px 24px", textAlign: "right" }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventoryList
+                      .filter(item => {
+                        if (inventorySearch) {
+                          const query = inventorySearch.toLowerCase();
+                          const matchName = (item.partName || "").toLowerCase().includes(query);
+                          const matchNum = (item.partNumber || "").toLowerCase().includes(query);
+                          if (!matchName && !matchNum) return false;
+                        }
+                        if (inventoryStockFilter === "low" && !item.isFlaggedLowStock) return false;
+                        if (inventoryStockFilter === "available" && !item.isAvailable) return false;
+                        if (inventoryStockFilter === "unavailable" && item.isAvailable) return false;
+                        return true;
+                      })
+                      .map(item => {
+                        const formattedDate = item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "—";
+                        return (
+                          <tr key={item.inventoryId} style={{ borderTop: `1px solid ${COLORS.border}`, transition: "background 0.2s" }}>
+                            <td style={{ padding: "18px 24px", display: "flex", alignItems: "center", gap: "12px" }}>
+                              <div style={{ width: "40px", height: "40px", borderRadius: "8px", background: COLORS.bg, border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                                {item.thumbnailUrl ? (
+                                  <img src={item.thumbnailUrl} alt={item.partName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                ) : (
+                                  <span style={{ fontSize: "16px", color: COLORS.textLight }}><i className="fa-solid fa-cube"></i></span>
+                                )}
+                              </div>
+                              <div>
+                                <div style={{ fontSize: "14px", fontWeight: 800, color: COLORS.text }}>{item.partName || "Unnamed Part"}</div>
+                                <div style={{ fontSize: "11px", color: COLORS.textLight, fontFamily: "monospace" }}>SKU: {item.partNumber || "—"}</div>
+                              </div>
+                            </td>
+                            <td style={{ padding: "18px 24px" }}>
+                              <div style={{ fontSize: "13.5px", fontWeight: 700, color: COLORS.text }}>{item.serviceCenterName || "—"}</div>
+                              <div style={{ fontSize: "11px", color: COLORS.textLight }}>{item.governorate || "Egypt"}</div>
+                            </td>
+                            <td style={{ padding: "18px 24px", fontSize: "14px", fontWeight: 800 }}>
+                              {(item.price ?? 0).toLocaleString()} EGP
+                            </td>
+                            <td style={{ padding: "18px 24px" }}>
+                              <div style={{ fontSize: "14px", fontWeight: 800 }}>{item.quantity ?? 0} pcs</div>
+                              <div style={{ fontSize: "11px", color: COLORS.textLight }}>Threshold: {item.lowStockThreshold ?? 5}</div>
+                            </td>
+                            <td style={{ padding: "18px 24px" }}>
+                              <span style={{ 
+                                color: item.isAvailable ? COLORS.success : COLORS.primary, 
+                                background: item.isAvailable ? "#E8F5E9" : "#FFF1F1", 
+                                padding: "4px 8px", 
+                                borderRadius: "4px", 
+                                fontSize: "11px", 
+                                fontWeight: 800 
+                              }}>
+                                {item.isAvailable ? "Available" : "Unavailable"}
+                              </span>
+                            </td>
+                            <td style={{ padding: "18px 24px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <label style={{ position: "relative", display: "inline-block", width: "40px", height: "20px", cursor: "pointer" }}>
+                                  <input 
+                                    type="checkbox"
+                                    checked={item.isFlaggedLowStock || false}
+                                    onChange={() => handleToggleFlagLowStock(item)}
+                                    style={{ opacity: 0, width: 0, height: 0 }}
+                                  />
+                                  <span style={{
+                                    position: "absolute",
+                                    top: 0, left: 0, right: 0, bottom: 0,
+                                    backgroundColor: item.isFlaggedLowStock ? COLORS.primary : "#CBD5E1",
+                                    borderRadius: "20px",
+                                    transition: "0.3s"
+                                  }}>
+                                    <span style={{
+                                      position: "absolute",
+                                      content: '""',
+                                      height: "14px", width: "14px",
+                                      left: item.isFlaggedLowStock ? "22px" : "3px",
+                                      bottom: "3px",
+                                      backgroundColor: "white",
+                                      borderRadius: "50%",
+                                      transition: "0.3s"
+                                    }} />
+                                  </span>
+                                </label>
+                                <span style={{ fontSize: "12px", fontWeight: 700, color: item.isFlaggedLowStock ? COLORS.primary : COLORS.textLight }}>
+                                  {item.isFlaggedLowStock ? "Low Stock" : "Normal"}
+                                </span>
+                              </div>
+                            </td>
+                            <td style={{ padding: "18px 24px", textAlign: "right" }}>
+                              <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                                <button 
+                                  onClick={() => openEditInventory(item)}
+                                  className="admin-btn"
+                                  style={{ background: "#F1F5F9", border: `1px solid ${COLORS.border}`, color: "#475569", padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800 }}
+                                >
+                                  Edit Stock
+                                </button>
+                                <button 
+                                  onClick={() => handleViewInventoryHistory(item)}
+                                  className="admin-btn"
+                                  style={{ background: "#FEF2F2", border: `1px solid #FFDCDC`, color: COLORS.primary, padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: 800 }}
+                                >
+                                  History
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {inventoryList.length === 0 && (
+                      <tr>
+                        <td colSpan="7" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
+                          <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-boxes-packing"></i></div>
+                          <div style={{ fontWeight: 800 }}>No inventory items registered</div>
+                          <div style={{ fontSize: "12px" }}>No centers have listed any parts in their inventory yet.</div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+
       {/* User Report Details Modal Overlay */}
       {showReportModal && selectedReport && (
         <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
@@ -2424,6 +2759,213 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Inventory Item Modal Overlay */}
+      {showEditInventoryModal && selectedInventoryItem && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "550px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>📦 Edit Stock Levels (Admin)</h3>
+              <button 
+                onClick={() => { setShowEditInventoryModal(false); setSelectedInventoryItem(null); }}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: "16px", padding: "12px", background: COLORS.bg, borderRadius: "8px", border: `1px solid ${COLORS.border}` }}>
+              <div style={{ fontSize: "14px", fontWeight: 800 }}>{selectedInventoryItem.partName}</div>
+              <div style={{ fontSize: "11px", color: COLORS.textLight }}>Center: {selectedInventoryItem.serviceCenterName}</div>
+            </div>
+
+            <form onSubmit={handleSaveAdminEditStock} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Quantity</label>
+                  <input 
+                    type="number"
+                    value={editInventoryForm.quantity}
+                    onChange={(e) => setEditInventoryForm({ ...editInventoryForm, quantity: e.target.value })}
+                    required
+                    min="0"
+                    style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Price (EGP)</label>
+                  <input 
+                    type="number"
+                    value={editInventoryForm.price}
+                    onChange={(e) => setEditInventoryForm({ ...editInventoryForm, price: e.target.value })}
+                    required
+                    min="0"
+                    step="0.01"
+                    style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Low Stock Threshold</label>
+                  <input 
+                    type="number"
+                    value={editInventoryForm.lowStockThreshold}
+                    onChange={(e) => setEditInventoryForm({ ...editInventoryForm, lowStockThreshold: e.target.value })}
+                    required
+                    min="0"
+                    style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Availability</label>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", height: "43px" }}>
+                    <label style={{ position: "relative", display: "inline-block", width: "40px", height: "20px", cursor: "pointer" }}>
+                      <input 
+                        type="checkbox"
+                        checked={editInventoryForm.isAvailable}
+                        onChange={(e) => setEditInventoryForm({ ...editInventoryForm, isAvailable: e.target.checked })}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: "absolute",
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: editInventoryForm.isAvailable ? COLORS.success : "#CBD5E1",
+                        borderRadius: "20px",
+                        transition: "0.3s"
+                      }}>
+                        <span style={{
+                          position: "absolute",
+                          content: '""',
+                          height: "14px", width: "14px",
+                          left: editInventoryForm.isAvailable ? "22px" : "3px",
+                          bottom: "3px",
+                          backgroundColor: "white",
+                          borderRadius: "50%",
+                          transition: "0.3s"
+                        }} />
+                      </span>
+                    </label>
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: editInventoryForm.isAvailable ? COLORS.success : COLORS.textLight }}>
+                      {editInventoryForm.isAvailable ? "Available" : "Unavailable"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: COLORS.textLight }}>Reason / Note for Change</label>
+                <textarea 
+                  value={editInventoryForm.reason}
+                  onChange={(e) => setEditInventoryForm({ ...editInventoryForm, reason: e.target.value })}
+                  placeholder="e.g. Stock updated after monthly inventory check..."
+                  required
+                  rows="3"
+                  style={{ padding: "10px 14px", border: `1.5px solid ${COLORS.border}`, borderRadius: "8px", fontSize: "13.5px", fontFamily: "inherit" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px", marginTop: "16px", borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px", justifyContent: "flex-end" }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setShowEditInventoryModal(false); setSelectedInventoryItem(null); }}
+                  style={{ background: "#F3F4F6", border: "none", padding: "10px 20px", borderRadius: "8px", fontWeight: 700, fontSize: "13px", color: COLORS.textLight, cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={editInventorySubmitting}
+                  style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "10px 24px", borderRadius: "8px", fontWeight: 800, fontSize: "13px", cursor: "pointer", opacity: editInventorySubmitting ? 0.7 : 1 }}
+                >
+                  {editInventorySubmitting ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Inventory History Modal Overlay */}
+      {showInventoryHistoryModal && selectedInventoryItem && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifycontent: "center", zIndex: 1000, animation: "fadeIn 0.2s ease-out" }}>
+          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "650px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", maxHeight: "90vh", overflowY: "auto", position: "relative" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: `1.5px solid ${COLORS.border}`, paddingBottom: "12px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: 0 }}>
+                <i className="fa-solid fa-clock-rotate-left" style={{ color: COLORS.primary, marginRight: "10px" }}></i> Stock Change History
+              </h3>
+              <button 
+                onClick={() => { setShowInventoryHistoryModal(false); setSelectedInventoryItem(null); }}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: COLORS.textLight }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: "20px", padding: "12px", background: COLORS.bg, borderRadius: "8px", border: `1px solid ${COLORS.border}` }}>
+              <div style={{ fontSize: "14px", fontWeight: 800 }}>{selectedInventoryItem.partName}</div>
+              <div style={{ fontSize: "11px", color: COLORS.textLight }}>Center: {selectedInventoryItem.serviceCenterName}</div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {inventoryHistoryLoading ? (
+                <div style={{ padding: "40px", textAlign: "center" }}>
+                  <div style={{ width: 24, height: 24, border: "3px solid #eee", borderTopColor: COLORS.primary, borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 12px" }} />
+                  <div style={{ color: COLORS.textLight, fontSize: "13px" }}>Loading change log...</div>
+                </div>
+              ) : (
+                <div style={{ maxHeight: "350px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px", paddingRight: "4px" }}>
+                  {inventoryHistoryList.map((log) => (
+                    <div key={log.id} style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#F8F9FA", padding: "12px 16px", borderRadius: "10px", border: `1px solid ${COLORS.border}` }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 800, color: COLORS.text }}>
+                          {log.changedByName || "System Admin"}
+                        </span>
+                        <span style={{ fontSize: "11px", color: COLORS.textLight }}>
+                          {log.changedAt ? new Date(log.changedAt).toLocaleString() : "—"}
+                        </span>
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12.5px" }}>
+                        <div>
+                          <strong style={{ color: COLORS.textLight }}>Quantity:</strong> {log.previousQuantity} → <strong style={{ color: COLORS.text }}>{log.newQuantity}</strong>
+                        </div>
+                        <div>
+                          <strong style={{ color: COLORS.textLight }}>Price:</strong> {log.previousPrice} EGP → <strong style={{ color: COLORS.text }}>{log.newPrice} EGP</strong>
+                        </div>
+                      </div>
+                      {log.reason && (
+                        <div style={{ fontSize: "12px", color: "#475569", borderTop: `1px dashed ${COLORS.border}`, paddingTop: "6px", marginTop: "2px" }}>
+                          <strong>Reason:</strong> "{log.reason}"
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {inventoryHistoryList.length === 0 && (
+                    <div style={{ padding: "40px", textAlign: "center", color: COLORS.textLight, fontSize: "13px" }}>
+                      <i className="fa-solid fa-history" style={{ fontSize: "24px", color: "#CBD5E1", marginBottom: "8px", display: "block" }}></i>
+                      No changes recorded for this item.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: "flex", marginTop: "24px", borderTop: `1.5px solid ${COLORS.border}`, paddingTop: "16px", justifyContent: "flex-end" }}>
+              <button 
+                type="button" 
+                onClick={() => { setShowInventoryHistoryModal(false); setSelectedInventoryItem(null); }}
+                style={{ background: COLORS.primary, color: "#fff", border: "none", padding: "10px 24px", borderRadius: "8px", fontWeight: 800, fontSize: "13px", cursor: "pointer" }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

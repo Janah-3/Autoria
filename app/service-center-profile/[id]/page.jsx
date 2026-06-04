@@ -12,6 +12,7 @@ import {
 import Navbar from "@/components/Navbar";
 import { reportsService } from "@/lib/api/reportsService";
 import { premiumService } from "@/lib/api/premiumService";
+import { getTokenRole } from "@/lib/utils/toast";
 
 const R  = "#E8272A";
 const RD = "#B81C1F";
@@ -29,6 +30,11 @@ export default function CenterProfilePage() {
   const [center, setCenter] = useState(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+
+  const role = getTokenRole();
+  const isServiceCenterOrAdmin = role && [
+    "servicecenter", "servicecenterowner", "mechanic", "admin"
+  ].includes(role.toLowerCase());
 
   // Inline Report States
   const [reportDropdownOpen, setReportDropdownOpen] = useState(false);
@@ -210,30 +216,32 @@ export default function CenterProfilePage() {
           <div style={{ background: "#fff", borderRadius: 20, border: "1.5px solid #e5e7eb", padding: 24, boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
             
             {/* Book Now Button */}
-            <Link href={`/book-service?serviceCenterId=${center.id}`} style={{ textDecoration: "none" }}>
-              <button
-                className="btn-hover"
-                style={{
-                  width: "100%",
-                  background: R,
-                  color: "#fff",
-                  border: "none",
-                  padding: "14px 20px",
-                  borderRadius: "12px",
-                  fontWeight: 800,
-                  fontSize: "15px",
-                  cursor: "pointer",
-                  marginBottom: "24px",
-                  boxShadow: "0 4px 14px rgba(232, 39, 42, 0.25)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px"
-                }}
-              >
-                <i className="fa-solid fa-calendar-check"></i> Book Now
-              </button>
-            </Link>
+            {!isServiceCenterOrAdmin && (
+              <Link href={`/book-service?serviceCenterId=${center.id}`} style={{ textDecoration: "none" }}>
+                <button
+                  className="btn-hover"
+                  style={{
+                    width: "100%",
+                    background: R,
+                    color: "#fff",
+                    border: "none",
+                    padding: "14px 20px",
+                    borderRadius: "12px",
+                    fontWeight: 800,
+                    fontSize: "15px",
+                    cursor: "pointer",
+                    marginBottom: "24px",
+                    boxShadow: "0 4px 14px rgba(232, 39, 42, 0.25)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px"
+                  }}
+                >
+                  <i className="fa-solid fa-calendar-check"></i> Book Now
+                </button>
+              </Link>
+            )}
 
             <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>Contact Information</h3>
             <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 20 }}>This is how customers see your profile.</p>
@@ -312,8 +320,8 @@ export default function CenterProfilePage() {
 
 
 
-            {/* Report Button */}
-            <div>
+            {/* Report Button — hidden for service center owners/admins */}
+            {!isServiceCenterOrAdmin && <div>
               <button 
                 onClick={() => setReportDropdownOpen(true)}
                 style={{
@@ -332,7 +340,7 @@ export default function CenterProfilePage() {
               >
                 Report Center
               </button>
-            </div>
+            </div>}
           </div>
         </div>
 

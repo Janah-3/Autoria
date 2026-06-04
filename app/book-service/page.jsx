@@ -7,6 +7,7 @@ import { getAllCars, getCarItems, getCarId } from "@/lib/api/carsService";
 import { serviceCentersService, getServiceCenterItems } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 import { lookupsService } from "@/lib/api/lookupsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -139,6 +140,7 @@ function ValidationError({ message }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function BookServicePage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const searchParams = useSearchParams();
   const serviceCenterIdFromUrl = searchParams.get("serviceCenterId") || "";
@@ -275,6 +277,8 @@ export default function BookServicePage() {
       cancelled = true;
     };
   }, [selectedDate, serviceCenterIdFromUrl]);
+
+  if (checking || !authorized) return null;
 
   // ── Derived: service types to show ────────────────────────────────────────
 

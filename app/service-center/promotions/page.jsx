@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { premiumService } from "@/lib/api/premiumService";
 import { subscriptionService } from "@/lib/api/subscriptionService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 const R = "#E8272A";
@@ -70,6 +71,7 @@ const MAX_BODY = 2000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function PromotionsPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const [centerId, setCenterId] = useState(null);
   const [centerName, setCenterName] = useState("");
@@ -112,6 +114,8 @@ export default function PromotionsPage() {
       }
     })();
   }, [router]);
+
+  if (checking || !authorized) return null;
 
   const handleSend = async () => {
     if (!subject.trim() || !body.trim() || !centerId) return;

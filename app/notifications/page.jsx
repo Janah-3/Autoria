@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import notificationService, {
   NOTIFICATION_TYPE_META,
 } from "@/lib/notificationService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const R = "#E8272A";
 
@@ -42,6 +43,7 @@ function getTypeMeta(type) {
 }
 
 export default function NotificationListPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
 
   const [notifications, setNotifications] = useState([]);
@@ -80,6 +82,9 @@ export default function NotificationListPage() {
   };
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div

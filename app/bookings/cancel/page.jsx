@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBookingById, cancelBooking } from "../../../src/API/bookingsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const CANCELLATION_REASONS = [
   "Change of plans",
@@ -14,6 +15,7 @@ const CANCELLATION_REASONS = [
 ];
 
 export default function BookingCancellationPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("id");
@@ -48,6 +50,9 @@ export default function BookingCancellationPage() {
         setIsLoading(false);
       });
   }, [bookingId, router]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   const handleConfirmCancellation = async () => {
     if (!selectedReason) return;

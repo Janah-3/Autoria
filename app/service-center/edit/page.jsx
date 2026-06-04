@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { lookupsService } from "@/lib/api/lookupsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function EditServiceCenterProfile() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   
   // Navigation & UI state
@@ -257,6 +259,9 @@ export default function EditServiceCenterProfile() {
     loadData();
   }, []);
 
+  if (checking) return null;
+  if (!authorized) return null;
+
   // Geolocation detector
   const handleDetectLocation = () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
@@ -340,52 +345,62 @@ export default function EditServiceCenterProfile() {
         throw new Error(`Failed to update basic profile: ${err.message}`);
       }
 
-      // Step 2: Location and GPS
-      if (scLat && scLng) {
+      // Step 2: Location — always save if required fields are present
+      const addrTrimmed = locationInfo.address.trim();
+      const govTrimmed = locationInfo.governorate.trim();
+      const distTrimmed = locationInfo.district.trim();
+      if (addrTrimmed && govTrimmed && distTrimmed) {
         try {
           await serviceCentersService.setMyLocation({
-            latitude: parseFloat(scLat),
-            longitude: parseFloat(scLng),
-            governorate: locationInfo.governorate.trim(),
-            district: locationInfo.district.trim(),
-            address: locationInfo.address.trim(),
+            latitude: scLat ? parseFloat(scLat) : 0,
+            longitude: scLng ? parseFloat(scLng) : 0,
+            governorate: govTrimmed,
+            district: distTrimmed,
+            address: addrTrimmed,
           });
         } catch (err) {
           console.warn("Location save failed:", err);
-          warnings.push("Location Coordinates");
+          warnings.push("Location");
         }
       }
+      // else: location fields incomplete — skip silently, no error
 
-      // Step 3: Service Types
-      try {
-        await serviceCentersService.updateServiceTypes([...selectedServiceIds]);
-      } catch (err) {
-        console.warn("Service types save failed:", err);
-        warnings.push("Services Offered");
-      }
+      // Step 3: Service Types (draft-only)
+      const isDraft = approvalStatus === "Draft" || approvalStatus === "" || !approvalStatus;
+      if (isDraft) {
+        try {
+          await serviceCentersService.updateServiceTypes([...selectedServiceIds]);
+        } catch (err) {
+          console.warn("Service types save failed:", err);
+          warnings.push("Services Offered");
+        }
 
-      // Step 4: Car Brands
-      try {
-        await serviceCentersService.updateCarBrands([...selectedBrandIds]);
-      } catch (err) {
-        console.warn("Car brands save failed:", err);
-        warnings.push("Car Brands");
-      }
+        // Step 4: Car Brands (draft-only)
+        try {
+          await serviceCentersService.updateCarBrands([...selectedBrandIds]);
+        } catch (err) {
+          console.warn("Car brands save failed:", err);
+          warnings.push("Car Brands");
+        }
 
-      // Step 5: Operating Hours
-      try {
-        const hoursPayload = {
-          operatingHours: Object.keys(operatingHours).map(day => ({
-            day: day,
-            openTime: operatingHours[day].isClosed ? "00:00" : operatingHours[day].openTime.slice(0, 5),
-            closeTime: operatingHours[day].isClosed ? "00:00" : operatingHours[day].closeTime.slice(0, 5),
-            isClosed: operatingHours[day].isClosed
-          }))
-        };
-        await serviceCentersService.updateOperatingHours(hoursPayload);
-      } catch (err) {
-        console.warn("Operating hours save failed:", err);
-        warnings.push("Operating Hours");
+        // Step 5: Operating Hours (draft-only)
+        try {
+          const hoursPayload = {
+            operatingHours: Object.keys(operatingHours).map(day => ({
+              day: day,
+              openTime: operatingHours[day].isClosed ? "00:00" : operatingHours[day].openTime.slice(0, 5),
+              closeTime: operatingHours[day].isClosed ? "00:00" : operatingHours[day].closeTime.slice(0, 5),
+              isClosed: operatingHours[day].isClosed
+            }))
+          };
+          await serviceCentersService.updateOperatingHours(hoursPayload);
+        } catch (err) {
+          console.warn("Operating hours save failed:", err);
+          warnings.push("Operating Hours");
+        }
+      } else {
+        // Already submitted/approved — silently skip draft-only fields
+        console.info("Skipping draft-only fields (service types, brands, hours) — status:", approvalStatus);
       }
 
       // Step 6: Documents

@@ -5,8 +5,11 @@ import Link from "next/link";
 import { inventoryService } from "@/lib/api/inventoryService";
 import { sparePartsService } from "@/lib/api/sparePartsService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function SparePartsInventory() {
+  const { authorized, checking } = useRoleGuard();
+
   /* ──────────────────── State ──────────────────── */
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +18,7 @@ export default function SparePartsInventory() {
   // Filtering
   const [searchQuery, setSearchQuery] = useState("");
   const [availabilityFilter, setAvailabilityFilter] = useState("All"); // All, Available, Unavailable
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Add/Update Form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -46,7 +50,11 @@ export default function SparePartsInventory() {
     if (!centerId) return;
     try {
       setLoading(true);
-      const params = { serviceCenterId: centerId };
+      const params = { 
+        serviceCenterId: centerId,
+        page: currentPage,
+        pageSize: 20
+      };
       if (availabilityFilter === "Available") params.isAvailable = "true";
       if (availabilityFilter === "Unavailable") params.isAvailable = "false";
 
@@ -67,7 +75,11 @@ export default function SparePartsInventory() {
     } finally {
       setLoading(false);
     }
-  }, [availabilityFilter, centerId]);
+  }, [availabilityFilter, centerId, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [availabilityFilter]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -197,6 +209,9 @@ export default function SparePartsInventory() {
       triggerToast(err.message || "Failed to toggle availability", "warning");
     }
   };
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   /* ──────────────────── UI ──────────────────── */
   return (
@@ -987,15 +1002,49 @@ export default function SparePartsInventory() {
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            gap: '12px',
+            gap: '16px',
             marginTop: '24px',
             fontSize: '14px',
             color: '#64748B',
             fontWeight: 700,
           }}>
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                opacity: currentPage <= 1 ? 0.5 : 1,
+                fontWeight: 750,
+                color: '#1E293B'
+              }}
+            >
+              Previous
+            </button>
             <span>
               Page {pagination.page} of {pagination.totalPages} · {pagination.totalCount} total items
             </span>
+            <button
+              type="button"
+              disabled={currentPage >= pagination.totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                cursor: currentPage >= pagination.totalPages ? 'not-allowed' : 'pointer',
+                opacity: currentPage >= pagination.totalPages ? 0.5 : 1,
+                fontWeight: 750,
+                color: '#1E293B'
+              }}
+            >
+              Next
+            </button>
           </div>
         )}
 

@@ -7,8 +7,10 @@ import usersService, { getMe } from "@/lib/api/usersService";
 import { getAllCars, getCarItems } from "@/lib/api/carsService";
 import { getAllBookings } from "@/lib/api/bookingsService";
 import { paymentService } from "@/lib/api/paymentService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function UserDashboardPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const [cars, setCars] = useState([]);
   const [upcomingBookings, setUpcomingBookings] = useState([]);
@@ -224,6 +226,9 @@ setUpcomingBookings(
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   const handleOpenCheckout = (invoice) => {
     setSelectedInvoice(invoice);

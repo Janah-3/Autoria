@@ -2,8 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function BookingSuccessPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
 
   const COLORS = {
@@ -14,6 +16,9 @@ export default function BookingSuccessPage() {
     bg: "#F8F9FA",
     white: "#FFFFFF",
   };
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", fontFamily: "sans-serif" }}>

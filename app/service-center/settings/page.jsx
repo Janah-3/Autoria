@@ -2,11 +2,16 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 export default function ServiceCenterSettings() {
+  const { authorized, checking } = useRoleGuard();
   const [emailNotif, setEmailNotif] = useState(true);
   const [smsNotif, setSmsNotif] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div className="sc-settings-layout">

@@ -7,6 +7,7 @@ import { bookingService, getBookingItems } from "@/lib/api/bookingsService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 import { paymentService } from "@/lib/api/paymentService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const Toast = ({ show, type, message }) => (
   <div style={{
@@ -348,6 +349,11 @@ export default function BookingRequestsPage() {
     window.addEventListener("click", closeDropdown);
     return () => window.removeEventListener("click", closeDropdown);
   }, []);
+
+  const { authorized, checking } = useRoleGuard();
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>

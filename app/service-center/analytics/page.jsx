@@ -8,6 +8,7 @@ import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getMe } from "@/lib/api/usersService";
 import { subscriptionService } from "@/lib/api/subscriptionService";
 import { premiumService } from "@/lib/api/premiumService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 // ── Brand colors ──────────────────────────────────────────────────────────────
 const R   = "#E8272A";
@@ -176,6 +177,7 @@ function UpgradeCTA() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const [bookings, setBookings]   = useState([]);
   const [centerName, setCenterName] = useState("");
@@ -288,6 +290,8 @@ export default function AnalyticsPage() {
 
     return { total, pending, confirmed, completed, cancelled, completionRate, cancellationRate, topServices, weekTrend, donut };
   }, [filtered]);
+
+  if (checking || !authorized) return null;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: BG, fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>

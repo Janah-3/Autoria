@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { reviewsService } from "@/lib/api/reviewsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const Toast = ({ show, type, message }) => (
   <div style={{
@@ -42,6 +43,7 @@ const StarSelector = ({ label, rating, onRatingChange }) => {
 };
 
 export default function WriteReviewPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -88,6 +90,9 @@ export default function WriteReviewPage() {
   };
 
   const isFormValid = mainRating > 0 && reviewText.length > 10;
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div className="page-container">

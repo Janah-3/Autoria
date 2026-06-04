@@ -3,6 +3,7 @@
 import { use, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 import notificationService, {
   NOTIFICATION_TYPE_META,
 } from "@/lib/notificationService";
@@ -38,6 +39,7 @@ function getTypeMeta(type) {
 }
 
 export default function NotificationDetailsPage({ params }) {
+  const { authorized, checking } = useRoleGuard();
   const resolvedParams = use(params);
   const id = resolvedParams.id;
   const router = useRouter();
@@ -67,6 +69,9 @@ export default function NotificationDetailsPage({ params }) {
   useEffect(() => {
     loadNotification();
   }, [loadNotification]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   const meta = notification ? getTypeMeta(notification.type) : null;
   const title = notification ? (TYPE_TITLE[notification.type] ?? "Notification") : "";

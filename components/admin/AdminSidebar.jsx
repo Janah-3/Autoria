@@ -9,6 +9,7 @@ export default function AdminSidebar({ activeTab, setActiveTab, badges, colors }
     { id: "User reports", iconClass: "fa-solid fa-flag", badge: badges.reports },
     { id: "User management", iconClass: "fa-solid fa-users", badge: badges.users },
     { id: "Spare Parts", iconClass: "fa-solid fa-cubes", badge: badges.spareParts },
+    { id: "Global Inventory", iconClass: "fa-solid fa-boxes-stacked", badge: badges.globalInventory },
     { id: "Payments & Revenue", iconClass: "fa-solid fa-credit-card" },
   ];
 

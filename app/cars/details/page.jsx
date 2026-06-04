@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 import { carsService } from "@/lib/api/carsService";
 import { mileageService } from "@/lib/api/mileageService";
 import Navbar from "@/components/Navbar";
@@ -395,6 +396,7 @@ function ReminderList({ reminders, loading, onDelete }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 function CarDetailsContent() {
+  const { authorized, checking } = useRoleGuard();
   const searchParams = useSearchParams();
   const carId = searchParams.get("id");
 
@@ -485,6 +487,9 @@ function CarDetailsContent() {
       triggerToast(err.message || "Failed to delete", "error");
     }
   };
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   // ── No car ID ─────────────────────────────────────────────────────────────
   if (!carId) {

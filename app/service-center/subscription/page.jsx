@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { subscriptionService } from "@/lib/api/subscriptionService";
 import { serviceCentersService } from "@/lib/api/serviceCentersService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 // ── Brand tokens ──────────────────────────────────────────────────────────────
 const R = "#E8272A";
@@ -98,6 +99,7 @@ const Sidebar = () => (
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function SubscriptionPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
 
   const [plans, setPlans] = useState([]);
@@ -148,8 +150,9 @@ export default function SubscriptionPage() {
   }, []);
 
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("Visa");
-  const [monthsDuration, setMonthsDuration] = useState(3); // Default to 3 months (Recommended!)
+  const [selectedPlan, setSelectedPlan] = useState(null); // plan from API
+  const [paymentMethod] = useState("Visa"); // Credit card only
+  const [monthsDuration, setMonthsDuration] = useState(1); // Default 1 month
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // Card details state
@@ -162,6 +165,8 @@ export default function SubscriptionPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
+
+  if (checking || !authorized) return null;
 
   const handleFormatCardNumber = (value) => {
     const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
@@ -204,32 +209,40 @@ export default function SubscriptionPage() {
     if (!centerId) return;
     setCheckoutLoading(true);
     try {
-      // 1. Create Subscription (expects monthsDuration)
+      // 1. Create Subscription (expects { monthsDuration })
+      console.log("[pay] selectedPlan:", JSON.stringify(selectedPlan));
+      // Always send 1 month — no duration picker, single plan
+      const duration = 1;
+      console.log("[pay] sending monthsDuration:", duration);
       const subRes = await subscriptionService.subscribe(centerId, {
-        monthsDuration: parseInt(monthsDuration),
+        monthsDuration: duration,
       });
 
-      const subId = subRes?.data || subRes;
+      console.log("[subscribe] raw response:", JSON.stringify(subRes));
 
-      if (!subId) {
-        throw new Error("Failed to initialize subscription.");
+      // Extract the subscription GUID — try all common shapes
+      const subData = subRes?.data ?? subRes;
+      const subId =
+        subData?.subscriptionId ||
+        subData?.id ||
+        subData?.Id ||
+        (typeof subData === "string" ? subData : null);
+
+      console.log("[subscribe] extracted subId:", subId);
+
+      if (!subId || typeof subId !== "string") {
+        throw new Error("Failed to initialize subscription — no valid subscription ID returned.");
       }
 
-      // 2. Process Payment (expects subscriptionId, method, cardToken)
-      // Build token from raw card number (strip spaces)
+      // 2. Build cardToken from raw card number (last 4 digits)
       const rawCard = cardNumber.replace(/\s+/g, "");
-      const cardToken = paymentMethod === "Visa"
-        ? `tok_${rawCard.slice(-4)}_${Date.now()}`
-        : null;
-      const payRes = await subscriptionService.pay(centerId, {
-        subscriptionId: subId,
-        method: paymentMethod === "Visa" ? "Card" : "Cash",
-        cardToken,
-      });
+      const cardToken = `tok_test_${rawCard.slice(-4)}`;
 
-      if (payRes.success || payRes.data) {
+      // 3. Process Payment — body: { subscriptionId, cardToken }
+      const payRes = await subscriptionService.pay(centerId, subId, cardToken);
+
+      if (payRes?.success || payRes?.data || payRes?.status === 200) {
         localStorage.setItem("isPremium", "true");
-        // Update status
         const updatedStatus = await subscriptionService.getStatus(centerId);
         setStatus(updatedStatus?.data || updatedStatus);
         
@@ -237,7 +250,7 @@ export default function SubscriptionPage() {
         setShowCheckoutModal(false);
         router.push("/service-center/analytics");
       } else {
-        alert("Payment failed: " + (payRes.message || "Unknown error"));
+        alert("Payment failed: " + (payRes?.message || "Unknown error"));
       }
     } catch (err) {
       console.error(err);
@@ -599,9 +612,12 @@ export default function SubscriptionPage() {
                       (isPremium && !isFreePlan) ||
                       isFreePlan
                     }
-                    onClick={() =>
-                      !isFreePlan && setShowCheckoutModal(true)
-                    }
+                    onClick={() => {
+                      if (!isFreePlan) {
+                        setSelectedPlan({ price, ...plan });
+                        setShowCheckoutModal(true);
+                      }
+                    }}
                     style={{
                       width: "100%",
                       padding: "14px",
@@ -654,165 +670,93 @@ export default function SubscriptionPage() {
               </p>
 
               <form onSubmit={handleSubmitPayment}>
-                {/* Duration Picker */}
-                <div style={{ marginBottom: "24px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 800, color: TL, textTransform: "uppercase", display: "block", marginBottom: "12px", letterSpacing: "0.5px" }}>
-                    Select Duration
-                  </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                    {[
-                      { val: 1, label: "1 Month", price: "EGP 299", desc: "Basic trial" },
-                      { val: 3, label: "3 Months", price: "EGP 799", desc: "Best Value (Save 11%)", recommended: true },
-                      { val: 6, label: "6 Months", price: "EGP 1499", desc: "Save 16%" },
-                      { val: 12, label: "12 Months", price: "EGP 2799", desc: "Save 22%" }
-                    ].map((dur) => (
-                      <div
-                        key={dur.val}
-                        onClick={() => setMonthsDuration(dur.val)}
-                        style={{
-                          padding: "16px", borderRadius: "16px",
-                          border: `2px solid ${monthsDuration === dur.val ? R : BRD}`,
-                          background: monthsDuration === dur.val ? ACT : WH,
-                          cursor: "pointer", transition: "all 0.2s", position: "relative"
-                        }}
-                      >
-                        {dur.recommended && (
-                          <div style={{
-                            position: "absolute", top: -8, right: 10, background: R, color: "#fff",
-                            fontSize: "8px", fontWeight: 800, padding: "2px 6px", borderRadius: "999px"
-                          }}>
-                            RECOMMENDED
-                          </div>
-                        )}
-                        <div style={{ fontSize: "14px", fontWeight: 700, color: monthsDuration === dur.val ? R : "#111" }}>{dur.label}</div>
-                        <div style={{ fontSize: "16px", fontWeight: 900, margin: "4px 0", color: "#111" }}>{dur.price}</div>
-                        <div style={{ fontSize: "11px", color: TL }}>{dur.desc}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
-                {/* Payment Method Selector */}
-                <div style={{ marginBottom: "24px" }}>
-                  <label style={{ fontSize: "12px", fontWeight: 800, color: TL, textTransform: "uppercase", display: "block", marginBottom: "12px", letterSpacing: "0.5px" }}>
-                    Payment Method
-                  </label>
-                  <div style={{ display: "flex", gap: "12px" }}>
-                    <div 
-                      onClick={() => setPaymentMethod("Visa")}
-                      style={{
-                        flex: 1, padding: "14px", borderRadius: "12px", border: `2px solid ${paymentMethod === "Visa" ? R : BRD}`,
-                        background: paymentMethod === "Visa" ? ACT : WH, display: "flex", flexDirection: "column",
-                        alignItems: "center", cursor: "pointer", gap: "8px", transition: "all 0.2s"
-                      }}
-                    >
-                      <span style={{ fontSize: "20px" }}>💳</span>
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: paymentMethod === "Visa" ? R : "#334155" }}>Credit Card / Visa</span>
+                {/* Premium Credit Card Preview */}
+                <div style={{
+                  background: "linear-gradient(135deg, #1A1A1A 0%, #D4AF37 50%, #1A1A1A 100%)",
+                  width: "100%", height: "200px", borderRadius: "16px", padding: "24px", color: "#fff",
+                  display: "flex", flexDirection: "column", justifyContent: "space-between",
+                  boxShadow: "0 10px 25px rgba(212, 175, 55, 0.25)", position: "relative",
+                  overflow: "hidden", marginBottom: "24px"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <span style={{ fontSize: "20px", fontWeight: 900, fontStyle: "italic", letterSpacing: "-0.5px", color: "#FFD700" }}>AUTORIA PREMIUM</span>
+                    <span style={{ fontSize: "11px", fontWeight: 700, background: "rgba(255,255,255,0.15)", padding: "4px 8px", borderRadius: "4px", letterSpacing: "1px", color: "#FFD700" }}>VIP</span>
+                  </div>
+
+                  <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "2px", margin: "20px 0 10px", fontFamily: "monospace", color: "#FFD700" }}>
+                    {cardNumber || "•••• •••• •••• ••••"}
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    <div>
+                      <div style={{ fontSize: "9px", opacity: 0.8, textTransform: "uppercase", marginBottom: "2px" }}>Card Holder</div>
+                      <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase" }}>{cardName || "Your Name"}</div>
                     </div>
-                    <div 
-                      onClick={() => setPaymentMethod("Cash")}
-                      style={{
-                        flex: 1, padding: "14px", borderRadius: "12px", border: `2px solid ${paymentMethod === "Cash" ? R : BRD}`,
-                        background: paymentMethod === "Cash" ? ACT : WH, display: "flex", flexDirection: "column",
-                        alignItems: "center", cursor: "pointer", gap: "8px", transition: "all 0.2s"
-                      }}
-                    >
-                      <span style={{ fontSize: "20px" }}>💵</span>
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: paymentMethod === "Cash" ? R : "#334155" }}>Cash Desk</span>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "9px", opacity: 0.8, textTransform: "uppercase", marginBottom: "2px" }}>Expires</div>
+                      <div style={{ fontSize: "13px", fontWeight: 700 }}>{cardExpiry || "MM/YY"}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "9px", opacity: 0.8, textTransform: "uppercase", marginBottom: "2px" }}>CVV</div>
+                      <div style={{ fontSize: "13px", fontWeight: 700 }}>{cardCvv || "•••"}</div>
                     </div>
                   </div>
                 </div>
 
-                {paymentMethod === "Visa" && (
-                  <>
-                    {/* Premium Credit Card Graphic Preview (Gold & Dark design for Premium!) */}
-                    <div style={{
-                      background: "linear-gradient(135deg, #1A1A1A 0%, #D4AF37 50%, #1A1A1A 100%)",
-                      width: "100%", height: "200px", borderRadius: "16px", padding: "24px", color: "#fff",
-                      display: "flex", flexDirection: "column", justifyContent: "space-between",
-                      boxShadow: "0 10px 25px rgba(212, 175, 55, 0.25)", position: "relative",
-                      overflow: "hidden", marginBottom: "24px"
-                    }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <span style={{ fontSize: "20px", fontWeight: 900, fontStyle: "italic", letterSpacing: "-0.5px", color: "#FFD700" }}>AUTORIA PREMIUM</span>
-                        <span style={{ fontSize: "11px", fontWeight: 700, background: "rgba(255,255,255,0.15)", padding: "4px 8px", borderRadius: "4px", letterSpacing: "1px", color: "#FFD700" }}>VIP</span>
-                      </div>
-
-                      <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "2px", margin: "20px 0 10px", fontFamily: "monospace", color: "#FFD700" }}>
-                        {cardNumber || "•••• •••• •••• ••••"}
-                      </div>
-
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                        <div>
-                          <div style={{ fontSize: "9px", opacity: 0.8, textTransform: "uppercase", marginBottom: "2px" }}>Card Holder</div>
-                          <div style={{ fontSize: "13px", fontWeight: 700, textTransform: "uppercase" }}>{cardName || "Your Name"}</div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "9px", opacity: 0.8, textTransform: "uppercase", marginBottom: "2px" }}>Expires</div>
-                          <div style={{ fontSize: "13px", fontWeight: 700 }}>{cardExpiry || "MM/YY"}</div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: "9px", opacity: 0.8, textTransform: "uppercase", marginBottom: "2px" }}>CVV</div>
-                          <div style={{ fontSize: "13px", fontWeight: 700 }}>{cardCvv || "•••"}</div>
-                        </div>
-                      </div>
+                {/* Card Form inputs */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>Card Number</label>
+                    <input
+                      placeholder="4000 1234 5678 9010"
+                      maxLength="19"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(handleFormatCardNumber(e.target.value))}
+                      required
+                      style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>Cardholder Name</label>
+                    <input
+                      placeholder="JOHN DOE"
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value.toUpperCase())}
+                      required
+                      style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
+                    />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>Expiry Date</label>
+                      <input
+                        placeholder="MM/YY"
+                        maxLength="5"
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(handleFormatExpiry(e.target.value))}
+                        required
+                        style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
+                      />
                     </div>
-
-                    {/* Visa Form inputs */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>Card Number</label>
-                        <input
-                          placeholder="4000 1234 5678 9010"
-                          maxLength="19"
-                          value={cardNumber}
-                          onChange={(e) => setCardNumber(handleFormatCardNumber(e.target.value))}
-                          required
-                          style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
-                        />
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>Cardholder Name</label>
-                        <input
-                          placeholder="JOHN DOE"
-                          value={cardName}
-                          onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                          required
-                          style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
-                        />
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                          <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>Expiry Date</label>
-                          <input
-                            placeholder="MM/YY"
-                            maxLength="5"
-                            value={cardExpiry}
-                            onChange={(e) => setCardExpiry(handleFormatExpiry(e.target.value))}
-                            required
-                            style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
-                          />
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                          <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>CVV</label>
-                          <input
-                            placeholder="123"
-                            maxLength="3"
-                            value={cardCvv}
-                            onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ""))}
-                            required
-                            style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
-                          />
-                        </div>
-                      </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <label style={{ fontSize: "11px", fontWeight: 700, color: TL, textTransform: "uppercase" }}>CVV</label>
+                      <input
+                        placeholder="123"
+                        maxLength="3"
+                        value={cardCvv}
+                        onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ""))}
+                        required
+                        style={{ padding: "12px 14px", borderRadius: "8px", border: `1.5px solid ${BRD}`, fontSize: "14px", background: WH, color: "#111" }}
+                      />
                     </div>
-                  </>
-                )}
+                  </div>
+                </div>
 
                 {/* Total Summary & Checkout Button */}
                 <div style={{ display: "flex", justifyContent: "space-between", borderTop: `1px dashed ${BRD}`, paddingTop: "16px", marginTop: "16px", marginBottom: "24px" }}>
                   <span style={{ fontSize: "16px", fontWeight: 700, color: "#111" }}>TOTAL DUE:</span>
-                  <span style={{ fontSize: "20px", fontWeight: 900, color: R }}>EGP {getSubscriptionPrice(monthsDuration)}</span>
+                  <span style={{ fontSize: "20px", fontWeight: 900, color: R }}>EGP {selectedPlan?.price ?? getSubscriptionPrice(monthsDuration)}</span>
                 </div>
 
                 <button
@@ -823,7 +767,7 @@ export default function SubscriptionPage() {
                     background: R, color: "#fff", border: "none", cursor: "pointer", transition: "all 0.2s"
                   }}
                 >
-                  {checkoutLoading ? "Processing..." : `Pay EGP ${getSubscriptionPrice(monthsDuration)} & Activate`}
+                  {checkoutLoading ? "Processing..." : `Pay EGP ${selectedPlan?.price ?? getSubscriptionPrice(monthsDuration)} & Activate`}
                 </button>
               </form>
             </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAllBookings } from "../../src/API/bookingsService";
 import { paymentService } from "../../lib/api/paymentService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const STATUS_TABS = ["All", "Pending", "Confirmed", "InProgress", "Completed", "Cancelled"];
 
@@ -243,6 +244,7 @@ function BookingCard({ booking }) {
 }
 
 export default function BookingHistoryPage() {
+  const { authorized, checking } = useRoleGuard();
   const [activeTab, setActiveTab] = useState("All");
   const [allBookings, setAllBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -264,6 +266,9 @@ export default function BookingHistoryPage() {
     activeTab === "All"
       ? allBookings
       : allBookings.filter((b) => b.status === activeTab);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div className="page-container">

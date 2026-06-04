@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getAllCars, updateCar, getCarItems, getCarId } from "../../src/API/carsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 
 const FUEL_TYPES = ["Petrol", "Diesel", "Hybrid", "Electric", "LPG"];
@@ -101,6 +102,7 @@ const CarCard = ({ car, handleSetDefault }) => {
 };
 
 export default function CarsPage() {
+  const { authorized, checking } = useRoleGuard();
 
   const [carsList, setCarsList] = useState([]);
   const [toastMessage, setToastMessage] = useState(null);
@@ -167,6 +169,9 @@ export default function CarsPage() {
       alert("Failed to update default car");
     }
   };
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div className="cars-page-container">

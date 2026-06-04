@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { reservationsService } from "@/lib/api/reservationsService";
 import { getMe } from "@/lib/api/usersService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const COLORS = {
   primary: "#E8272A",
@@ -42,6 +43,7 @@ const mapReservation = (item) => {
 };
 
 export default function PartReservationsPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -209,6 +211,9 @@ export default function PartReservationsPage() {
 
   const activeThemeColor = isServiceCenter ? COLORS.success : COLORS.primary;
   const activeThemeDark = isServiceCenter ? COLORS.successDark : COLORS.primaryDark;
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "sans-serif" }}>

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { serviceCentersService, mapServiceCenterListItem } from "@/lib/api/serviceCentersService";
 import { bookingService, getBookingItems } from "@/lib/api/bookingsService";
 import { getMe } from "@/lib/api/usersService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const COLORS = {
   primary: "#E8272A",
@@ -79,6 +80,7 @@ const StatCard = ({ label, value, trend, trendUp }) => (
 );
 
 export default function ServiceCenterDashboard() {
+  const { authorized, checking } = useRoleGuard();
   const [center, setCenter] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,6 +134,8 @@ export default function ServiceCenterDashboard() {
         setLoading(false);
       });
   }, []);
+
+  if (checking || !authorized) return null;
 
   if (loading) {
     return (

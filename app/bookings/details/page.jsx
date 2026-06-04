@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getBookingById } from "../../../src/API/bookingsService";
 import { paymentService } from "../../../lib/api/paymentService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const STATUS_STYLES = {
   Pending:   { background: "#FFF8E1", color: "#F9A825", border: "1px solid #FFE082" },
@@ -52,6 +53,7 @@ function DetailRow({ label, value }) {
 }
 
 export default function BookingDetailsPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("id");
@@ -87,6 +89,9 @@ export default function BookingDetailsPage() {
         setIsLoading(false);
       });
   }, [bookingId, router]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   if (isLoading) {
     return (

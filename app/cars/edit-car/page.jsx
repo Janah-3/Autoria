@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCarById, updateCar } from "../../../src/API/carsService";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 
 const COLORS = [
@@ -34,6 +35,7 @@ const CarSVG = ({ color = "#E8192C", size = 160 }) => (
 );
 
 export default function EditCarPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const searchParams = useSearchParams();
   const carId = searchParams.get("id");
@@ -58,6 +60,9 @@ useEffect(() => {
       });
   }
 }, [carId, router]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
 
   const handleInputChange = (field, value) => {
