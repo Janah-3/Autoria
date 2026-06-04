@@ -11,6 +11,7 @@ import { sparePartsService } from "@/lib/sparePartsService";
 import { getSparePartItems } from "@/lib/api/mappers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { reviewsService } from "@/lib/api/reviewsService";
 import { SkeletonBox, SkeletonCard } from "@/components/Skeleton";
 
 const R = "#E8272A";
@@ -357,9 +358,9 @@ function CTA() {
 
 // ── Main export
 export default function AutoriaHomePage() {
-  const [centers, setCenters] = useState(CENTERS);
-  const [parts, setParts] = useState(PARTS);
-  const [reviews, setReviews] = useState(REVIEWS);
+  const [centers, setCenters] = useState([]);
+  const [parts, setParts] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [user, setUser] = useState(null);
 
   // AI Matching States
@@ -468,13 +469,20 @@ export default function AutoriaHomePage() {
     serviceCentersService.getAll()
       .then(res => {
         const items = getServiceCenterItems(res);
-        if (items.length) setCenters(items);
+        setCenters(items || []);
       })
       .catch(() => {});
 
     sparePartsService.getSpareParts()
       .then(data => {
-        if (data.length) setParts(data);
+        setParts(data || []);
+      })
+      .catch(() => {});
+
+    reviewsService.getMyReviews()
+      .then(res => {
+        const items = res?.data ?? res ?? [];
+        setReviews(items.slice(0, 6)); // Display latest 6 reviews
       })
       .catch(() => {});
   }, []);

@@ -6,6 +6,7 @@ import { sparePartsService } from "../../lib/sparePartsService";
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 
 const COLORS = {
@@ -135,6 +136,7 @@ const mapSearchToCategory = (searchStr) => {
 };
 
 function ResultsContent() {
+  const { authorized, checking } = useRoleGuard();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [parts, setParts] = useState([]);
@@ -228,6 +230,9 @@ function ResultsContent() {
       setSelectedCategories([...selectedCategories, cat]);
     }
   };
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, fontFamily: "'Inter', sans-serif" }}>

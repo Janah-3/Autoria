@@ -385,8 +385,8 @@ export default function MyReviewsPage() {
         padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between",
         boxShadow: "0 2px 8px rgba(232,39,42,0.07)", position: "sticky", top: 0, zIndex: 10,
       }}>
-        <Link href={backHref} style={{ fontSize: 22, fontWeight: 900, color: R, textDecoration: "none" }}>
-          Autoria
+        <Link href={backHref} style={{ fontSize: 22, fontWeight: 900, color: "#111", textDecoration: "none" }}>
+          AUTO<span style={{ color: R }}>RIA</span>
         </Link>
         <Link href={backHref} style={{ fontSize: 14, fontWeight: 600, color: TL, textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
           ← Back to Dashboard

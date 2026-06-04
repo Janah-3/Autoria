@@ -61,7 +61,7 @@ function LoginView() {
       ) {
         window.location.href = "/service-center";
       } else {
-        window.location.href = "/user-dashboard";
+        window.location.href = "/";
       }
     } catch (err) {
       setError(err.message);

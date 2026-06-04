@@ -7,6 +7,7 @@ import {
   getServiceCenterItems,
 } from "@/lib/api/serviceCentersService";
 import Navbar from "@/components/Navbar";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 
 
@@ -273,6 +274,7 @@ const MOCK_CENTERS_LIST = [
 ];
 
 export default function ServiceCentersPage() {
+  const { authorized, checking } = useRoleGuard();
   const [centers, setCenters]           = useState([]);
   const [loading, setLoading]           = useState(true);
   const [user, setUser]                 = useState(null);
@@ -356,6 +358,9 @@ export default function ServiceCentersPage() {
 
     return list;
   }, [centers, activeQuery, activeLocation, city, minRating, serviceFilter, onlyOpen, sort]);
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ fontFamily: "'Inter',sans-serif", color: "#111", background: "#f7f7f8", lineHeight: 1.6, minHeight: "100vh" }}>

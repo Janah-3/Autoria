@@ -286,8 +286,8 @@ function UserProfileContent() {
           display: flex; align-items: center; justify-content: space-between;
           position: sticky; top: 0; z-index: 50;
         }
-        .logo { font-size: 22px; font-weight: 900; color: ${R}; text-decoration: none; letter-spacing: -0.5px; }
-        .logo span { color: #1E293B; font-weight: 300; }
+        .logo { font-size: 22px; font-weight: 900; color: #1E293B; text-decoration: none; letter-spacing: -0.5px; }
+        .logo span { color: ${R}; }
         .back-link {
           font-size: 13px; font-weight: 700; color: #475569; text-decoration: none;
           border: 1px solid #CBD5E1; padding: 8px 16px; border-radius: 9px;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
 const T = {
   bg:       "#F8F9FA",
@@ -47,6 +48,7 @@ function CategoryCard({ iconClass, title, onClick }) {
 }
 
 export default function SparePartsSearchPage() {
+  const { authorized, checking } = useRoleGuard();
   const router = useRouter();
   const [form, setForm] = useState({ query: "", brand: "", model: "", year: "" });
 
@@ -69,6 +71,9 @@ export default function SparePartsSearchPage() {
   ];
 
   const brands = ["TOYOTA", "BMW", "MERCEDES", "HYUNDAI", "NISSAN", "KIA", "MITSUBISHI", "HONDA"];
+
+  if (checking) return null;
+  if (!authorized) return null;
 
   return (
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text }}>

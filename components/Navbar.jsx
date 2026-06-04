@@ -194,7 +194,7 @@ export default function Navbar({ user: initialUser }) {
 
         <div style={row(20)}>
           {[
-            ["Home", "/"],
+            ...(userRole === "User" || !user ? [["Home", "/"]] : []),
             ...(userRole === "User" || !user
               ? [
                   ["Services", "/service-centers"],

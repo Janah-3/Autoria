@@ -22,7 +22,7 @@ export default function LogoutPage() {
     } finally {
       setIsDone(true);
       setTimeout(() => {
-        router.push("/login");
+        router.push("/");
       }, 1800);
     }
   };
@@ -47,7 +47,7 @@ export default function LogoutPage() {
         `}</style>
         <div>
           <div className="done-title">You have been logged out</div>
-          <div className="done-sub">Redirecting to login...</div>
+          <div className="done-sub">Redirecting to home...</div>
         </div>
       </div>
     );
@@ -201,7 +201,7 @@ export default function LogoutPage() {
 
       <nav className="top-nav">
         <span className="logo">Autoria</span>
-        <Link href="/cars" className="nav-back">Back to Dashboard</Link>
+        <Link href="/" className="nav-back">Back to Home</Link>
       </nav>
 
       <div className="page-content">
@@ -224,7 +224,7 @@ export default function LogoutPage() {
             {isLoggingOut ? "Signing out..." : "Sign Out"}
           </button>
 
-          <Link href="/cars" className="btn-cancel">
+          <Link href="/" className="btn-cancel">
             Cancel
           </Link>
         </div>
