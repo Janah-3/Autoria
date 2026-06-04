@@ -443,12 +443,7 @@ export default function BookingRequestsPage() {
       <header style={{ height: "70px", background: COLORS.surface, borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 30px", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ fontSize: "18px", fontWeight: 800 }}>{centerName}</div>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>
-          <Link href="/" style={{
-            textDecoration: "none", color: COLORS.text, fontSize: "13px", fontWeight: 700,
-            display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`
-          }}>
-            ← Back to Website
-          </Link>
+
           <div style={{ position: "relative" }}>
             <div 
               onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}

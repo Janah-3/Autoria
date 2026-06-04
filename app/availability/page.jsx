@@ -255,12 +255,7 @@ export default function AvailabilityPage() {
           <span style={{ background: "#E7F5EA", color: "#28A745", fontSize: "11px", fontWeight: 700, padding: "3px 8px", borderRadius: "6px" }}>● Live Backend API Connected</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "25px" }}>
-          <Link href="/" style={{ 
-            textDecoration: "none", color: COLORS.text, fontSize: "13px", fontWeight: 700, 
-            display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}` 
-          }}>
-            ← Back to Website
-          </Link>
+
           <div style={{ position: "relative" }}>
             <div 
               onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
