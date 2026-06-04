@@ -55,6 +55,16 @@ const StatCard = ({ label, value, trend, trendUp }) => (
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
+  const [viewedTabs, setViewedTabs] = useState(new Set());
+
+  const handleSelectTab = (tabId) => {
+    setActiveTab(tabId);
+    setViewedTabs(prev => {
+      const next = new Set(prev);
+      next.add(tabId);
+      return next;
+    });
+  };
   const [currentUser, setCurrentUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const router = useRouter();
@@ -119,6 +129,42 @@ export default function AdminDashboard() {
     description: "",
     imageUrls: [""]
   });
+
+  // Toast State
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
+
+  // Custom Confirm Modal State
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState({
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    confirmColor: COLORS.primary,
+    onConfirm: () => {}
+  });
+
+  const triggerToast = (msg, type = "success") => {
+    setToastMessage(msg);
+    setToastType(type);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  };
+
+  const showConfirm = ({ title, message, onConfirm, confirmText = "Confirm", confirmColor = COLORS.primary }) => {
+    setConfirmModalData({
+      title,
+      message,
+      confirmText,
+      confirmColor,
+      onConfirm: () => {
+        onConfirm();
+        setShowConfirmModal(false);
+      }
+    });
+    setShowConfirmModal(true);
+  };
 
   useEffect(() => {
     userService.getCurrentUser()
@@ -390,6 +436,7 @@ export default function AdminDashboard() {
     if (currentUser && currentUser.role === "Admin") {
       fetchPendingCenters();
       fetchMetrics();
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchReports();
       fetchUrgentReports();
       fetchAllCenters();
@@ -398,6 +445,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchReports();
     }
   }, [reportsStatusFilter]);
@@ -406,6 +454,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin" && activeTab === "Payments & Revenue") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchPaymentsData();
     }
   }, [currentUser, activeTab]);
@@ -434,6 +483,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin" && (activeTab === "Global Inventory" || activeTab === "Dashboard")) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchGlobalInventory();
     }
   }, [currentUser, activeTab, inventoryCenterFilter]);
@@ -567,14 +617,14 @@ export default function AdminDashboard() {
   const handleAddAdmin = async (e) => {
     e.preventDefault();
     if (!newAdminData.fullName || !newAdminData.email || !newAdminData.password || !newAdminData.phoneNumber) {
-      alert("Please fill all fields");
+      triggerToast("Please fill all fields", "warning");
       return;
     }
     setAddAdminSubmitting(true);
     setAddAdminError("");
     try {
       await addAdmin(newAdminData);
-      alert("Admin added successfully!");
+      triggerToast("Admin added successfully!", "success");
       setShowAddAdminModal(false);
       setNewAdminData({ fullName: "", email: "", password: "", phoneNumber: "" });
       fetchUsers(); // Refresh users list
@@ -588,45 +638,68 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchUsers();
     }
   }, [currentUser, activeTab, userSearch, userRoleFilter, userBanFilter]);
 
   const handleBanUser = (userId) => {
-    if (!confirm("Are you sure you want to ban this user?")) return;
-    userService.banUser(userId)
-      .then(() => {
-    
-        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, is_Banned: true } : u));
-        fetchUsers();
-      })
-      .catch((err) => {
-        alert(err.message || "Failed to ban user");
-      });
+    showConfirm({
+      title: "Ban User",
+      message: "Are you sure you want to ban this user? Banned users will not be able to log in or access the platform.",
+      confirmText: "Ban User",
+      confirmColor: COLORS.primary,
+      onConfirm: () => {
+        userService.banUser(userId)
+          .then((res) => {
+            setUsersList(prev => prev.map(u => u.id === userId ? { ...u, is_Banned: true } : u));
+            triggerToast(res?.message || "User banned successfully!", "success");
+            fetchUsers();
+          })
+          .catch((err) => {
+            triggerToast(err.message || "Failed to ban user", "error");
+          });
+      }
+    });
   };
 
   const handleUnbanUser = (userId) => {
-    if (!confirm("Are you sure you want to unban this user?")) return;
-    userService.unbanUser(userId)
-      .then(() => {
-        // Optimistically update local state to show active status immediately
-        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, is_Banned: false } : u));
-        fetchUsers();
-      })
-      .catch((err) => {
-        alert(err.message || "Failed to unban user");
-      });
+    showConfirm({
+      title: "Unban User",
+      message: "Are you sure you want to unban this user? They will regain full access to the platform.",
+      confirmText: "Unban User",
+      confirmColor: COLORS.success,
+      onConfirm: () => {
+        userService.unbanUser(userId)
+          .then((res) => {
+            setUsersList(prev => prev.map(u => u.id === userId ? { ...u, is_Banned: false } : u));
+            triggerToast(res?.message || "User unbanned successfully!", "success");
+            fetchUsers();
+          })
+          .catch((err) => {
+            triggerToast(err.message || "Failed to unban user", "error");
+          });
+      }
+    });
   };
 
   const handleDeleteUser = (userId) => {
-    if (!confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) return;
-    userService.deleteUser(userId)
-      .then(() => {
-        fetchUsers();
-      })
-      .catch((err) => {
-        alert(err.message || "Failed to delete user");
-      });
+    showConfirm({
+      title: "Delete User",
+      message: "Are you sure you want to permanently delete this user? This action cannot be undone.",
+      confirmText: "Delete",
+      confirmColor: "#475569",
+      onConfirm: () => {
+        userService.deleteUser(userId)
+          .then((res) => {
+            triggerToast(res?.message || "User deleted successfully!", "success");
+            fetchUsers();
+          })
+          .catch((err) => {
+            triggerToast(err.message || "Failed to delete user", "error");
+          });
+      }
+    });
   };
 
   const fetchSpareParts = () => {
@@ -654,6 +727,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin" && activeTab === "Spare Parts") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchSpareParts();
     }
   }, [currentUser, activeTab, sparePartsSearch, sparePartsCategoryFilter, sparePartsIncludeInactive]);
@@ -733,8 +807,34 @@ export default function AdminDashboard() {
         .admin-btn:active { opacity: 0.7; }
         .back-link { transition: background 0.2s ease; }
         .back-link:hover { background: #f5f5f5 !important; }
+
+        @keyframes slideInRight {
+          from { transform: translateX(120%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-notification {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          background: #ffffff;
+          border-left: 5px solid #10B981;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+          padding: 16px 24px;
+          border-radius: 12px;
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          animation: slideInRight 0.3s cubic-bezier(0.68, -0.6, 0.32, 1.6);
+          max-width: 380px;
+          font-family: 'Inter', sans-serif;
+          transition: all 0.3s ease;
+        }
+        .toast-notification.success { border-left-color: #10B981; }
+        .toast-notification.warning { border-left-color: #FFB800; }
+        .toast-notification.error   { border-left-color: #E8272A; }
       `}</style>
-      <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} badges={{ verification: verificationQueue.length, reports: reportsList.filter(r => r.status === 0 || r.status === "Pending").length, users: usersList.length, spareParts: sparePartsList.length, globalInventory: inventoryList.filter(p => p.isFlaggedLowStock).length }} colors={COLORS} />
+      <AdminSidebar activeTab={activeTab} setActiveTab={handleSelectTab} badges={{ verification: viewedTabs.has("Center verification") ? 0 : verificationQueue.length, reports: viewedTabs.has("User reports") ? 0 : reportsList.filter(r => r.status === 0 || r.status === "Pending").length, users: viewedTabs.has("User management") ? 0 : usersList.length, spareParts: viewedTabs.has("Spare Parts") ? 0 : sparePartsList.length, globalInventory: viewedTabs.has("Global Inventory") ? 0 : inventoryList.filter(p => p.isFlaggedLowStock).length }} colors={COLORS} />
 
       <main style={{ flex: 1, padding: "40px", maxWidth: "1600px" }}>
         <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "32px" }}>
@@ -804,7 +904,7 @@ export default function AdminDashboard() {
               <div style={{ position: "relative", zIndex: 1 }}>
                 <h2 style={{ fontSize: "28px", fontWeight: 900, margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>Welcome Back, {adminName || "Admin"}!</h2>
                 <p style={{ fontSize: "15px", opacity: 0.9, margin: 0, maxWidth: "600px", lineHeight: "1.6" }}>
-                  Here is what's happening on Autoria today. You have <strong style={{ textDecoration: "underline" }}>{verificationQueue.length} pending service centers</strong> waiting for verification. Keep the directory verified and pristine!
+                  Here is what&apos;s happening on Autoria today. You have <strong style={{ textDecoration: "underline" }}>{verificationQueue.length} pending service centers</strong> waiting for verification. Keep the directory verified and pristine!
                 </p>
               </div>
 
@@ -1243,8 +1343,8 @@ export default function AdminDashboard() {
             <div style={{ background: "#F1F5F9", padding: "16px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "12px" }}>
               <div style={{ fontSize: "18px", color: "#2563EB" }}><i className="fa-solid fa-circle-info"></i></div>
               <div style={{ fontSize: "12px", color: "#475569", lineHeight: 1.5 }}>
-                <strong>Tip:</strong> You can verify the workshop's authenticity by checking their Trade License against the official government database before approving. 
-                Approved centers will gain the <span style={{ color: COLORS.primary, fontWeight: 700 }}>"Verified"</span> badge on their profile.
+                <strong>Tip:</strong> You can verify the workshop&apos;s authenticity by checking their Trade License against the official government database before approving. 
+                Approved centers will gain the <span style={{ color: COLORS.primary, fontWeight: 700 }}>&quot;Verified&quot;</span> badge on their profile.
               </div>
             </div>
           </div>
@@ -1609,7 +1709,7 @@ export default function AdminDashboard() {
                          <td colSpan="6" style={{ padding: "60px", textAlign: "center", color: COLORS.textLight }}>
                            <div style={{ fontSize: "40px", marginBottom: "10px", color: COLORS.textLight }}><i className="fa-solid fa-cubes"></i></div>
                            <div style={{ fontWeight: 800 }}>No parts found in platform catalog</div>
-                           <div style={{ fontSize: "12px" }}>Create one by clicking the "Add Spare Part" button above.</div>
+                           <div style={{ fontSize: "12px" }}>Create one by clicking the &quot;Add Spare Part&quot; button above.</div>
                          </td>
                        </tr>
                      )}
@@ -2556,7 +2656,7 @@ export default function AdminDashboard() {
                 {raw.description && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px", background: "#F8F9FA", padding: "12px 16px", borderRadius: "10px", border: `1px solid ${COLORS.border}` }}>
                     <div style={{ fontSize: "11px", fontWeight: 700, color: COLORS.textLight }}>BUSINESS DESCRIPTION</div>
-                    <div style={{ fontSize: "12.5px", color: COLORS.text, lineHeight: 1.4 }}>"{raw.description}"</div>
+                    <div style={{ fontSize: "12.5px", color: COLORS.text, lineHeight: 1.4 }}>&quot;{raw.description}&quot;</div>
                   </div>
                 )}
 
@@ -2935,7 +3035,7 @@ export default function AdminDashboard() {
                       </div>
                       {log.reason && (
                         <div style={{ fontSize: "12px", color: "#475569", borderTop: `1px dashed ${COLORS.border}`, paddingTop: "6px", marginTop: "2px" }}>
-                          <strong>Reason:</strong> "{log.reason}"
+                          <strong>Reason:</strong> &quot;{log.reason}&quot;
                         </div>
                       )}
                     </div>
@@ -2961,6 +3061,52 @@ export default function AdminDashboard() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal Overlay */}
+      {showConfirmModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, animation: "fadeIn 0.2s ease-out" }}>
+          <div style={{ background: COLORS.white, borderRadius: "20px", width: "100%", maxWidth: "440px", padding: "32px", border: `1px solid ${COLORS.border}`, boxShadow: "0 20px 50px rgba(15, 23, 42, 0.15)", textAlign: "center", position: "relative" }}>
+            <div style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              background: confirmModalData.confirmColor === COLORS.success ? "#E8F5E9" : "#FEF2F2",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 20px",
+              border: `2px solid ${confirmModalData.confirmColor === COLORS.success ? "#A5D6A7" : "#FCA5A5"}`
+            }}>
+              <i className={confirmModalData.confirmColor === COLORS.success ? "fa-solid fa-circle-question" : "fa-solid fa-triangle-exclamation"} style={{ color: confirmModalData.confirmColor, fontSize: "24px" }}></i>
+            </div>
+            <h3 style={{ fontSize: "18px", fontWeight: 800, color: COLORS.text, margin: "0 0 12px 0" }}>{confirmModalData.title}</h3>
+            <p style={{ fontSize: "14.5px", color: COLORS.textLight, lineHeight: "1.6", margin: "0 0 24px 0" }}>{confirmModalData.message}</p>
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <button 
+                onClick={() => setShowConfirmModal(false)}
+                style={{ background: "#F3F4F6", border: "none", padding: "12px 24px", borderRadius: "10px", fontWeight: 700, fontSize: "13.5px", color: COLORS.textLight, cursor: "pointer", flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmModalData.onConfirm}
+                style={{ background: confirmModalData.confirmColor, color: "#fff", border: "none", padding: "12px 24px", borderRadius: "10px", fontWeight: 800, fontSize: "13.5px", cursor: "pointer", flex: 1, boxShadow: `0 4px 12px ${confirmModalData.confirmColor}33` }}
+              >
+                {confirmModalData.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className={`toast-notification ${toastType}`}>
+          <i className={`fa-solid ${toastType === "success" ? "fa-circle-check" : toastType === "warning" ? "fa-triangle-exclamation" : "fa-circle-xmark"}`}
+             style={{ color: toastType === "success" ? "#10B981" : toastType === "warning" ? "#FFB800" : "#E8272A", fontSize: 18 }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.text }}>{toastMessage}</span>
         </div>
       )}
       </main>
