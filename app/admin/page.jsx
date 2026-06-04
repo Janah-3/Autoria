@@ -153,6 +153,7 @@ export default function AdminDashboard() {
   const [refundReason, setRefundReason] = useState("");
   const [paymentsStatusFilter, setPaymentsStatusFilter] = useState("all");
   const [paymentsSearch, setPaymentsSearch] = useState("");
+  const [paymentsMethodFilter, setPaymentsMethodFilter] = useState("all");
 
   // Global Inventory State Hooks
   const [inventoryList, setInventoryList] = useState([]);
