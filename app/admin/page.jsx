@@ -900,7 +900,7 @@ export default function AdminDashboard() {
               <div style={{ position: "relative", zIndex: 1 }}>
                 <h2 style={{ fontSize: "28px", fontWeight: 900, margin: "0 0 8px 0", letterSpacing: "-0.5px" }}>Welcome Back, {adminName || "Admin"}!</h2>
                 <p style={{ fontSize: "15px", opacity: 0.9, margin: 0, maxWidth: "600px", lineHeight: "1.6" }}>
-                  Here is what&apos;s happening on Autoria today. You have <strong style={{ textDecoration: "underline" }}>{verificationQueue.length} pending service centers</strong> waiting for verification. Keep the directory verified and pristine!
+                  Here is what&apos;s happening on Autoria today.
                 </p>
               </div>
 
