@@ -843,11 +843,7 @@ export default function AdminDashboard() {
             <p style={{ color: COLORS.textLight, fontSize: "14px", margin: "4px 0 0" }}>Sunday, 15 March 2026 • Platform management</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <Link href="/" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
-                <span>←</span> Back to Website
-              </Link>
-            </div>
+
             <div style={{ position: "relative" }}>
               <div 
                 onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}
