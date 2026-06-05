@@ -64,6 +64,7 @@ namespace Autoria.Infrastructure.Persistence.Seeding
                 // 3. Seed Complex Features
                 await new ServiceCenterSeeder(_context, _userManager).SeedAsync();
                 await new SparePartSeeder(_context).SeedAsync();           // before Inventory
+                await new SparePartImageSeeder(_context).SeedAsync();
                 await new operatingHours_TimeSlotsSeeder(_context).SeedAsync();
                 await new InventorySeeder(_context).SeedAsync();
 

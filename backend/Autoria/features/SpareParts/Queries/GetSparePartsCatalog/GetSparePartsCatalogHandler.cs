@@ -24,7 +24,7 @@ namespace Autoria.features.SpareParts.Queries.GetSparePartsCatalog
                 .Include(sp => sp.Images)
                 .Include(sp => sp.Inventories)
                 .Include(sp => sp.Compatibilities)
-                .Where(sp => sp.IsActive);
+                .Where(sp => sp.IsActive && sp.Inventories.Any(i => i.IsAvailable && i.Quantity > 0));
 
             if (!string.IsNullOrWhiteSpace(f.Search))
                 query = query.Where(sp =>
@@ -77,4 +77,5 @@ namespace Autoria.features.SpareParts.Queries.GetSparePartsCatalog
                 f.PageSize);
         }
     }
+
 }

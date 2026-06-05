@@ -52,6 +52,7 @@
 
   <ItemGroup>
     <Folder Include="features\auth\Commands\NewFolder\" />
+    <Folder Include="wwwroot\Images\SpareParts\" />
   </ItemGroup>
 
 </Project>

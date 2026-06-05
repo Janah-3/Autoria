@@ -29,7 +29,7 @@ namespace Autoria.features.Subscribtion.Queries.GetSubscriptionPlans
             {
                 Plan         = SubscriptionPlan.Premium,
                 Name         = "Premium",
-                MonthlyPrice = 1300,
+                MonthlyPrice = 1350,
                 Features     = new()
                 {
                     "Everything in Free",
