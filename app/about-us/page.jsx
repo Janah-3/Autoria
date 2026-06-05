@@ -39,7 +39,9 @@ export default function AboutUs() {
         {/* Brand Mission & Vision Cards */}
         <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "32px", marginBottom: "80px" }}>
           <div style={{ background: COLORS.white, borderRadius: "20px", padding: "40px", border: `1px solid ${COLORS.border}`, boxShadow: SHADOW }}>
-            <div style={{ fontSize: "36px", marginBottom: "20px" }}>🎯</div>
+            <div style={{ marginBottom: "20px" }}>
+              <i className="fa-solid fa-bullseye" style={{ fontSize: "36px", color: COLORS.primary }} />
+            </div>
             <h3 style={{ fontSize: "20px", fontWeight: 800, color: COLORS.text, margin: "0 0 16px 0" }}>Our Mission</h3>
             <p style={{ fontSize: "14px", color: COLORS.textLight, lineHeight: 1.7, margin: 0 }}>
               Autoria envisions a future where vehicle owners in Egypt no longer depend on informal referrals, uncertainty, or fragmented service experiences to maintain their vehicles. The company aims to build the trust infrastructure that transforms Egypt’s automotive aftermarket into a transparent, verified, and digitally connected ecosystem where every maintenance decision, service provider, and vehicle record can be trusted, documented, and easily accessed.
@@ -47,7 +49,9 @@ export default function AboutUs() {
           </div>
 
           <div style={{ background: COLORS.white, borderRadius: "20px", padding: "40px", border: `1px solid ${COLORS.border}`, boxShadow: SHADOW }}>
-            <div style={{ fontSize: "36px", marginBottom: "20px" }}>👁️‍🗨️</div>
+            <div style={{ marginBottom: "20px" }}>
+              <i className="fa-solid fa-eye" style={{ fontSize: "36px", color: COLORS.primary }} />
+            </div>
             <h3 style={{ fontSize: "20px", fontWeight: 800, color: COLORS.text, margin: "0 0 16px 0" }}>Our Vision</h3>
             <p style={{ fontSize: "14px", color: COLORS.textLight, lineHeight: 1.7, margin: 0 }}>
               Autoria connects vehicle owners with verified automotive service centers through a structured digital marketplace designed to simplify service discovery, booking management, and long-term vehicle maintenance tracking. Through verified onboarding systems, booking-based reviews, and permanent Digital Vehicle Service History records, Autoria helps vehicle owners make more reliable maintenance decisions while enabling independent service centers to build customer trust, digital presence, and sustainable business growth.
@@ -55,32 +59,20 @@ export default function AboutUs() {
           </div>
         </section>
 
-        {/* Stats Row */}
-        <section style={{ background: COLORS.white, borderRadius: "24px", padding: "48px", border: `1px solid ${COLORS.border}`, boxShadow: SHADOW, display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "32px", marginBottom: "80px" }}>
-          {[
-            { value: "180+", label: "Verified Centers" },
-            { value: "12K+", label: "Happy Car Owners" },
-            { value: "50K+", label: "Genuine Catalog Parts" },
-            { value: "100%", label: "Satisfaction Guaranteed" },
-          ].map((stat, i) => (
-            <div key={i} style={{ textAlign: "center", minWidth: "180px" }}>
-              <div style={{ fontSize: "36px", fontWeight: 900, color: COLORS.primary, marginBottom: "8px" }}>{stat.value}</div>
-              <div style={{ fontSize: "12px", color: COLORS.textLight, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px" }}>{stat.label}</div>
-            </div>
-          ))}
-        </section>
 
         {/* Core Values */}
         <section style={{ marginBottom: "40px" }}>
           <h2 style={{ fontSize: "28px", fontWeight: 800, color: COLORS.text, textAlign: "center", marginBottom: "48px" }}>Our Core Values</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "24px" }}>
             {[
-              { title: "Verification First", desc: "We manually verify each service center trade license, equipment grade, and legal files before approval.", icon: "🛡️" },
-              { title: "Zero Hardcoded Bias", desc: "No paid placements or fake reviews. Customer ratings and availability represent pure live platform data.", icon: "⭐" },
-              { title: "Total Traceability", desc: "Every spare part in our catalog features clear SKUs, manufacturer origin details, and verified center counts.", icon: "📦" },
+              { title: "Verification First", desc: "We manually verify each service center trade license, equipment grade, and legal files before approval.", iconClass: "fa-solid fa-shield-halved" },
+              { title: "Zero Hardcoded Bias", desc: "No paid placements or fake reviews. Customer ratings and availability represent pure live platform data.", iconClass: "fa-solid fa-star" },
+              { title: "Total Traceability", desc: "Every spare part in our catalog features clear SKUs, manufacturer origin details, and verified center counts.", iconClass: "fa-solid fa-box" },
             ].map((value, i) => (
               <div key={i} style={{ background: COLORS.white, borderRadius: "16px", padding: "32px", border: `1px solid ${COLORS.border}`, borderTop: `4px solid ${COLORS.primary}`, boxShadow: SHADOW }}>
-                <span style={{ fontSize: "24px", display: "block", marginBottom: "16px" }}>{value.icon}</span>
+                <span style={{ display: "block", marginBottom: "16px" }}>
+                  <i className={value.iconClass} style={{ fontSize: "24px", color: COLORS.primary }} />
+                </span>
                 <h4 style={{ fontSize: "16px", fontWeight: 800, color: COLORS.text, margin: "0 0 12px 0" }}>{value.title}</h4>
                 <p style={{ fontSize: "13px", color: COLORS.textLight, lineHeight: 1.6, margin: 0 }}>{value.desc}</p>
               </div>

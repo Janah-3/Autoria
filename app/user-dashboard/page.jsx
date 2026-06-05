@@ -26,25 +26,12 @@ export default function UserDashboardPage() {
     }
     setDetectingLoc(true);
 
-    // 1. Safety fallback timeout to unlock the UI under any browser hang conditions
-    const safetyTimeout = setTimeout(() => {
-      setDetectingLoc(false);
-      alert("Location request timed out. Please check your browser location permissions.");
-    }, 12000);
-
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        clearTimeout(safetyTimeout);
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         try {
-          // 2. Race API request with a 6-second timeout to handle slow/hanging backend calls
-          const apiCall = usersService.setMyLocation(lat, lng);
-          const apiTimeout = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("API request timed out")), 6000)
-          );
-
-          await Promise.race([apiCall, apiTimeout]);
+          await usersService.setMyLocation(lat, lng);
           alert("Location detected and updated in your profile successfully!");
         } catch (err) {
           console.warn("Failed to sync location:", err);
@@ -59,12 +46,10 @@ export default function UserDashboardPage() {
         }
       },
       (error) => {
-        clearTimeout(safetyTimeout);
         console.warn("Location error:", error);
         alert("Failed to acquire location: " + (error.message || "Permission denied"));
         setDetectingLoc(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000 }
+      }
     );
   };
 

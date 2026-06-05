@@ -55,6 +55,7 @@ export default function NotificationDetailsPage({ params }) {
       setError(null);
       // Mark as read when opening, then fetch list to find this item
       await notificationService.markAsRead(id);
+      window.dispatchEvent(new Event("notificationsUpdated"));
       const data = await notificationService.getNotifications({ pageSize: 100 });
       const found = (data?.items ?? []).find((n) => n.id === id);
       if (!found) throw new Error("Notification not found");

@@ -74,6 +74,7 @@ export default function NotificationListPage() {
       await notificationService.markAllAsRead();
       // optimistic UI update
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      window.dispatchEvent(new Event("notificationsUpdated"));
     } catch (err) {
       console.error(err);
     } finally {
