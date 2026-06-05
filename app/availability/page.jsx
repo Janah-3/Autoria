@@ -82,6 +82,32 @@ const DayRow = ({ dayData, onToggle, onTimeChange }) => (
 );
 
 export default function AvailabilityPage() {
+  const getTodayDateString = () => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const formatHeaderDate = (dateStr) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const date = new Date(year, month, day);
+    return date.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
+  };
+
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+  const currentMonthYearName = today.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
   const [workingHours, setWorkingHours] = useState([
     { day: "Sunday", isOpen: true, start: "09:00", end: "18:00" },
     { day: "Monday", isOpen: true, start: "09:00", end: "18:00" },
@@ -93,7 +119,7 @@ export default function AvailabilityPage() {
   ]);
 
   const [timeSlots, setTimeSlots] = useState([]);
-  const [selectedDate, setSelectedDate] = useState("Monday 16 March");
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
   const [centerName, setCenterName] = useState("AutoCare Nasr City");
   const [ownerName, setOwnerName] = useState("Nada Hany");
   const [centerId, setCenterId] = useState("");
@@ -141,9 +167,6 @@ export default function AvailabilityPage() {
     if (!centerId || !selectedDate) return;
     
     let formattedDate = selectedDate;
-    if (selectedDate === "Monday 16 March") {
-      formattedDate = "2026-03-16";
-    }
 
     bookingsService.getAvailableSlots(centerId, formattedDate)
       .then((res) => {
@@ -211,12 +234,17 @@ export default function AvailabilityPage() {
           
           const rawHours = d.operatingHours ?? d.OperatingHours;
           if (rawHours && rawHours.length) {
-            setWorkingHours(rawHours.map(h => ({
-              day: h.day ?? h.Day,
-              isOpen: h.isOpen ?? h.IsOpen ?? false,
-              start: h.start ?? h.Start ?? "09:00",
-              end: h.end ?? h.End ?? "18:00"
-            })));
+            setWorkingHours(rawHours.map(h => {
+              const openVal = h.openTime ?? h.OpenTime ?? "09:00";
+              const closeVal = h.closeTime ?? h.CloseTime ?? "18:00";
+              const closedVal = h.isClosed ?? h.IsClosed ?? false;
+              return {
+                day: h.day ?? h.Day,
+                isOpen: !closedVal,
+                start: openVal.slice(0, 5),
+                end: closeVal.slice(0, 5)
+              };
+            }));
           }
         }
       })
@@ -235,7 +263,15 @@ export default function AvailabilityPage() {
 
   const handleSaveHours = async () => {
     try {
-      await serviceCentersService.updateOperatingHours(workingHours);
+      const payload = {
+        operatingHours: workingHours.map(d => ({
+          day: d.day,
+          openTime: d.isOpen ? d.start.slice(0, 5) : "00:00",
+          closeTime: d.isOpen ? d.end.slice(0, 5) : "00:00",
+          isClosed: !d.isOpen
+        }))
+      };
+      await serviceCentersService.updateOperatingHours(payload);
       alert("Hours saved successfully!");
     } catch (err) {
       alert("Failed to save: " + err.message);
@@ -304,7 +340,7 @@ export default function AvailabilityPage() {
 
             <div style={{ background: COLORS.surface, padding: "30px", borderRadius: "20px", border: `1px solid ${COLORS.border}` }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
-                <h3 style={{ fontSize: "16px", fontWeight: 800 }}>March 2026</h3>
+                <h3 style={{ fontSize: "16px", fontWeight: 800 }}>{currentMonthYearName}</h3>
                 <div style={{ display: "flex", gap: "15px", fontSize: "11px", color: COLORS.textLight, fontWeight: 600 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}><div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#28A745" }}></div> Bookings</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}><div style={{ width: "8px", height: "8px", borderRadius: "50%", background: COLORS.primary }}></div> Blocked</div>
@@ -313,17 +349,25 @@ export default function AvailabilityPage() {
               
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "10px", textAlign: "center", fontSize: "12px" }}>
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <div key={d} style={{ fontWeight: 800, color: COLORS.textLight, marginBottom: "10px" }}>{d}</div>)}
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
-                  const dateStr = `2026-03-${day < 10 ? '0' + day : day}`;
-                  const isSelected = selectedDate === dateStr || (selectedDate === "Monday 16 March" && day === 16);
+                {/* Padding cells for day alignment */}
+                {Array.from({ length: firstDayIndex }).map((_, idx) => (
+                  <div key={`empty-${idx}`} />
+                ))}
+                {/* Actual month days */}
+                {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
+                  const mmStr = String(currentMonth + 1).padStart(2, '0');
+                  const ddStr = String(day).padStart(2, '0');
+                  const dateStr = `${currentYear}-${mmStr}-${ddStr}`;
+                  const isSelected = selectedDate === dateStr;
+                  const isMockBlocked = day === 19 || day === 21;
                   return (
                     <div key={day} 
                       onClick={() => setSelectedDate(dateStr)}
                       style={{ 
                         padding: "10px 0", borderRadius: "8px", cursor: "pointer", fontWeight: 600,
-                        background: isSelected ? COLORS.activeBg : (day === 19 || day === 21 ? "#FEEBEB" : "transparent"),
+                        background: isSelected ? COLORS.activeBg : (isMockBlocked ? "#FEEBEB" : "transparent"),
                         border: isSelected ? `1px solid ${COLORS.primary}` : "none",
-                        color: isSelected || day === 19 || day === 21 ? COLORS.primary : COLORS.text
+                        color: isSelected || isMockBlocked ? COLORS.primary : COLORS.text
                       }}>
                       {day}
                     </div>
@@ -405,7 +449,7 @@ export default function AvailabilityPage() {
           )}
 
           <div style={{ background: COLORS.surface, padding: "30px", borderRadius: "20px", border: `1px solid ${COLORS.border}` }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "25px" }}>Time slots — {selectedDate}</h3>
+            <h3 style={{ fontSize: "16px", fontWeight: 800, marginBottom: "25px" }}>Time slots — {formatHeaderDate(selectedDate)}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "15px" }}>
               {timeSlots.map((slot, idx) => (
                 <div key={idx} style={{ 

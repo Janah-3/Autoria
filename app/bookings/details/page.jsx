@@ -415,15 +415,15 @@ export default function BookingDetailsPage() {
           </div>
         )}
 
-        {/* Rate section — only shown when Completed & Paid */}
-        {booking.status === "Completed" && invoice?.status === "Paid" && (
+        {/* Rate section — only shown when Completed */}
+        {booking.status === "Completed" && (
           <div className="section-card" style={{ border: "1.5px solid #FDE68A", background: "#FFFBEB" }}>
             <div className="section-title" style={{ color: "#92400E" }}>⭐ Rate Your Experience</div>
             <p style={{ fontSize: "14px", color: "#78350F", marginBottom: "16px", lineHeight: 1.6 }}>
               How was your service at <strong>{booking.serviceCenter?.name}</strong>? Your feedback helps others choose the right service center.
             </p>
             <Link
-              href={`/reviews/write?serviceCenterId=${booking.serviceCenter?.id}&serviceCenterName=${encodeURIComponent(booking.serviceCenter?.name || "")}&bookingId=${booking.id}`}
+              href={`/reviews/write?serviceCenterId=${booking.serviceCenter?.id ?? booking.serviceCenter?.Id}&serviceCenterName=${encodeURIComponent(booking.serviceCenter?.name || "")}&bookingId=${booking.id}`}
               style={{
                 display: "block",
                 width: "100%",

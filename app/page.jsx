@@ -320,22 +320,30 @@ function Reviews({ reviews }) {
     <section style={{ padding: "72px 5%", background: "#f7f7f8" }}>
       <SH tag="Customer Reviews" h2="Trusted by" em="Thousands" sub="Real experiences from real car owners across Egypt." />
       <div style={grid(3, 16)}>
-        {reviews.map(r => (
-          <div key={r.name} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
-            <div style={{ marginBottom: 10 }}>
-              <span style={{ color: "#f59e0b", fontSize: 12, letterSpacing: 1 }}>{"★".repeat(r.stars)}{"☆".repeat(5 - r.stars)}</span>
-              <span style={{ background: "#fff0f0", color: R, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: 6 }}><i className="fa-solid fa-check" style={{ marginRight: 3 }}></i>Verified</span>
-            </div>
-            <p style={{ fontSize: 12, color: "#374151", lineHeight: 1.75, marginBottom: 14, borderLeft: `3px solid ${R}`, paddingLeft: 12, fontStyle: "italic" }}>{r.text}</p>
-            <div style={row(9)}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#fff0f0", border: `2px solid ${R}`, display: "flex", alignItems: "center", justifyContent: "center", color: RD, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{r.init}</div>
-              <div>
-                <span style={{ fontSize: 12, fontWeight: 700, display: "block" }}>{r.name}</span>
-                <span style={{ fontSize: 11, color: "#9ca3af" }}>{r.car}</span>
+        {reviews.map(r => {
+          const key = r.id || r.Id || r.name || Math.random();
+          const stars = r.stars ?? r.rating ?? r.Rating ?? 5;
+          const text = r.text ?? r.comment ?? r.Comment ?? "";
+          const name = r.name ?? r.userName ?? r.UserName ?? "Customer";
+          const car = r.car ?? r.carModel ?? r.CarModel ?? "";
+          const init = r.init ?? name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+          return (
+            <div key={key} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
+              <div style={{ marginBottom: 10 }}>
+                <span style={{ color: "#f59e0b", fontSize: 12, letterSpacing: 1 }}>{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>
+                <span style={{ background: "#fff0f0", color: R, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: 6 }}><i className="fa-solid fa-check" style={{ marginRight: 3 }}></i>Verified</span>
+              </div>
+              <p style={{ fontSize: 12, color: "#374151", lineHeight: 1.75, marginBottom: 14, borderLeft: `3px solid ${R}`, paddingLeft: 12, fontStyle: "italic" }}>{text}</p>
+              <div style={row(9)}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#fff0f0", border: `2px solid ${R}`, display: "flex", alignItems: "center", justifyContent: "center", color: RD, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{init}</div>
+                <div>
+                  <span style={{ fontSize: 12, fontWeight: 700, display: "block" }}>{name}</span>
+                  {car && <span style={{ fontSize: 11, color: "#9ca3af" }}>{car}</span>}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
