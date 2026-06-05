@@ -21,7 +21,7 @@ export default function Footer() {
               AUTO<span style={{ opacity: 0.4 }}>RIA</span>
             </div>
             <p style={{ color: COLORS.textLight, fontSize: "12px", lineHeight: "1.8", maxWidth: "250px" }}>
-              Egypt's leading platform connecting car owners with verified service centers and genuine spare parts.
+              Egypt&apos;s leading platform connecting car owners with verified service centers and genuine spare parts.
             </p>
           </div>
 
@@ -44,9 +44,7 @@ export default function Footer() {
             <h4 style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "1.5px", marginBottom: "20px", color: "#FFF" }}>Business </h4>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
               {[
-                { name: "Register Center", href: "/service-center-registration" },
-                { name: "Edit Business", href: "/service-center/edit" },
-                { name: "Manage Inventory", href: "/spare-parts-inventory" }
+                { name: "Register Center", href: "/service-center-registration" }
               ].map(link => (
                 <li key={link.name}>
                   <a href={link.href} style={{ color: COLORS.textLight, fontSize: "12px", textDecoration: "none", transition: "0.2s" }}>{link.name}</a>

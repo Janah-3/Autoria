@@ -1586,7 +1586,7 @@ export default function AdminDashboard() {
                <StatCard label="Total Catalog Parts" value={sparePartsList.length.toString()} trend="Platform items" trendUp />
                <StatCard label="Unique Categories" value={new Set(sparePartsList.map(p => p.category)).size.toString()} trend="Different types" />
                <StatCard label="Unassigned Parts" value={sparePartsList.filter(p => p.totalAvailableCenters === 0).length.toString()} trend="No center offers them" />
-               <StatCard label="Active Status" value="Healthy" trend="100% working API" trendUp />
+               <StatCard label="Active Listings" value={sparePartsList.filter(p => p.isActive !== false && p.isActive !== 0).length.toString()} trend="Available in catalog" trendUp />
              </div>
 
              {/* Search and Filters panel */}

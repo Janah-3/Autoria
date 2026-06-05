@@ -44,6 +44,8 @@ export default function Navbar({ user: initialUser }) {
       }
     };
 
+    window.addEventListener("notificationsUpdated", fetchUnreadCount);
+
     if (cachedToken) {
       setUser({ name: cachedName || "User" });
       fetchUnreadCount();
@@ -113,6 +115,10 @@ export default function Navbar({ user: initialUser }) {
     };
 
     fetchUser();
+
+    return () => {
+      window.removeEventListener("notificationsUpdated", fetchUnreadCount);
+    };
   }, []);
 
   return (

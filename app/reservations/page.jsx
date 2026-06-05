@@ -108,12 +108,6 @@ export default function PartReservationsPage() {
 
   // Helper to determine if an active reservation has expired
   const getEffectiveStatus = (res) => {
-    if (res.status === "Reserved" && res.expiresAt) {
-      const expiry = new Date(res.expiresAt);
-      if (new Date() > expiry) {
-        return "Expired";
-      }
-    }
     return res.status;
   };
 
@@ -178,7 +172,7 @@ export default function PartReservationsPage() {
   const getExpirationLabel = (expiresAt) => {
     if (!expiresAt) return "";
     const diff = new Date(expiresAt) - new Date();
-    if (diff <= 0) return "Expired";
+    if (diff <= 0) return "";
     
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -239,7 +233,7 @@ export default function PartReservationsPage() {
               <p style={{ fontSize: "15px", marginTop: "10px", opacity: 0.9, fontWeight: 500 }}>
                 {isServiceCenter 
                   ? `Manage spare parts reserved by customers at your workshop. Current pending: ${activeCount} reservations.`
-                  : `Review and track your reserved automotive genuine parts. You have ${activeCount} active bookings.`
+                  : "Review and track your reserved automotive genuine parts."
                 }
               </p>
             </div>
@@ -249,17 +243,20 @@ export default function PartReservationsPage() {
                 style={{
                   background: "#FFF", color: COLORS.success, border: "none", padding: "12px 24px",
                   borderRadius: "10px", fontWeight: "700", cursor: "pointer", fontSize: "14px",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+                  boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                  display: "flex", alignItems: "center", gap: "8px"
                 }}
               >
-                📬 Bookings Requests
+                <i className="fa-solid fa-envelope-open-text" /> Bookings Requests
               </button>
             )}
           </div>
 
           {error ? (
             <div style={{ background: "#FFF", padding: "40px", borderRadius: "15px", textAlign: "center", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
-              <div style={{ fontSize: "50px", marginBottom: "15px" }}>⚠️</div>
+              <div style={{ marginBottom: "15px" }}>
+                <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: "50px", color: COLORS.danger }} />
+              </div>
               <h3 style={{ color: COLORS.danger, marginBottom: "10px" }}>Authentication Error</h3>
               <p style={{ color: COLORS.textLight, marginBottom: "25px" }}>{error}</p>
               <button 
@@ -274,7 +271,7 @@ export default function PartReservationsPage() {
             </div>
           ) : loading ? (
             <div style={{ textAlign: "center", padding: "100px 0", color: COLORS.textLight, fontSize: "16px", fontWeight: "600" }}>
-              🔄 Loading reservations...
+              <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: "10px" }} /> Loading reservations...
             </div>
           ) : (
             <>
@@ -288,8 +285,7 @@ export default function PartReservationsPage() {
                     { id: "All", label: "All Reservations" },
                     { id: "Active", label: `Active (${activeCount})` },
                     { id: "PickedUp", label: "Picked Up" },
-                    { id: "Cancelled", label: "Cancelled" },
-                    { id: "Expired", label: "Expired" }
+                    { id: "Cancelled", label: "Cancelled" }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -372,25 +368,32 @@ export default function PartReservationsPage() {
                             </span>
                           </div>
 
-                          <p style={{ fontSize: "14px", color: COLORS.textLight, marginTop: "6px" }}>
-                            🏢 <strong>Workshop:</strong> {res.serviceCenterName}
-                          </p>
+                          <p style={{ fontSize: "14px", color: COLORS.textLight, marginTop: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                             <i className="fa-solid fa-warehouse" /> <strong>Workshop:</strong> {res.serviceCenterName}
+                           </p>
 
-                          <div style={{ display: "flex", gap: "15px", marginTop: "8px", flexWrap: "wrap", fontSize: "13px", color: COLORS.textLight }}>
-                            <span>🔢 <strong>Quantity:</strong> {res.quantity} pcs</span>
-                            <span>💰 <strong>Total Price:</strong> <strong style={{ color: isServiceCenter ? COLORS.success : COLORS.primary }}>EGP {res.totalPrice}</strong></span>
-                            <span>📅 <strong>Date:</strong> {formatDate(res.reservedAt)}</span>
-                          </div>
+                           <div style={{ display: "flex", gap: "15px", marginTop: "8px", flexWrap: "wrap", fontSize: "13px", color: COLORS.textLight }}>
+                             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                               <i className="fa-solid fa-list-ol" /> <strong>Quantity:</strong> {res.quantity} pcs
+                             </span>
+                             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                               <i className="fa-solid fa-money-bill-wave" /> <strong>Total Price:</strong> <strong style={{ color: isServiceCenter ? COLORS.success : COLORS.primary }}>EGP {res.totalPrice}</strong>
+                             </span>
+                             <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                               <i className="fa-solid fa-calendar-days" /> <strong>Date:</strong> {formatDate(res.reservedAt)}
+                             </span>
+                           </div>
 
-                          {effectiveStatus === "Cancelled" && res.cancellationReason && (
-                            <div style={{
-                              background: "#FAF5F5", padding: "10px 15px", borderRadius: "8px",
-                              fontSize: "12px", color: COLORS.danger, marginTop: "12px",
-                              borderLeft: `3px solid ${COLORS.danger}`
-                            }}>
-                              ❌ <strong>Cancellation Reason:</strong> "{res.cancellationReason}"
-                            </div>
-                          )}
+                           {effectiveStatus === "Cancelled" && res.cancellationReason && (
+                             <div style={{
+                               background: "#FAF5F5", padding: "10px 15px", borderRadius: "8px",
+                               fontSize: "12px", color: COLORS.danger, marginTop: "12px",
+                               borderLeft: `3px solid ${COLORS.danger}`,
+                               display: "flex", alignItems: "center", gap: "6px"
+                             }}>
+                               <i className="fa-solid fa-circle-xmark" style={{ color: COLORS.danger }} /> <strong>Cancellation Reason:</strong> "{res.cancellationReason}"
+                             </div>
+                           )}
                         </div>
                       </div>
 
@@ -398,13 +401,15 @@ export default function PartReservationsPage() {
                       <div style={{ textAlign: "right", minWidth: "200px" }}>
                         {isPending ? (
                           <>
-                            <div style={{
-                              background: "#FEF3C7", color: COLORS.warning, fontSize: "12px",
-                              fontWeight: "700", padding: "6px 12px", borderRadius: "8px",
-                              display: "inline-block", marginBottom: "15px"
-                            }}>
-                              ⏳ {getExpirationLabel(res.expiresAt)}
-                            </div>
+                            {getExpirationLabel(res.expiresAt) && (
+                               <div style={{
+                                 background: "#FEF3C7", color: COLORS.warning, fontSize: "12px",
+                                 fontWeight: "700", padding: "6px 12px", borderRadius: "8px",
+                                 display: "inline-block", marginBottom: "15px"
+                               }}>
+                                 <i className="fa-solid fa-hourglass-half" style={{ marginRight: "6px" }} /> {getExpirationLabel(res.expiresAt)}
+                               </div>
+                             )}
                             
                             <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
                               {isServiceCenter ? (
@@ -415,10 +420,17 @@ export default function PartReservationsPage() {
                                     style={{
                                       background: COLORS.success, color: "#FFF", border: "none",
                                       padding: "10px 16px", borderRadius: "8px", fontSize: "13px",
-                                      fontWeight: "700", cursor: "pointer"
+                                      fontWeight: "700", cursor: "pointer",
+                                      display: "flex", alignItems: "center", gap: "6px"
                                     }}
                                   >
-                                    {processingId === res.id ? "Processing..." : "✓ Picked Up"}
+                                    {processingId === res.id ? (
+                                      "Processing..."
+                                    ) : (
+                                      <>
+                                        <i className="fa-solid fa-check" /> Picked Up
+                                      </>
+                                    )}
                                   </button>
                                   <button
                                     onClick={() => openCancelDialog(res.id)}
@@ -454,9 +466,6 @@ export default function PartReservationsPage() {
                             )}
                             {effectiveStatus === "Cancelled" && (
                               <span>Cancelled: {formatDate(res.cancelledAt)}</span>
-                            )}
-                            {effectiveStatus === "Expired" && (
-                              <span style={{ color: COLORS.danger }}>Expired: Passed 24h limit</span>
                             )}
                           </div>
                         )}

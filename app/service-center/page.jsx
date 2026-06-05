@@ -204,9 +204,6 @@ export default function ServiceCenterDashboard() {
               <Link href="/service-center/edit" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
                 ✏️ Edit Profile
               </Link>
-              <Link href="/" className="back-link" style={{ color: COLORS.text, textDecoration: "none", fontWeight: 700, fontSize: "14px", padding: "8px 16px", borderRadius: "8px", border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", gap: "6px" }}>
-                <span>←</span> Back to Website
-              </Link>
             </div>
             
             <div style={{ position: "relative" }}>
