@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { reviewsService } from "@/lib/api/reviewsService";
+import { serviceCentersService } from "@/lib/api/serviceCentersService";
 import { getTokenRole } from "@/lib/utils/toast";
 import { useRoleGuard } from "@/lib/hooks/useRoleGuard";
 
@@ -203,7 +204,7 @@ function DeleteModal({ review, onClose, onConfirm }) {
 }
 
 // ── Review Card ───────────────────────────────────────────────────────────────
-function ReviewCard({ review, onEdit, onDelete }) {
+function ReviewCard({ review, onEdit, onDelete, showActions = true }) {
   const name = review.serviceCenterName ?? review.ServiceCenterName ?? "Service Center";
   const rating = review.rating ?? review.Rating ?? 0;
   const comment = review.comment ?? review.Comment ?? "";
@@ -240,34 +241,36 @@ function ReviewCard({ review, onEdit, onDelete }) {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => onEdit(review)}
-            style={{
-              padding: "7px 16px", borderRadius: 8, border: `1.5px solid ${BRD}`,
-              background: WH, color: "#374151", fontSize: 13, fontWeight: 700,
-              cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#6366F1"; e.currentTarget.style.color = "#6366F1"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = BRD; e.currentTarget.style.color = "#374151"; }}
-          >
-            ✏️ Edit
-          </button>
-          <button
-            onClick={() => onDelete(review)}
-            style={{
-              padding: "7px 16px", borderRadius: 8, border: `1.5px solid #FCA5A5`,
-              background: "#FFF5F5", color: R, fontSize: 13, fontWeight: 700,
-              cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#FEE2E2"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#FFF5F5"; }}
-          >
-            🗑️ Delete
-          </button>
-        </div>
+        {showActions && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => onEdit(review)}
+              style={{
+                padding: "7px 16px", borderRadius: 8, border: `1.5px solid ${BRD}`,
+                background: WH, color: "#374151", fontSize: 13, fontWeight: 700,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#6366F1"; e.currentTarget.style.color = "#6366F1"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = BRD; e.currentTarget.style.color = "#374151"; }}
+            >
+              ✏️ Edit
+            </button>
+            <button
+              onClick={() => onDelete(review)}
+              style={{
+                padding: "7px 16px", borderRadius: 8, border: `1.5px solid #FCA5A5`,
+                background: "#FFF5F5", color: R, fontSize: 13, fontWeight: 700,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#FEE2E2"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#FFF5F5"; }}
+            >
+              🗑️ Delete
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Card Body */}
@@ -320,9 +323,22 @@ export default function MyReviewsPage() {
   const loadReviews = async () => {
     setLoading(true);
     try {
-      const res = await reviewsService.getMyReviews();
-      const items = res?.data ?? res ?? [];
-      setReviews(Array.isArray(items) ? items : []);
+      if (isServiceCenter) {
+        const centerRes = await serviceCentersService.getMy();
+        const centerData = centerRes?.data ?? centerRes;
+        const centerId = centerData?.id ?? centerData?.Id;
+        if (centerId) {
+          const res = await reviewsService.getServiceCenterReviews(centerId);
+          const items = res?.data ?? res ?? [];
+          setReviews(Array.isArray(items) ? items : []);
+        } else {
+          setReviews([]);
+        }
+      } else {
+        const res = await reviewsService.getMyReviews();
+        const items = res?.data ?? res ?? [];
+        setReviews(Array.isArray(items) ? items : []);
+      }
     } catch (err) {
       console.warn("Failed to load reviews:", err);
       setReviews([]);
@@ -331,7 +347,7 @@ export default function MyReviewsPage() {
     }
   };
 
-  useEffect(() => { loadReviews(); }, []);
+  useEffect(() => { loadReviews(); }, [isServiceCenter]);
 
   const handleEdit = async (reviewId, payload) => {
     try {
@@ -405,18 +421,6 @@ export default function MyReviewsPage() {
               {reviews.length > 0 ? `${reviews.length} review${reviews.length > 1 ? "s" : ""} submitted` : "No reviews yet"}
             </p>
           </div>
-          {!isServiceCenter && (
-            <Link href="/reviews/write" style={{ textDecoration: "none" }}>
-              <button style={{
-                background: R, color: "#fff", border: "none", padding: "11px 22px",
-                borderRadius: 10, fontWeight: 800, fontSize: 14, cursor: "pointer",
-                display: "flex", alignItems: "center", gap: 8,
-                boxShadow: "0 4px 14px rgba(232,39,42,0.25)", transition: "all 0.2s",
-              }}>
-                ✍️ Write a Review
-              </button>
-            </Link>
-          )}
         </div>
 
         {/* Content */}
@@ -437,19 +441,9 @@ export default function MyReviewsPage() {
           }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>💬</div>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111", marginBottom: 10 }}>No Reviews Yet</h2>
-            <p style={{ fontSize: 14, color: TL, maxWidth: 340, margin: "0 auto 24px", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 14, color: TL, maxWidth: 340, margin: "0 auto", lineHeight: 1.6 }}>
               After visiting a service center, share your experience to help others choose the right one.
             </p>
-            {!isServiceCenter && (
-              <Link href="/reviews/write" style={{ textDecoration: "none" }}>
-                <button style={{
-                  background: R, color: "#fff", border: "none", padding: "12px 28px",
-                  borderRadius: 10, fontWeight: 800, fontSize: 14, cursor: "pointer",
-                }}>
-                  ✍️ Write Your First Review
-                </button>
-              </Link>
-            )}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -459,6 +453,7 @@ export default function MyReviewsPage() {
                 review={review}
                 onEdit={setEditTarget}
                 onDelete={setDeleteTarget}
+                showActions={!isServiceCenter}
               />
             ))}
           </div>

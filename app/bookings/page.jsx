@@ -119,6 +119,14 @@ function BookingCard({ booking }) {
             Pay Invoice
           </Link>
         )}
+        {booking.status === "Completed" && (
+          <Link
+            href={`/reviews/write?serviceCenterId=${booking.serviceCenter.id ?? booking.serviceCenter.Id}&serviceCenterName=${encodeURIComponent(booking.serviceCenter.name)}&bookingId=${booking.id ?? booking.Id}`}
+            className="btn-review-link"
+          >
+            ⭐ Write Review
+          </Link>
+        )}
         {isCancellable && (
           <Link href={`/bookings/cancel?id=${booking.id}`} className="btn-cancel-link" style={{ flex: 0.5, textAlign: "center" }}>
             Cancel
@@ -138,6 +146,22 @@ function BookingCard({ booking }) {
         .booking-card:hover {
           box-shadow: 0 6px 24px rgba(0, 0, 0, 0.09);
           transform: translateY(-2px);
+        }
+        .btn-review-link {
+          flex: 1;
+          min-width: 120px;
+          padding: 10px 0;
+          background: #F59E0B;
+          color: #fff;
+          text-align: center;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+        .btn-review-link:hover {
+          background: #D97706;
         }
         .card-header {
           padding: 20px 22px 16px;
