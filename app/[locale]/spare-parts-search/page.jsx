@@ -49,8 +49,14 @@ function CategoryCard({ iconClass, title, onClick }) {
 
 export default function SparePartsSearchPage() {
   const router = useRouter();
-  const t = useTranslations("spareParts");
   const [form, setForm] = useState({ query: "", brand: "", model: "", year: "" });
+
+  const tNav    = useTranslations("nav");
+  const tCommon = useTranslations("common");
+  const tCars   = useTranslations("cars");
+  const tHome   = useTranslations("home");
+  const tTypes  = useTranslations("serviceTypes");
+  const tParts  = useTranslations("spareParts");
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -62,12 +68,12 @@ export default function SparePartsSearchPage() {
   };
 
   const categories = [
-    { iconClass: "fa-solid fa-circle-notch", title: t("categories.brakesPads") },
-    { iconClass: "fa-solid fa-gears",         title: t("categories.engineParts") },
-    { iconClass: "fa-solid fa-filter",        title: t("categories.filters") },
-    { iconClass: "fa-solid fa-bolt",          title: t("categories.electrical") },
-    { iconClass: "fa-solid fa-compress",      title: t("categories.suspension") },
-    { iconClass: "fa-solid fa-snowflake",     title: t("categories.airConditioning") },
+    { iconClass: "fa-solid fa-circle-notch", title: tTypes("Brakes"),          value: "Brakes & Pads" },
+    { iconClass: "fa-solid fa-gears",         title: tTypes("Engine"),          value: "Engine Parts" },
+    { iconClass: "fa-solid fa-filter",        title: tTypes("Filters"),         value: "Filters" },
+    { iconClass: "fa-solid fa-bolt",          title: tTypes("Electrical"),      value: "Electrical" },
+    { iconClass: "fa-solid fa-compress",      title: tTypes("Suspension"),      value: "Suspension" },
+    { iconClass: "fa-solid fa-snowflake",     title: tTypes("Air Conditioning"), value: "Air Conditioning" },
   ];
 
   const brands = ["TOYOTA", "BMW", "MERCEDES", "HYUNDAI", "NISSAN", "KIA", "MITSUBISHI", "HONDA"];
@@ -76,16 +82,16 @@ export default function SparePartsSearchPage() {
     <div style={{ background: T.bg, minHeight: "100vh", color: T.text }}>
       <Navbar />
 
-      {/* ── Search Header ── */}
-      <div style={{ background: T.surface, borderBottom: `1px solid ${T.border}`, padding: "40px" }}>
+      {/* SEARCH HEADER */}
+      <div style={{ background: T.surface, borderBottom: `1px solid T.border}`, padding: "40px" }}>
         <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px", flexWrap: "wrap", gap: "16px" }}>
             <div>
               <h1 style={{ fontFamily: "'Syne', sans-serif", fontSize: "32px", fontWeight: 800, marginBottom: "6px" }}>
-                {t("pageTitle")}
+                {tParts("heroTitle")}
               </h1>
               <p style={{ color: T.muted2, fontSize: "14px", margin: 0 }}>
-                {t("pageSubtitle")}
+                {tParts("heroSubtitle")}
               </p>
             </div>
           </div>
@@ -96,55 +102,51 @@ export default function SparePartsSearchPage() {
             gap: "12px",
             alignItems: "end",
           }}>
-            {/* Part Name */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "10px", fontWeight: 700, color: T.muted2, textTransform: "uppercase", letterSpacing: "0.8px" }}>
-                {t("partNameLabel")}
+                {tParts("partNameLabel")}
               </label>
               <input
                 value={form.query}
                 onChange={e => setForm({ ...form, query: e.target.value })}
                 onKeyDown={e => e.key === "Enter" && handleSearch()}
-                placeholder={t("partNamePlaceholder")}
+                placeholder={tParts("partNamePlaceholder")}
                 style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: T.radius, padding: "12px 14px", fontSize: "14px", color: T.text, transition: "border-color .2s" }}
               />
             </div>
 
-            {/* Brand */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "10px", fontWeight: 700, color: T.muted2, textTransform: "uppercase", letterSpacing: "0.8px" }}>
-                {t("brandLabel")}
+                {tCars("brand")}
               </label>
               <input
                 value={form.brand}
                 onChange={e => setForm({ ...form, brand: e.target.value })}
-                placeholder={t("brandPlaceholder")}
+                placeholder="Toyota"
                 style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: T.radius, padding: "12px 14px", fontSize: "14px", color: T.text }}
               />
             </div>
 
-            {/* Model */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "10px", fontWeight: 700, color: T.muted2, textTransform: "uppercase", letterSpacing: "0.8px" }}>
-                {t("modelLabel")}
+                {tCars("model")}
               </label>
               <input
                 value={form.model}
                 onChange={e => setForm({ ...form, model: e.target.value })}
-                placeholder={t("modelPlaceholder")}
+                placeholder="Corolla"
                 style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: T.radius, padding: "12px 14px", fontSize: "14px", color: T.text }}
               />
             </div>
 
-            {/* Year */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <label style={{ fontSize: "10px", fontWeight: 700, color: T.muted2, textTransform: "uppercase", letterSpacing: "0.8px" }}>
-                {t("yearLabel")}
+                {tCars("year")}
               </label>
               <input
                 value={form.year}
                 onChange={e => setForm({ ...form, year: e.target.value })}
-                placeholder={t("yearPlaceholder")}
+                placeholder="2015"
                 style={{ background: T.surface2, border: `1px solid ${T.border}`, borderRadius: T.radius, padding: "12px 14px", fontSize: "14px", color: T.text }}
               />
             </div>
@@ -159,7 +161,7 @@ export default function SparePartsSearchPage() {
                 transition: "all .2s",
               }}
             >
-              {t("findPartsBtn")}
+              {tParts("findPartsBtn")}
             </button>
           </div>
         </div>
@@ -167,40 +169,41 @@ export default function SparePartsSearchPage() {
 
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "50px 40px" }}>
 
-        {/* ── Browse by Category ── */}
+        {/* BROWSE BY CATEGORY */}
         <div style={{ marginBottom: "60px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "24px" }}>
             <div>
               <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: "22px", fontWeight: 800 }}>
-                {t("browseByCategoryTitle")}
+                {tParts("browseByCategoryTitle")}
               </h2>
               <p style={{ fontSize: "13px", color: T.muted2, marginTop: "4px" }}>
-                {t("browseByCategorySubtitle")}
+                {tParts("browseByCategorySubtitle")}
               </p>
             </div>
             <button
               onClick={() => router.push("/spare-parts-results")}
               style={{ background: "none", border: "none", color: T.accent, fontWeight: 700, fontSize: "13px", cursor: "pointer" }}
             >
-              {t("viewAll")}
+              {tHome("spareParts.shopAllBtn")}
             </button>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "16px" }}>
             {categories.map(cat => (
               <CategoryCard
-                key={cat.title}
-                {...cat}
-                onClick={() => router.push(`/spare-parts-results?q=${encodeURIComponent(cat.title)}`)}
+                key={cat.value}
+                iconClass={cat.iconClass}
+                title={cat.title}
+                onClick={() => router.push(`/spare-parts-results?q=${encodeURIComponent(cat.value)}`)}
               />
             ))}
           </div>
         </div>
 
-        {/* ── Popular Brands ── */}
+        {/* POPULAR BRANDS */}
         <div style={{ marginBottom: "60px" }}>
           <h2 style={{ fontFamily: "'Syne', sans-serif", fontSize: "22px", fontWeight: 800, marginBottom: "24px" }}>
-            {t("popularBrands")}
+            {tParts("popularBrandsTitle")}
           </h2>
           <div style={{
             background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radiusLg,
@@ -225,26 +228,31 @@ export default function SparePartsSearchPage() {
           </div>
         </div>
 
-        {/* ── Why Autoria ── */}
+        {/* WHY BUY FROM US */}
         <div style={{
           background: T.surface, border: `1px solid ${T.border}`, borderRadius: T.radiusLg,
           display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0",
           overflow: "hidden"
         }}>
           {[
-            { title: t("whyAutoria.verifiedSellers"),     desc: t("whyAutoria.verifiedSellersDesc") },
-            { title: t("whyAutoria.genuineCompatible"),   desc: t("whyAutoria.genuineCompatibleDesc") },
-            { title: t("whyAutoria.bestPrices"),          desc: t("whyAutoria.bestPricesDesc") },
+            { titleKey: "whyVerifiedTitle", descKey: "whyVerifiedDesc" },
+            { titleKey: "whyGenuineTitle",  descKey: "whyGenuineDesc"  },
+            { titleKey: "whyPriceTitle",    descKey: "whyPriceDesc"    },
           ].map((item, i) => (
-            <div key={item.title} style={{
+            <div key={item.titleKey} style={{
               padding: "32px",
               borderRight: i < 2 ? `1px solid ${T.border}` : "none",
             }}>
-              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: "16px", fontWeight: 800, color: T.accent, marginBottom: "10px" }}>{item.title}</h3>
-              <p style={{ fontSize: "13px", color: T.muted2, lineHeight: 1.7 }}>{item.desc}</p>
+              <h3 style={{ fontFamily: "'Syne', sans-serif", fontSize: "16px", fontWeight: 800, color: T.accent, marginBottom: "10px" }}>
+                {tParts(item.titleKey)}
+              </h3>
+              <p style={{ fontSize: "13px", color: T.muted2, lineHeight: 1.7 }}>
+                {tParts(item.descKey)}
+              </p>
             </div>
           ))}
         </div>
+
       </div>
 
       <Footer />
