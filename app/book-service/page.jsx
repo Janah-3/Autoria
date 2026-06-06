@@ -37,12 +37,12 @@ const DB_SERVICE_TYPES_FALLBACK = [
 // ── Slot helpers ──────────────────────────────────────────────────────────────
 
 function parseSlotTime(slot) {
-  // Try the most common backend shapes first
+  
   const raw = slot?.startTime ?? slot?.time ?? slot?.label ?? slot?.StartTime ?? "";
   if (!raw) return "";
-  // If already looks like "09:00 AM" return as-is
+  
   if (/\d{1,2}:\d{2}\s*(AM|PM)/i.test(raw)) return raw;
-  // If it's an ISO time like "09:00:00" → format to 12-hr
+ 
   const match = raw.match(/^(\d{2}):(\d{2})/);
   if (match) {
     let h = parseInt(match[1], 10);
@@ -152,12 +152,12 @@ export default function BookServicePage() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Data loaded from API
+  
   const [cars, setCars] = useState([]);
   const [serviceCenter, setServiceCenter] = useState(null); // the one passed via URL
   const [dbServiceTypes, setDbServiceTypes] = useState(DB_SERVICE_TYPES_FALLBACK);
 
-  // User selections
+  
   const [selectedCarId, setSelectedCarId] = useState("");
   const [selectedServiceTypeId, setSelectedServiceTypeId] = useState("");
   const [selectedServiceTypeName, setSelectedServiceTypeName] = useState("");
@@ -166,16 +166,16 @@ export default function BookServicePage() {
   const [selectedSlotLabel, setSelectedSlotLabel] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Slots
+  
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slotsError, setSlotsError] = useState("");
 
-  // ── Init: load cars, service center, service types ─────────────────────────
+  
 
   useEffect(() => {
     if (!serviceCenterIdFromUrl) {
-      // No service center ID in URL — go back
+      
       router.replace("/service-centers");
       return;
     }
@@ -200,14 +200,14 @@ export default function BookServicePage() {
 
         if (cancelled) return;
 
-        // Cars
+        
         const carItems = getCarItems(carsRes);
         setCars(carItems);
-        // Pre-select primary car
+        
         const primary = carItems.find((c) => c.isPrimary) || carItems[0];
         if (primary) setSelectedCarId(String(getCarId(primary) || ""));
 
-        // Service center from URL
+        
         const allCenters = getServiceCenterItems(centersRes);
         const found = allCenters.find(
           (c) => String(c.id) === String(serviceCenterIdFromUrl)
@@ -233,7 +233,7 @@ export default function BookServicePage() {
     };
   }, [router, serviceCenterIdFromUrl]);
 
-  // ── Load slots when date changes ───────────────────────────────────────────
+  // ── Load slots when date changes 
 
   useEffect(() => {
     if (!selectedDate || !serviceCenterIdFromUrl) {
@@ -245,7 +245,7 @@ export default function BookServicePage() {
     let cancelled = false;
     setSlotsLoading(true);
     setSlotsError("");
-    // Reset slot selection when date changes
+    
     setSelectedSlotId("");
     setSelectedSlotLabel("");
 
@@ -280,7 +280,7 @@ export default function BookServicePage() {
 
   if (checking || !authorized) return null;
 
-  // ── Derived: service types to show ────────────────────────────────────────
+  // ── Derived: service types to show 
 
   const displayServiceTypes = (() => {
     if (!serviceCenter) return dbServiceTypes;
@@ -293,7 +293,7 @@ export default function BookServicePage() {
     return matched.length > 0 ? matched : dbServiceTypes;
   })();
 
-  // ── Validation ─────────────────────────────────────────────────────────────
+  //Validation
 
   function validate() {
     const e = {};
@@ -304,7 +304,7 @@ export default function BookServicePage() {
     return e;
   }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
+  
 
   async function handleSubmit() {
     const validationErrors = validate();
@@ -334,7 +334,7 @@ export default function BookServicePage() {
     }
   }
 
-  // ── Today string for date min ──────────────────────────────────────────────
+  
 
   const today = new Date().toISOString().split("T")[0];
 
@@ -369,7 +369,7 @@ export default function BookServicePage() {
     );
   }
 
-  // ── Success screen ─────────────────────────────────────────────────────────
+  
 
   if (submitted) {
     return (
@@ -454,7 +454,7 @@ export default function BookServicePage() {
     );
   }
 
-  // ── Main form ──────────────────────────────────────────────────────────────
+  
 
   return (
     <div
@@ -614,14 +614,14 @@ export default function BookServicePage() {
                 setSelectedDate(e.target.value);
                 setErrors((prev) => ({ ...prev, date: undefined, slot: undefined }));
               }}
-              // min={today} — add this via the DOM since TextInput doesn't pass it
+              
             />
-            {/* We need min on the date input, so render it directly */}
+            
             <style>{`input[type="date"] { min: ${today}; }`}</style>
             <ValidationError message={errors.date} />
           </div>
 
-          {/* ── Time slots ── */}
+          
           <div>
             <FieldLabel>Available Time Slots</FieldLabel>
 

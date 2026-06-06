@@ -130,12 +130,12 @@ export default function AdminDashboard() {
     imageUrls: [""]
   });
 
-  // Toast State
+  
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastType, setToastType] = useState("success");
 
-  // Custom Confirm Modal State
+  
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({
     title: "",
@@ -176,20 +176,20 @@ export default function AdminDashboard() {
         }
       })
       .catch(() => {
-        router.replace("/login"); // مش logged in → روح للـ login
+        router.replace("/login"); 
       })
       .finally(() => setAuthChecked(true));
   }, [router]);
 
 
-  // Live and empty states (preventing flash of mock/fake data on load)
+  
   const [urgentReportsList, setUrgentReportsList] = useState([]);
 
   const [verificationQueue, setVerificationQueue] = useState([]);
 
   const [metrics, setMetrics] = useState(null);
 
-  // Payments & Revenue State Hooks
+  
   const [paymentsList, setPaymentsList] = useState([]);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentsError, setPaymentsError] = useState("");
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
   const [paymentsSearch, setPaymentsSearch] = useState("");
   const [paymentsMethodFilter, setPaymentsMethodFilter] = useState("all");
 
-  // Global Inventory State Hooks
+
   const [inventoryList, setInventoryList] = useState([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
   const [inventoryError, setInventoryError] = useState("");
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
   const [inventoryCenterFilter, setInventoryCenterFilter] = useState("");
   const [inventoryStockFilter, setInventoryStockFilter] = useState("all"); // all, low, available, unavailable
   
-  // Edit Inventory Modal
+  
   const [showEditInventoryModal, setShowEditInventoryModal] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState(null);
   const [editInventoryForm, setEditInventoryForm] = useState({
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
   });
   const [editInventorySubmitting, setEditInventorySubmitting] = useState(false);
 
-  // Inventory History Modal
+  
   const [showInventoryHistoryModal, setShowInventoryHistoryModal] = useState(false);
   const [inventoryHistoryList, setInventoryHistoryList] = useState([]);
   const [inventoryHistoryLoading, setInventoryHistoryLoading] = useState(false);
@@ -436,7 +436,7 @@ export default function AdminDashboard() {
     if (currentUser && currentUser.role === "Admin") {
       fetchPendingCenters();
       fetchMetrics();
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      
       fetchReports();
       fetchUrgentReports();
       fetchAllCenters();
@@ -445,7 +445,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      
       fetchReports();
     }
   }, [reportsStatusFilter]);
@@ -454,7 +454,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin" && activeTab === "Payments & Revenue") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      
       fetchPaymentsData();
     }
   }, [currentUser, activeTab]);
@@ -483,7 +483,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin" && (activeTab === "Global Inventory" || activeTab === "Dashboard")) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      
       fetchGlobalInventory();
     }
   }, [currentUser, activeTab, inventoryCenterFilter]);
@@ -638,7 +638,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      
       fetchUsers();
     }
   }, [currentUser, activeTab, userSearch, userRoleFilter, userBanFilter]);
@@ -727,7 +727,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (currentUser && currentUser.role === "Admin" && activeTab === "Spare Parts") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      
       fetchSpareParts();
     }
   }, [currentUser, activeTab, sparePartsSearch, sparePartsCategoryFilter, sparePartsIncludeInactive]);
@@ -2039,15 +2039,15 @@ export default function AdminDashboard() {
                   <tbody>
                     {paymentsList
                       .filter(tx => {
-                        // Status filter
+                        
                         if (paymentsStatusFilter !== "all") {
                           if (paymentsStatusFilter === "Completed" && tx.status !== "Completed") return false;
                           if (paymentsStatusFilter === "Pending" && tx.status !== "Pending") return false;
                           if (paymentsStatusFilter === "Refunded" && tx.status !== "Refunded") return false;
                         }
-                        // Method filter
+                        
                         if (paymentsMethodFilter !== "all" && tx.method !== paymentsMethodFilter) return false;
-                        // Search query filter
+                        
                         if (paymentsSearch) {
                           const query = paymentsSearch.toLowerCase();
                           const matchClient = (tx.clientName || "").toLowerCase().includes(query) || (tx.clientEmail || "").toLowerCase().includes(query);
