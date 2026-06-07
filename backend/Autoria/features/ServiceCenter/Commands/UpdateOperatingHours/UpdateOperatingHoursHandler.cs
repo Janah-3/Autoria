@@ -23,8 +23,8 @@ namespace Autoria.features.ServiceCenter.Commands.UpdateOperatingHours
                 .FirstOrDefaultAsync(sc => sc.UserId == request.UserId, cancellationToken)
                     ?? throw new NotFoundException("Service center not found");
 
-            if (serviceCenter.ApprovalStatus != ApprovalStatus.Draft)
-                throw new BadRequestException("Operating hours can only be updated while in draft status");
+            //if (serviceCenter.ApprovalStatus != ApprovalStatus.Draft)
+            //    throw new BadRequestException("Operating hours can only be updated while in draft status");
 
             _context.OperatingHours.RemoveRange(serviceCenter.OperatingHours);
 
