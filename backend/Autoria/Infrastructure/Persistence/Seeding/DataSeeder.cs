@@ -67,6 +67,7 @@ namespace Autoria.Infrastructure.Persistence.Seeding
                 await new SparePartImageSeeder(_context).SeedAsync();
                 await new operatingHours_TimeSlotsSeeder(_context).SeedAsync();
                 await new InventorySeeder(_context).SeedAsync();
+                await new DemoDataSeeder(_context, _userManager).SeedAsync();
 
             }
             catch (Exception ex)
