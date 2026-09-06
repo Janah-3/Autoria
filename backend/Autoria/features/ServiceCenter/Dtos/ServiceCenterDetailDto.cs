@@ -27,6 +27,7 @@ namespace Autoria.features.ServiceCenter.Dtos
         public DateTime? ApprovedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public List<string> Photos { get; set; }
+        public string? CoverPhoto { get; set; }
         public List<string> ServiceTypes { get; set; }
         public List<string> CarBrands { get; set; }
         public List<OperatingHoursDto> OperatingHours { get; set; }

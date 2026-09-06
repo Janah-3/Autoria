@@ -57,6 +57,29 @@ namespace Autoria.Infrastructure.Persistence.Seeding.Seeds
                 var center16Id = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
                 var center17Id = Guid.Parse("bbbbbbbb-cccc-dddd-eeee-ffffffffffff");
 
+                // Each seeded center gets its own distinct key photo (real, verified Unsplash images
+                // themed to auto workshops) so they don't all look alike.
+                var photoByCenterId = new Dictionary<Guid, string>
+                {
+                    [center1Id] = "https://images.unsplash.com/photo-1727893119356-1702fe921cf9?auto=format&fit=crop&w=1200&q=80",
+                    [center2Id] = "https://images.unsplash.com/photo-1570129476815-ba368ac77013?auto=format&fit=crop&w=1200&q=80",
+                    [center3Id] = "https://images.unsplash.com/photo-1635108198395-82a67cd5eaec?auto=format&fit=crop&w=1200&q=80",
+                    [center4Id] = "https://images.unsplash.com/photo-1702146713882-2579afb0bfba?auto=format&fit=crop&w=1200&q=80",
+                    [center5Id] = "https://images.unsplash.com/photo-1599256630445-67b5772b1204?auto=format&fit=crop&w=1200&q=80",
+                    [center6Id] = "https://images.unsplash.com/photo-1601924925166-22a19c485db7?auto=format&fit=crop&w=1200&q=80",
+                    [center7Id] = "https://images.unsplash.com/photo-1702146715426-2380c6ad54c5?auto=format&fit=crop&w=1200&q=80",
+                    [center8Id] = "https://images.unsplash.com/photo-1702146713870-8cdd7ab983fb?auto=format&fit=crop&w=1200&q=80",
+                    [center9Id] = "https://images.unsplash.com/photo-1738101014614-5a5cbd30e5cf?auto=format&fit=crop&w=1200&q=80",
+                    [center10Id] = "https://images.unsplash.com/photo-1634141737337-50b2d803d6e5?auto=format&fit=crop&w=1200&q=80",
+                    [center11Id] = "https://images.unsplash.com/photo-1599256871787-737fd3315df2?auto=format&fit=crop&w=1200&q=80",
+                    [center12Id] = "https://images.unsplash.com/photo-1558652862-e6cf47acff59?auto=format&fit=crop&w=1200&q=80",
+                    [center13Id] = "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&w=1200&q=80",
+                    [center14Id] = "https://images.unsplash.com/photo-1675034743126-0f250a5fee51?auto=format&fit=crop&w=1200&q=80",
+                    [center15Id] = "https://images.unsplash.com/photo-1503791774117-08c379dd7f7c?auto=format&fit=crop&w=1200&q=80",
+                    [center16Id] = "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=1200&q=80",
+                    [center17Id] = "https://images.unsplash.com/photo-1599256872237-5dcc0fbe9668?auto=format&fit=crop&w=1200&q=80"
+                };
+
                 var centersToProcess = new List<ServiceCenter>
         {
             // ================= CENTER 1: Maadi, Cairo =================
@@ -481,10 +504,28 @@ new ServiceCenter
                 {
                     // This granular check handles the upsert loop safely!
                     var existingCenter = await _context.ServiceCenters
+                        .Include(c => c.Photos)
                         .FirstOrDefaultAsync(c => c.Id == center.Id || c.BusinessEmail == center.BusinessEmail);
 
                     if (existingCenter != null)
                     {
+                        // Fix centers seeded with the old shared photo: give each its own unique key photo.
+                        var assignedPhoto = photoByCenterId[center.Id];
+                        var existingPhotos = existingCenter.Photos.Select(p => p.PhotoUrl).ToList();
+                        if (!existingPhotos.Contains(assignedPhoto))
+                        {
+                            // Remove the tracked photos directly (not via the nav collection) to avoid
+                            // optimistic-concurrency tracker conflicts when re-adding.
+                            _context.ServiceCenterPhotos.RemoveRange(existingCenter.Photos);
+                            _context.ServiceCenterPhotos.Add(new ServiceCenterPhoto
+                            {
+                                Id = Guid.NewGuid(),
+                                ServiceCenterId = existingCenter.Id,
+                                PhotoUrl = assignedPhoto,
+                                UploadedAt = DateTime.Now
+                            });
+                            databaseChanged = true;
+                        }
                         continue; // Skip seeding if this specific center is already there
                     }
 
@@ -522,14 +563,10 @@ new ServiceCenter
                         });
                     }
 
-                    string fallbackPhoto = center.Id == center1Id
-                        ? "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=600"
-                        : "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=600";
-
                     center.Photos.Add(new ServiceCenterPhoto
                     {
                         Id = Guid.NewGuid(),
-                        PhotoUrl = fallbackPhoto,
+                        PhotoUrl = photoByCenterId[center.Id],
                         UploadedAt = DateTime.Now
                     });
 

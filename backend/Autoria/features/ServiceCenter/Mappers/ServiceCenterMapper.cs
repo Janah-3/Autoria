@@ -24,6 +24,7 @@ namespace Autoria.features.ServiceCenter.Mappers
             ApprovedAt = sc.ApprovedAt,
             CreatedAt = sc.CreatedAt,
             Photos = sc.Photos.Select(p => p.PhotoUrl).ToList(),
+            CoverPhoto = sc.Photos.Select(p => p.PhotoUrl).FirstOrDefault(),
             ServiceTypes = sc.ServiceTypes.Select(st => st.ServiceType.Name).ToList(),
             CarBrands = sc.CarBrands.Select(cb => cb.CarBrand.Name).ToList(),
             OperatingHours = sc.OperatingHours.Select(h => new OperatingHoursDto
