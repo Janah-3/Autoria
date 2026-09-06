@@ -31,7 +31,8 @@ export default function Footer() {
               {[
                 { name: "Service Centers", href: "/service-centers" },
                 { name: "Spare Parts", href: "/spare-parts-search" },
-                { name: "Book a Service", href: "/book-service" }
+                { name: "Book a Service", href: "/book-service" },
+                { name: "Register Your Center", href: "/service-center-registration" }
               ].map(link => (
                 <li key={link.name}>
                   <a href={link.href} style={{ color: COLORS.textLight, fontSize: "12px", textDecoration: "none", transition: "0.2s" }}>{link.name}</a>

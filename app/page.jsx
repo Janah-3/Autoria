@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getMe, usersService } from "@/lib/api/usersService";
 import {
@@ -51,6 +51,16 @@ const REVIEWS = [
   { init: "MH", name: "Mohamed Hassan", car: "Kia Sportage · Alexandria", stars: 4, text: "Ordered brake pads — arrived next day. Booking was smooth. Really impressed." },
 ];
 
+const HERO_STATS = [
+  { n: "200+", l: "Service Centers" },
+  { n: "15K+", l: "Happy Customers" },
+  { n: "4.8★", l: "Avg Rating" },
+  { n: "50+", l: "Parts Brands" },
+];
+
+const HERO_BG =
+  "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1920";
+
 // ── shared inline style shortcuts ──────────────────────────────────────────
 const row = (gap = 0) => ({ display: "flex", alignItems: "center", gap });
 const grid = (cols, gap = 16) => ({ display: "grid", gridTemplateColumns: `repeat(${cols},1fr)`, gap });
@@ -84,23 +94,24 @@ function Hero({ setCenters, onAiSupportClick }) {
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [stats, setStats] = useState([
-    ["200+", "Service Centers"],
-    ["15K+", "Happy Customers"],
-    ["4.8★", "Avg Rating"],
-    ["50+", "Parts Brands"]
-  ]);
   return (
-    <section style={{ background: `linear-gradient(135deg,#111 0%,#2d1010 52%,${RD} 100%)`, padding: "72px 5% 64px", textAlign: "center" }}>
-      <h1 style={{ color: "#fff", fontSize: 44, fontWeight: 900, lineHeight: 1.12, letterSpacing: -1.5, marginBottom: 14 }}>
-        Find the <em style={{ color: "#ff6b6b", fontStyle: "normal" }}>Best Car Service</em><br />Near You
+    <section
+      style={{
+        position: "relative",
+        background: `linear-gradient(135deg, rgba(17,17,17,.86) 0%, rgba(45,16,16,.82) 52%, rgba(184,28,31,.6) 100%), url('${HERO_BG}') center/cover no-repeat`,
+        padding: "96px 5% 88px",
+        textAlign: "center"
+      }}
+    >
+      <h1 style={{ color: "#fff", fontSize: 48, fontWeight: 900, lineHeight: 1.12, letterSpacing: -1.5, marginBottom: 14 }}>
+        Find the <em style={{ color: "#ff6b6b", fontStyle: "normal" }}>Best Car Service</em> Near You
       </h1>
-      <p style={{ color: "rgba(255,255,255,.55)", fontSize: 15, lineHeight: 1.7, maxWidth: 460, margin: "0 auto 32px" }}>
+      <p style={{ color: "rgba(255,255,255,.62)", fontSize: 15, lineHeight: 1.7, maxWidth: 480, margin: "0 auto 32px" }}>
         Compare certified service centers, book instantly, and get your car back on the road — fast.
       </p>
 
       {/* Search bar & AI Support Wrapper */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", maxWidth: "780px", margin: "0 auto 28px", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px", maxWidth: "780px", margin: "0 auto 30px", flexWrap: "wrap" }}>
         <div style={{ background: "#fff", borderRadius: 12, padding: "6px 6px 6px 0", display: "flex", alignItems: "center", flex: 1, minWidth: "300px", boxShadow: "0 4px 24px rgba(0,0,0,.2)" }}>
           <div style={{ flex: 1, ...row(8), padding: "0 16px", borderRight: "1px solid #e5e7eb" }}>
             <i className="fa-solid fa-wrench" style={{ opacity: .3, color: "#374151" }}></i>
@@ -163,56 +174,140 @@ function Hero({ setCenters, onAiSupportClick }) {
         </button>
       </div>
 
-
+      {/* Hero stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, maxWidth: 640, margin: "0 auto" }}>
+        {HERO_STATS.map(s => (
+          <div key={s.l} className="hero-stat" style={{ background: "rgba(0,0,0,.35)", border: "1px solid rgba(255,255,255,.16)", borderRadius: 14, padding: "16px 8px", backdropFilter: "blur(8px)" }}>
+            <div style={{ color: "#fff", fontSize: 23, fontWeight: 900, letterSpacing: -0.5 }}>{s.n}</div>
+            <div style={{ color: "rgba(255,255,255,.62)", fontSize: 11, fontWeight: 600, marginTop: 2 }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
 
-// ── Service Centers ────────────────────────────────────────────────────────
-function ServiceCenters({ centers }) {
+// ── Service Centers Top-Rated Slider ──────────────────────────────────────
+function SliderCard({ c, i }) {
+  const [hovered, setHovered] = useState(false);
+  const stars = Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5)));
   return (
-    <section style={{ padding: "72px 5%", background: "#f7f7f8" }}>
-      <SH tag="Service Centers" h2="Top-Rated Centers" em="Near You" sub="Browse certified centers, compare prices and ratings, then book in seconds." />
-      <div style={grid(3, 18)}>
-        {centers.map(c => (
-          <a key={c.id || c.name} href={`/service-center-profile/${c.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}>
-              <div style={{
-                height: 130,
-                background: c.cover ? `url(${c.cover}) center/cover no-repeat` : c.bg,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 42,
-                position: "relative"
-              }}>
-                {!c.cover && (c.icon?.startsWith("fa-") ? <i className={c.icon} style={{ fontSize: 36, color: "#9ca3af" }}></i> : <span style={{ fontSize: 42 }}>{c.icon || "🔧"}</span>)}
-                <span style={{ position: "absolute", top: 9, left: 9, background: R, color: "#fff", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20 }}>{c.badge}</span>
-                <span style={{ position: "absolute", top: 9, right: 9, background: "#dcfce7", color: "#15803d", fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20 }}>● Open</span>
-              </div>
-              <div style={{ padding: 15 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 3 }}>{c.name}</div>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 9 }}><i className="fa-solid fa-location-dot" style={{ marginRight: 4 }}></i>{c.loc}</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 11 }}>
-                  {c.tags.map(t => <span key={t} style={{ background: "#f3f4f6", color: "#374151", fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>{t}</span>)}
-                </div>
-                <div style={{ ...row(0), justifyContent: "space-between", borderTop: "1px solid #f3f4f6", paddingTop: 10 }}>
-                  <span>
-                    <span style={{ color: "#f59e0b", fontSize: 11 }}>{"★".repeat(Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}{"☆".repeat(5 - Math.min(5, Math.max(0, Math.round(c.stars ?? c.rating ?? 5))))}</span>
-                    <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 3 }}>{c.rating} ({c.reviews})</span>
-                  </span>
-                  {c.price && c.price.toLowerCase().includes("contact for price") ? (
-                    <span style={{ fontSize: 11, fontWeight: 800, color: R, background: "#FFF4F4", padding: "4px 8px", borderRadius: "6px", border: `1px solid ${R}20` }}>Contact for price</span>
-                  ) : (
-                    <span style={{ fontSize: 13, fontWeight: 900, color: R }}>{c.price}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </a>
-        ))}
+    <a
+      className="sc-card"
+      href={`/service-center-profile/${c.id}`}
+      style={{ animation: "fadeUp .6s ease both", animationDelay: `${Math.min(i * 70, 500)}ms` }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div style={{
+        background: "#fff",
+        border: `1px solid ${hovered ? R : "#e5e7eb"}`,
+        borderRadius: 16,
+        overflow: "hidden",
+        height: "100%",
+        transition: "all .25s ease",
+        transform: hovered ? "translateY(-6px)" : "none",
+        boxShadow: hovered ? "0 14px 30px rgba(0,0,0,.12)" : "0 2px 8px rgba(0,0,0,.04)"
+      }}>
+        <div style={{ height: 150, background: c.cover ? `url(${c.cover}) center/cover no-repeat` : c.bg || "#fff0f0", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42 }}>
+          {!c.cover && (c.icon && c.icon.startsWith("fa-")
+            ? <i className={c.icon} style={{ fontSize: 40, color: "#9ca3af" }}></i>
+            : <span style={{ fontSize: 44 }}>{c.icon || "🔧"}</span>)}
+          <span className="sc-badge">{c.badge || "Top Rated"}</span>
+          <span className="sc-open"><i className="fa-solid fa-circle" style={{ fontSize: 7, marginRight: 4, color: "#22c55e" }}></i>Open</span>
+        </div>
+        <div style={{ padding: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</div>
+          <div style={{ fontSize: 11.5, color: "#9ca3af", marginBottom: 10 }}>
+            <i className="fa-solid fa-location-dot" style={{ color: R, marginRight: 4 }}></i>{c.loc}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 12, minHeight: 30 }}>
+            {(c.tags || []).slice(0, 3).map(t => (
+              <span key={t} style={{ background: "#f3f4f6", color: "#374151", fontSize: 10, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>{t}</span>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #f3f4f6", paddingTop: 11 }}>
+            <span>
+              <span style={{ color: "#f59e0b", fontSize: 12, letterSpacing: 1 }}>{"★".repeat(stars)}</span>
+              <span style={{ fontSize: 11, color: "#6b7280", marginLeft: 3, fontWeight: 700 }}>{c.rating || "4.5"}</span>
+              <span style={{ fontSize: 10, color: "#9ca3af", marginLeft: 3 }}>({c.reviews || "0"})</span>
+            </span>
+            {c.price && c.price.toLowerCase().includes("contact for price") ? (
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: R, background: "#FFF4F4", padding: "4px 8px", borderRadius: 6, border: `1px solid ${R}20` }}>Contact for price</span>
+            ) : (
+              <span style={{ fontSize: 13.5, fontWeight: 900, color: R }}>{c.price || "—"}</span>
+            )}
+          </div>
+        </div>
       </div>
-      <div style={{ textAlign: "center", marginTop: 28 }}>
+    </a>
+  );
+}
+
+function ServiceCenters({ centers }) {
+  const trackRef = useRef(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+  const [paused, setPaused] = useState(false);
+
+  const sorted = useMemo(() => {
+    const src = Array.isArray(centers) && centers.length ? centers : CENTERS;
+    return [...src].sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+  }, [centers]);
+
+  const updateArrows = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 12);
+    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 12);
+  }, []);
+
+  const scrollByCard = useCallback((dir) => {
+    const el = trackRef.current;
+    if (!el) return;
+    const card = el.querySelector(".sc-card");
+    const step = card ? card.offsetWidth + 18 : Math.round(el.clientWidth * 0.8);
+    el.scrollBy({ left: dir * step, behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    updateArrows();
+    el.addEventListener("scroll", updateArrows, { passive: true });
+    window.addEventListener("resize", updateArrows);
+    return () => {
+      el.removeEventListener("scroll", updateArrows);
+      window.removeEventListener("resize", updateArrows);
+    };
+  }, [updateArrows]);
+
+  useEffect(() => {
+    if (paused || !canRight || sorted.length < 2) return;
+    const t = setInterval(() => scrollByCard(1), 4500);
+    return () => clearInterval(t);
+  }, [paused, canRight, sorted.length, scrollByCard]);
+
+  return (
+    <section style={{ padding: "72px 5%", background: "#f7f7f8", overflow: "hidden" }}>
+      <SH tag="Service Centers" h2="Top-Rated Centers" em="Near You" sub="Browse the highest-rated certified centers, compare prices and ratings, then book in seconds." />
+      <div className="slider-shell">
+        <button className="slider-arrow slider-arrow-left" disabled={!canLeft} onClick={() => scrollByCard(-1)} aria-label="Scroll left">
+          <i className="fa-solid fa-chevron-left"></i>
+        </button>
+        <div
+          className="slider-track"
+          ref={trackRef}
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {sorted.map((c, i) => <SliderCard key={c.id || c.name || i} c={c} i={i} />)}
+        </div>
+        <button className="slider-arrow slider-arrow-right" disabled={!canRight} onClick={() => scrollByCard(1)} aria-label="Scroll right">
+          <i className="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+      <div style={{ textAlign: "center", marginTop: 24 }}>
         <a href="/service-centers" style={{ textDecoration: "none" }}>
           <button className="btn-hover" style={{ background: "transparent", border: `1.5px solid ${R}`, color: R, padding: "10px 26px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>View All Centers →</button>
         </a>
@@ -279,14 +374,15 @@ function SpareParts() {
 // ── How It Works ───────────────────────────────────────────────────────────
 function HowItWorks() {
   return (
-    <section style={{ padding: "72px 5%", background: "#f7f7f8" }}>
+    <section style={{ padding: "72px 5%", background: "#f7f7f8", position: "relative" }}>
       <SH tag="How It Works" h2="Book in" em="3 Simple Steps" sub="From finding a center to booking — under 2 minutes." />
-      <div style={grid(3, 16)}>
+      <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "flex-start", maxWidth: 900, margin: "0 auto", gap: 16 }}>
+        <div className="hw-line" />
         {STEPS.map(st => (
-          <div key={st.n} style={{ textAlign: "center", padding: "0 16px" }}>
-            <div style={{ width: 72, height: 72, borderRadius: "50%", background: R, color: "#fff", fontSize: 26, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", border: "4px solid #fff0f0", boxShadow: "0 4px 16px rgba(232,39,42,.3)" }}>{st.n}</div>
+          <div key={st.n} style={{ textAlign: "center", flex: 1, padding: "0 8px", position: "relative", zIndex: 1 }}>
+            <div className="btn-hover" style={{ width: 76, height: 76, borderRadius: "50%", background: R, color: "#fff", fontSize: 28, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", border: "5px solid #fff", boxShadow: "0 6px 20px rgba(232,39,42,.35)", cursor: "default" }}>{st.n}</div>
             <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 7 }}>{st.title}</h3>
-            <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7 }}>{st.desc}</p>
+            <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7, margin: "0 auto", maxWidth: 220 }}>{st.desc}</p>
           </div>
         ))}
       </div>
@@ -301,12 +397,12 @@ function WhyAutoria() {
       <SH tag="Why AUTORIA" h2="Built for" em="Every Car Owner" sub="Everything to keep your car running — in one place." />
       <div style={grid(3, 16)}>
         {WHY.map(w => (
-          <div key={w.title} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 22 }}>
-            <div style={{ width: 42, height: 42, background: "#fff0f0", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 13, color: R }}>
-              <i className={w.iconClass} style={{ fontSize: "18px" }}></i>
+          <div key={w.title} className="why-card" style={{ background: "#fff", borderRadius: 14, padding: 24 }}>
+            <div style={{ width: 44, height: 44, background: "linear-gradient(135deg,#fff0f0,#ffe0e0)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14, color: R }}>
+              <i className={w.iconClass} style={{ fontSize: 18 }}></i>
             </div>
-            <h3 style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>{w.title}</h3>
-            <p style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{w.desc}</p>
+            <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 7 }}>{w.title}</h3>
+            <p style={{ fontSize: 12.5, color: "#6b7280", lineHeight: 1.7, margin: 0 }}>{w.desc}</p>
           </div>
         ))}
       </div>
@@ -320,15 +416,16 @@ function Reviews({ reviews }) {
     <section style={{ padding: "72px 5%", background: "#f7f7f8" }}>
       <SH tag="Customer Reviews" h2="Trusted by" em="Thousands" sub="Real experiences from real car owners across Egypt." />
       <div style={grid(3, 16)}>
-        {reviews.map(r => {
-          const key = r.id || r.Id || r.name || Math.random();
+        {reviews.map((r, idx) => {
+          const key = r.id || r.Id || r.name || `review-${idx}`;
           const stars = r.stars ?? r.rating ?? r.Rating ?? 5;
           const text = r.text ?? r.comment ?? r.Comment ?? "";
           const name = r.name ?? r.userName ?? r.UserName ?? "Customer";
           const car = r.car ?? r.carModel ?? r.CarModel ?? "";
           const init = r.init ?? name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
           return (
-            <div key={key} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 20 }}>
+            <div key={key} className="rev-card" style={{ background: "#fff", borderRadius: 14, padding: 22, position: "relative" }}>
+              <i className="fa-solid fa-quote-left" style={{ position: "absolute", top: 16, right: 18, fontSize: 24, color: "#ffe2e2" }}></i>
               <div style={{ marginBottom: 10 }}>
                 <span style={{ color: "#f59e0b", fontSize: 12, letterSpacing: 1 }}>{"★".repeat(stars)}{"☆".repeat(5 - stars)}</span>
                 <span style={{ background: "#fff0f0", color: R, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, marginLeft: 6 }}><i className="fa-solid fa-check" style={{ marginRight: 3 }}></i>Verified</span>
@@ -352,13 +449,16 @@ function Reviews({ reviews }) {
 // ── CTA ────────────────────────────────────────────────────────────────────
 function CTA() {
   return (
-    <section style={{ background: R, padding: "72px 5%", textAlign: "center" }}>
-      <SH tag="Get Started" h2="Ready to Get Your Car" em="Serviced?" sub="Join thousands of Egyptians who trust AUTORIA to keep their cars running." dark />
-      <div style={{ ...row(12), justifyContent: "center", marginTop: 28 }}>
-        <a href="/book-service" style={{ textDecoration: "none" }}>
-          <button className="btn-hover" style={{ background: "#fff", color: R, border: "none", padding: "13px 28px", borderRadius: 9, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Book a Service Now</button>
-        </a>
-
+    <section style={{ background: `linear-gradient(135deg, ${R} 0%, ${RD} 100%)`, padding: "72px 5%", textAlign: "center", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", width: 280, height: 280, borderRadius: "50%", background: "rgba(255,255,255,.06)", top: -90, right: -70 }} />
+      <div style={{ position: "absolute", width: 360, height: 360, borderRadius: "50%", background: "rgba(255,255,255,.05)", bottom: -140, left: -100 }} />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <SH tag="Get Started" h2="Ready to Get Your Car" em="Serviced?" sub="Join thousands of Egyptians who trust AUTORIA to keep their cars running." dark />
+        <div style={{ ...row(12), justifyContent: "center", marginTop: 28 }}>
+          <a href="/book-service" style={{ textDecoration: "none" }}>
+            <button className="btn-hover" style={{ background: "#fff", color: R, border: "none", padding: "13px 28px", borderRadius: 9, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>Book a Service Now</button>
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -506,6 +606,51 @@ export default function AutoriaHomePage() {
         70% { box-shadow: 0 0 0 10px rgba(168, 85, 247, 0); }
         100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
       }
+
+      /* Hero */
+      .hero-stat { transition: transform .2s ease, background .2s ease; }
+      .hero-stat:hover { transform: translateY(-3px); background: rgba(255,255,255,.12); }
+
+      /* Top-Rated Centers Slider */
+      .slider-shell { position: relative; max-width: 1180px; margin: 0 auto; padding: 0 52px; }
+      .slider-track {
+        display: flex; gap: 18px; overflow-x: auto; scroll-snap-type: x mandatory;
+        padding: 20px 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      }
+      .slider-track::-webkit-scrollbar { display: none; }
+      .sc-card { flex: 0 0 calc((100% - 36px) / 3); scroll-snap-align: start; text-decoration: none; color: inherit; min-width: 0; }
+      .slider-arrow {
+        position: absolute; top: 50%; transform: translateY(-50%); z-index: 6;
+        width: 46px; height: 46px; border-radius: 50%; border: 1px solid #e5e7eb;
+        background: #fff; color: #111; cursor: pointer; display: flex; align-items: center;
+        justify-content: center; font-size: 13px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.12); transition: all .2s ease;
+      }
+      .slider-arrow:hover:not(:disabled) { background: #E8272A; border-color: #E8272A; color: #fff; transform: translateY(-50%) scale(1.05); }
+      .slider-arrow:disabled { opacity: .35; cursor: default; }
+      .slider-arrow-left { left: 0; }
+      .slider-arrow-right { right: 0; }
+      .sc-badge { position: absolute; top: 10px; left: 10px; background: #E8272A; color: #fff; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: .3px; }
+      .sc-open { position: absolute; top: 10px; right: 10px; background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; }
+
+      /* HowItWorks connector */
+      .hw-line { position: absolute; top: 38px; left: 12%; right: 12%; border-top: 2px dashed rgba(232,39,42,.3); }
+      @media (max-width: 720px) { .hw-line { display: none; } }
+
+      /* Card hover lifts */
+      .why-card, .rev-card { border: 1px solid #e5e7eb; transition: all .25s ease; }
+      .why-card:hover, .rev-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,.08); border-color: rgba(232,39,42,.4) !important; }
+
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+      @media (max-width: 980px) {
+        .sc-card { flex: 0 0 calc((100% - 18px) / 2); }
+      }
+      @media (max-width: 640px) {
+        .sc-card { flex: 0 0 100%; }
+        .slider-shell { padding: 0 14px; }
+        .slider-arrow { width: 38px; height: 38px; }
+      }
     `}</style>
       <Navbar user={user} />
       <Hero setCenters={setCenters} onAiSupportClick={() => setShowAiModal(true)} />
@@ -513,7 +658,7 @@ export default function AutoriaHomePage() {
       <SpareParts />
       <HowItWorks />
       <WhyAutoria />
-      <Reviews reviews={reviews} />
+      <Reviews reviews={reviews.length ? reviews : REVIEWS} />
       <CTA />
       <Footer />
 
@@ -716,7 +861,9 @@ export default function AutoriaHomePage() {
                       {match.explanation && (
                         <div style={{ marginLeft: "28px", background: "#F8FAFC", borderLeft: "3.5px solid #E8272A", padding: "8px 12px", borderRadius: "0 8px 8px 0" }}>
                           <p style={{ fontSize: "12.5px", color: "#475569", lineHeight: 1.5, margin: 0, fontStyle: "italic" }}>
-                            "{match.explanation}"
+                            <span style={{ color: "#E8272A", fontWeight: 800 }}>&ldquo;</span>
+                            {match.explanation}
+                            <span style={{ color: "#E8272A", fontWeight: 800 }}>&rdquo;</span>
                           </p>
                         </div>
                       )}

@@ -13,7 +13,7 @@ const R = "#E8272A";
 const BG = "#F8F9FA";
 const BRD = "#E9ECEF";
 const WH = "#FFFFFF";
-const TL = "#6C757D";
+const TL = "#000000";
 const SH = "0 4px 20px rgba(0,0,0,0.05)";
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -66,10 +66,10 @@ function MileageSummary({ car, history, loading }) {
       {stats.map((s, i) => (
         <div key={i} style={{ background: WH, borderRadius: 16, padding: 24, border: `1px solid ${BRD}`, boxShadow: SH }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: TL, textTransform: "uppercase", letterSpacing: "1px" }}>{s.label}</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#000000", textTransform: "uppercase", letterSpacing: "1px" }}>{s.label}</div>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: `${s.color}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{s.icon}</div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#1A1A1A" }}>{s.value}</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#111111" }}>{s.value}</div>
         </div>
       ))}
     </div>
@@ -138,7 +138,7 @@ function MileageForm({ carId, open, onClose, onSuccess }) {
           </div>
           {error && <div style={{ color: R, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>❌ {error}</div>}
           <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: "#F1F5F9", color: "#1A1A1A", border: "none", cursor: "pointer" }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: "#F1F5F9", color: "#111111", border: "none", cursor: "pointer" }}>
               Cancel
             </button>
             <button type="submit" disabled={submitting} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: R, color: "#fff", border: "none", cursor: "pointer", opacity: submitting ? 0.6 : 1 }}>
@@ -166,7 +166,7 @@ function MileageHistory({ history, loading }) {
     <div style={{ background: WH, borderRadius: 16, border: `1px solid ${BRD}`, boxShadow: SH, overflow: "hidden", marginBottom: 28 }}>
       <div style={{ padding: "20px 24px", borderBottom: `1px solid ${BRD}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>📋 Mileage History</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#000000" }}>📋 Mileage History</div>
           <div style={{ fontSize: 12, color: TL, marginTop: 2 }}>{history.length} record{history.length !== 1 ? "s" : ""} logged</div>
         </div>
       </div>
@@ -180,7 +180,7 @@ function MileageHistory({ history, loading }) {
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ textAlign: "left", borderBottom: `1px solid ${BRD}`, color: TL, fontSize: 11, fontWeight: 800 }}>
+              <tr style={{ textAlign: "left", borderBottom: `1px solid ${BRD}`, color: "#000000", fontSize: 12, fontWeight: 800 }}>
                 <th style={{ padding: "12px 24px" }}>DATE</th>
                 <th style={{ padding: "12px 16px" }}>MILEAGE</th>
                 <th style={{ padding: "12px 16px" }}>NOTES</th>
@@ -188,17 +188,17 @@ function MileageHistory({ history, loading }) {
             </thead>
             <tbody>
               {history.map((record, idx) => (
-                <tr key={record.id || idx} style={{ borderBottom: `1px solid ${BRD}`, fontSize: 13, transition: "background 0.15s" }}>
-                  <td style={{ padding: "16px 24px", fontWeight: 600 }}>
+                <tr key={record.id || idx} style={{ borderBottom: `1px solid ${BRD}`, fontSize: 13.5, transition: "background 0.15s" }}>
+                  <td style={{ padding: "16px 24px", fontWeight: 700, color: "#111827" }}>
                     {record.loggedAt ? new Date(record.loggedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}
-                    <div style={{ fontSize: 11, color: TL, marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: "#000000", marginTop: 2, fontWeight: 500 }}>
                       {record.loggedAt ? new Date(record.loggedAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : ""}
                     </div>
                   </td>
-                  <td style={{ padding: "16px", fontWeight: 800, fontSize: 15 }}>
-                    {record.mileage?.toLocaleString()} <span style={{ fontSize: 11, color: TL, fontWeight: 500 }}>km</span>
+                  <td style={{ padding: "16px", fontWeight: 800, fontSize: 16 }}>
+                    {record.mileage?.toLocaleString()} <span style={{ fontSize: 12, color: "#000000", fontWeight: 500 }}>km</span>
                   </td>
-                  <td style={{ padding: "16px", color: record.notes ? "#1A1A1A" : TL, fontStyle: record.notes ? "normal" : "italic" }}>
+                  <td style={{ padding: "16px", color: record.notes ? "#111111" : "#000000", fontStyle: record.notes ? "normal" : "italic" }}>
                     {record.notes || "No notes"}
                   </td>
                 </tr>
@@ -278,7 +278,7 @@ function ReminderForm({ carId, open, onClose, onSuccess }) {
           </div>
           {error && <div style={{ color: R, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>❌ {error}</div>}
           <div style={{ display: "flex", gap: 12 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: "#F1F5F9", color: "#1A1A1A", border: "none", cursor: "pointer" }}>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: "#F1F5F9", color: "#111111", border: "none", cursor: "pointer" }}>
               Cancel
             </button>
             <button type="submit" disabled={submitting} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: R, color: "#fff", border: "none", cursor: "pointer", opacity: submitting ? 0.6 : 1 }}>
@@ -320,7 +320,7 @@ function ReminderList({ reminders, loading, onDelete }) {
     <>
       <div style={{ background: WH, borderRadius: 16, border: `1px solid ${BRD}`, boxShadow: SH, overflow: "hidden" }}>
         <div style={{ padding: "20px 24px", borderBottom: `1px solid ${BRD}` }}>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>🔔 Maintenance Reminders</div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#000000" }}>🔔 Maintenance Reminders</div>
           <div style={{ fontSize: 12, color: TL, marginTop: 2 }}>{reminders.length} reminder{reminders.length !== 1 ? "s" : ""} set</div>
         </div>
 
@@ -347,7 +347,7 @@ function ReminderList({ reminders, loading, onDelete }) {
                     {rem.isTriggered ? "✅" : "⏰"}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A1A" }}>{rem.title}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#111111" }}>{rem.title}</div>
                     <div style={{ fontSize: 12, color: TL, marginTop: 2 }}>
                       Threshold: <strong>{rem.mileageThreshold?.toLocaleString()} km</strong>
                       {rem.isTriggered && <span style={{ color: "#10B981", marginLeft: 8, fontWeight: 700 }}>• Triggered</span>}
@@ -380,7 +380,7 @@ function ReminderList({ reminders, loading, onDelete }) {
             <h3 style={{ fontSize: 18, fontWeight: 900, marginBottom: 8 }}>Delete Reminder?</h3>
             <p style={{ fontSize: 13, color: TL, marginBottom: 24 }}>This action cannot be undone.</p>
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setDeleteTarget(null)} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: "#F1F5F9", color: "#1A1A1A", border: "none", cursor: "pointer" }}>
+              <button onClick={() => setDeleteTarget(null)} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: "#F1F5F9", color: "#111111", border: "none", cursor: "pointer" }}>
                 Cancel
               </button>
               <button onClick={handleConfirmDelete} disabled={deleting} style={{ flex: 1, padding: "12px 0", borderRadius: 10, fontWeight: 700, fontSize: 14, background: R, color: "#fff", border: "none", cursor: "pointer", opacity: deleting ? 0.6 : 1 }}>
@@ -496,7 +496,7 @@ function CarDetailsContent() {
     return (
       <>
         <Navbar />
-        <div style={{ minHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: BG, fontFamily: "'Outfit', sans-serif" }}>
+        <div style={{ minHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: BG, color: "#000000", fontFamily: "'Outfit', sans-serif" }}>
           <div style={{ fontSize: 56, marginBottom: 16 }}>🚗</div>
           <h2 style={{ fontSize: 24, fontWeight: 900, marginBottom: 8 }}>No car selected</h2>
           <p style={{ color: TL, marginBottom: 24 }}>Please select a car from your garage to view details.</p>
@@ -514,7 +514,7 @@ function CarDetailsContent() {
   return (
     <>
       <Navbar />
-      <div style={{ minHeight: "100vh", background: BG, fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <div style={{ minHeight: "100vh", background: BG, color: "#000000", fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
         <style>{`
           @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
           @keyframes slideIn { from{transform:translateY(-20px);opacity:0} to{transform:translateY(0);opacity:1} }
@@ -554,7 +554,7 @@ function CarDetailsContent() {
                   <div style={{ fontSize: 26, fontWeight: 900, marginBottom: 6 }}>
                     {car.make} {car.model}
                   </div>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13, opacity: 0.7 }}>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 13, opacity: 0.95 }}>
                     <span>📅 {car.year}</span>
                     <span>⛽ {FUEL_TYPES[car.fuelType] || car.fuelType || "—"}</span>
                     <span>⚙️ {TRANSMISSIONS[car.transmission] || car.transmission || "—"}</span>
@@ -599,7 +599,7 @@ export default function CarDetailsPage() {
     <Suspense fallback={
       <>
         <Navbar />
-        <div style={{ minHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: BG, fontFamily: "'Outfit', sans-serif" }}>
+        <div style={{ minHeight: "80vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: BG, color: "#000000", fontFamily: "'Outfit', sans-serif" }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🚗</div>
           <h2 style={{ fontSize: 20, fontWeight: 900, marginBottom: 8 }}>Loading Car Details...</h2>
           <Skeleton w={120} h={32} />

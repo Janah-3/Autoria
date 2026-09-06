@@ -618,42 +618,7 @@ setUpcomingBookings(
           <div className="welcome-section">
             <div>
               <h1 className="welcome-title">Welcome back{userName ? `, ${userName.split(" ")[0]}` : ""}</h1>
-              <p className="welcome-subtitle">Here is what's happening with your vehicles today.</p>
-            </div>
-            
-            <div style={{
-              background: "#ffffff",
-              border: "1px solid #E5E7EB",
-              borderRadius: "12px",
-              padding: "16px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: "20px",
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
-              maxWidth: "550px",
-              flex: "1 1 auto"
-            }}>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#111827", marginBottom: "4px" }}>
-                  Own a Service Center?
-                </h4>
-                <p style={{ fontSize: "12px", color: "#6B7280", lineHeight: "1.5" }}>
-                  Register your workshop on Autoria and start managing bookings today!
-                </p>
-              </div>
-              <Link href="/service-center-registration" style={{
-                background: "#E8192C",
-                color: "#ffffff",
-                padding: "10px 18px",
-                borderRadius: "8px",
-                fontSize: "13px",
-                fontWeight: 700,
-                textDecoration: "none",
-                whiteSpace: "nowrap",
-                transition: "all 0.2s"
-              }} className="btn-hover">
-                Register Now
-              </Link>
+              <p className="welcome-subtitle">Here is what&apos;s happening with your vehicles today.</p>
             </div>
           </div>
 

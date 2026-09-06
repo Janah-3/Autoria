@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { bookingsService } from "@/lib/api/bookingsService";
 import { getAllCars, getCarItems, getCarId } from "@/lib/api/carsService";
@@ -60,11 +60,13 @@ function getSlotId(slot) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function FieldLabel({ children }) {
+function FieldLabel({ children, icon }) {
   return (
     <label
       style={{
-        display: "block",
+        display: "flex",
+        alignItems: "center",
+        gap: "7px",
         fontSize: "11px",
         fontWeight: 700,
         color: COLORS.textLight,
@@ -73,6 +75,9 @@ function FieldLabel({ children }) {
         letterSpacing: "0.05em",
       }}
     >
+      {icon && (
+        <i className={`fa-solid ${icon}`} style={{ color: COLORS.primary, fontSize: "11px" }} />
+      )}
       {children}
     </label>
   );
@@ -101,13 +106,14 @@ function SelectInput({ value, onChange, children, disabled }) {
   );
 }
 
-function TextInput({ value, onChange, placeholder, type = "text" }) {
+function TextInput({ value, onChange, placeholder, type = "text", ...rest }) {
   return (
     <input
       type={type}
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      {...rest}
       style={{
         width: "100%",
         padding: "12px 16px",
@@ -338,6 +344,17 @@ export default function BookServicePage() {
 
   const today = new Date().toISOString().split("T")[0];
 
+  // ── Book progress steps ────────────────────────────────────────────────────
+
+  const steps = [
+    { label: "Car", icon: "fa-car", done: !!selectedCarId },
+    { label: "Service", icon: "fa-wrench", done: !!selectedServiceTypeId },
+    { label: "Schedule", icon: "fa-calendar-check", done: !!(selectedDate && selectedSlotId) },
+    { label: "Confirm", icon: "fa-circle-check", done: false },
+  ];
+
+  const selectedCar = cars.find((c) => String(getCarId(c)) === String(selectedCarId));
+
   // ── Loading screen ─────────────────────────────────────────────────────────
 
   if (initLoading) {
@@ -372,6 +389,27 @@ export default function BookServicePage() {
   
 
   if (submitted) {
+    const carLabel = selectedCar
+      ? [selectedCar.make, selectedCar.model, selectedCar.year].filter(Boolean).join(" ")
+      : "Your car";
+    const summaryRows = [
+      { icon: "fa-wrench", label: "Service", value: selectedServiceTypeName },
+      { icon: "fa-car", label: "Car", value: carLabel },
+      { icon: "fa-shop", label: "Center", value: serviceCenter?.name || "—" },
+      {
+        icon: "fa-calendar-day",
+        label: "Date",
+        value: selectedDate
+          ? new Date(selectedDate + "T12:00:00").toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : selectedDate,
+      },
+      { icon: "fa-clock", label: "Time", value: selectedSlotLabel },
+    ];
     return (
       <div
         style={{
@@ -382,56 +420,149 @@ export default function BookServicePage() {
           justifyContent: "center",
           padding: "40px 20px",
           fontFamily: "sans-serif",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
         <div
           style={{
+            position: "absolute",
+            top: -140,
+            left: -140,
+            width: 360,
+            height: 360,
+            borderRadius: "50%",
+            background: "rgba(232,39,42,0.07)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            bottom: -140,
+            right: -140,
+            width: 360,
+            height: 360,
+            borderRadius: "50%",
+            background: "rgba(184,28,31,0.05)",
+          }}
+        />
+        <div
+          style={{
             background: COLORS.white,
             borderRadius: "24px",
-            padding: "60px 40px",
+            padding: "48px 40px",
             maxWidth: "480px",
             width: "100%",
             textAlign: "center",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.06)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.08)",
             border: `1px solid ${COLORS.border}`,
+            position: "relative",
+            overflow: "hidden",
           }}
         >
           <div
             style={{
-              width: "72px",
-              height: "72px",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 6,
+              background: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.primaryDark})`,
+            }}
+          />
+          <div
+            style={{
+              width: "76px",
+              height: "76px",
               borderRadius: "50%",
-              background: "#E8F5E9",
+              background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryDark})`,
+              color: COLORS.white,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              margin: "0 auto 24px",
-              fontSize: "32px",
+              margin: "0 auto 22px",
+              fontSize: "34px",
+              boxShadow: "0 10px 24px rgba(232,39,42,0.3)",
             }}
           >
-            ✓
+            <i className="fa-solid fa-circle-check" />
           </div>
           <h2
-            style={{ fontSize: "24px", fontWeight: 800, color: COLORS.text, marginBottom: "12px" }}
+            style={{
+              fontSize: "24px",
+              fontWeight: 800,
+              color: COLORS.text,
+              marginBottom: "8px",
+              letterSpacing: "-0.5px",
+            }}
           >
             Booking Confirmed!
           </h2>
           <p
             style={{
               color: COLORS.textLight,
-              fontSize: "15px",
+              fontSize: "14px",
               lineHeight: 1.7,
-              marginBottom: "32px",
+              marginBottom: "26px",
             }}
           >
-            Your appointment at{" "}
-            <strong style={{ color: COLORS.text }}>
-              {serviceCenter?.name || "the service center"}
-            </strong>{" "}
-            on <strong style={{ color: COLORS.text }}>{selectedDate}</strong> at{" "}
-            <strong style={{ color: COLORS.text }}>{selectedSlotLabel}</strong> has been submitted.
-            The service center will confirm shortly.
+            Your request has been submitted to the service center. They will confirm your appointment
+            shortly.
           </p>
+          <div
+            style={{
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: "16px",
+              overflow: "hidden",
+              marginBottom: "26px",
+              textAlign: "left",
+            }}
+          >
+            {summaryRows.map((row, i) => (
+              <div
+                key={row.label}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "12px 16px",
+                  borderBottom: i < summaryRows.length - 1 ? `1px solid ${COLORS.border}` : "none",
+                  background: i % 2 === 0 ? COLORS.bg : COLORS.white,
+                }}
+              >
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 8,
+                    background: "#fff0f0",
+                    color: COLORS.primary,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "13px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <i className={`fa-solid ${row.icon}`} />
+                </div>
+                <div
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: COLORS.textLight,
+                    width: 64,
+                    flexShrink: 0,
+                  }}
+                >
+                  {row.label}
+                </div>
+                <div style={{ fontSize: "13.5px", fontWeight: 700, color: COLORS.text }}>
+                  {row.value}
+                </div>
+              </div>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => router.push("/user-dashboard")}
@@ -445,9 +576,28 @@ export default function BookServicePage() {
               fontWeight: 700,
               cursor: "pointer",
               width: "100%",
+              marginBottom: "10px",
             }}
           >
+            <i className="fa-solid fa-calendar-check" style={{ marginRight: 6 }} />
             Go to My Bookings
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/service-centers")}
+            style={{
+              background: "transparent",
+              border: `1.5px solid ${COLORS.border}`,
+              padding: "13px 32px",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 700,
+              cursor: "pointer",
+              width: "100%",
+              color: COLORS.text,
+            }}
+          >
+            Book Another Appointment
           </button>
         </div>
       </div>
@@ -477,10 +627,19 @@ export default function BookServicePage() {
 
       <div style={{ maxWidth: "560px", margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+        <div style={{ textAlign: "center", marginBottom: "28px" }}>
           <div
-            style={{ fontSize: "24px", fontWeight: 900, letterSpacing: "-1px", cursor: "default" }}
+            style={{
+              fontSize: "20px",
+              fontWeight: 900,
+              letterSpacing: "-1px",
+              cursor: "default",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "7px",
+            }}
           >
+            <i className="fa-solid fa-gear" style={{ color: COLORS.primary, fontSize: "17px" }} />
             AUTO<span style={{ color: COLORS.primary }}>RIA</span>
           </div>
           <h1
@@ -490,39 +649,146 @@ export default function BookServicePage() {
               color: COLORS.text,
               marginTop: "12px",
               marginBottom: "6px",
+              letterSpacing: "-0.5px",
             }}
           >
             Book a Service
           </h1>
+          <p style={{ fontSize: "13px", color: COLORS.textLight, margin: "0 0 22px" }}>
+            Reserve your slot at a trusted service center in minutes
+          </p>
+
+          {/* Step progress */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+              maxWidth: "460px",
+              margin: "0 auto",
+            }}
+          >
+            {steps.map((s, i) => (
+              <Fragment key={s.label}>
+                {i > 0 && (
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 2,
+                      background: s.done ? COLORS.primary : COLORS.border,
+                      marginTop: 17,
+                      borderRadius: 2,
+                      transition: "background 0.2s ease",
+                    }}
+                  />
+                )}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 64 }}>
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      background: s.done ? COLORS.primary : COLORS.white,
+                      border: `2px solid ${s.done ? COLORS.primary : COLORS.border}`,
+                      color: s.done ? COLORS.white : COLORS.textLight,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 13,
+                      boxShadow: s.done ? "0 4px 12px rgba(232,39,42,0.25)" : "none",
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <i className={`fa-solid ${s.done ? "fa-circle-check" : s.icon}`} />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: s.done ? COLORS.text : COLORS.textLight,
+                      marginTop: 6,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                </div>
+              </Fragment>
+            ))}
+          </div>
+
           {serviceCenter && (
-            <p style={{ color: COLORS.textLight, fontSize: "14px" }}>
-              at{" "}
-              <strong style={{ color: COLORS.text }}>
-                {serviceCenter.name}
-              </strong>
-              {serviceCenter.address || serviceCenter.loc
-                ? ` · ${serviceCenter.address || serviceCenter.loc}`
-                : ""}
-            </p>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "10px",
+                background: COLORS.white,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: "12px",
+                padding: "9px 18px",
+                marginTop: "20px",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.04)",
+              }}
+            >
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: "#fff0f0",
+                  color: COLORS.primary,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  flexShrink: 0,
+                }}
+              >
+                <i className="fa-solid fa-shop" />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.text }}>
+                  {serviceCenter.name}
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.textLight }}>
+                  <i className="fa-solid fa-location-dot" style={{ marginRight: 3 }} />
+                  {serviceCenter.address || serviceCenter.loc || "Service center"}
+                </div>
+              </div>
+            </div>
           )}
         </div>
 
         {/* Form card */}
         <div
           style={{
+            position: "relative",
             background: COLORS.white,
             borderRadius: "24px",
             padding: "36px",
-            boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
+            boxShadow: "0 12px 48px rgba(0,0,0,0.07)",
             border: `1px solid ${COLORS.border}`,
             display: "flex",
             flexDirection: "column",
             gap: "28px",
+            overflow: "hidden",
           }}
         >
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 6,
+              background: `linear-gradient(90deg, ${COLORS.primary}, ${COLORS.primaryDark})`,
+            }}
+          />
           {/* ── Car selection ── */}
           <div>
-            <FieldLabel>Your Car</FieldLabel>
+            <FieldLabel icon="fa-car">Your Car</FieldLabel>
             {cars.length === 0 ? (
               <div
                 style={{
@@ -581,7 +847,7 @@ export default function BookServicePage() {
 
           {/* ── Service type ── */}
           <div>
-            <FieldLabel>Service Type</FieldLabel>
+            <FieldLabel icon="fa-wrench">Service Type</FieldLabel>
             <SelectInput
               value={selectedServiceTypeName}
               onChange={(e) => {
@@ -606,24 +872,22 @@ export default function BookServicePage() {
 
           {/* ── Date picker ── */}
           <div>
-            <FieldLabel>Preferred Date</FieldLabel>
+            <FieldLabel icon="fa-calendar-day">Preferred Date</FieldLabel>
             <TextInput
               type="date"
+              min={today}
               value={selectedDate}
               onChange={(e) => {
                 setSelectedDate(e.target.value);
                 setErrors((prev) => ({ ...prev, date: undefined, slot: undefined }));
               }}
-              
             />
-            
-            <style>{`input[type="date"] { min: ${today}; }`}</style>
             <ValidationError message={errors.date} />
           </div>
 
           
           <div>
-            <FieldLabel>Available Time Slots</FieldLabel>
+            <FieldLabel icon="fa-clock">Available Time Slots</FieldLabel>
 
             {!selectedDate ? (
               <p
@@ -703,17 +967,22 @@ export default function BookServicePage() {
                         setErrors((prev) => ({ ...prev, slot: undefined }));
                       }}
                       style={{
-                        padding: "11px 8px",
-                        borderRadius: "10px",
+                        padding: "11px 4px",
+                        borderRadius: "12px",
                         border: `1.5px solid ${isSelected ? COLORS.primary : COLORS.border}`,
-                        background: isSelected ? COLORS.errorBg : COLORS.bg,
-                        color: isSelected ? COLORS.primary : COLORS.text,
+                        background: isSelected ? COLORS.primary : COLORS.bg,
+                        color: isSelected ? COLORS.white : COLORS.text,
                         fontSize: "13px",
-                        fontWeight: 600,
+                        fontWeight: 700,
                         cursor: "pointer",
                         transition: "all 0.15s ease",
+                        boxShadow: isSelected ? "0 4px 12px rgba(232,39,42,0.25)" : "none",
                       }}
                     >
+                      <i
+                        className={`fa-solid ${isSelected ? "fa-circle-check" : "fa-clock"}`}
+                        style={{ fontSize: "11px", marginRight: 4, opacity: isSelected ? 1 : 0.6 }}
+                      />
                       {label}
                     </button>
                   );
@@ -725,7 +994,7 @@ export default function BookServicePage() {
 
           {/* ── Notes ── */}
           <div>
-            <FieldLabel>Notes (Optional)</FieldLabel>
+            <FieldLabel icon="fa-pen">Notes (Optional)</FieldLabel>
             <textarea
               rows={3}
               placeholder="Describe the issue or any special instructions…"
@@ -800,7 +1069,17 @@ export default function BookServicePage() {
                 transition: "opacity 0.2s",
               }}
             >
-              {submitting ? "Booking…" : "Confirm Booking"}
+              {submitting ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ marginRight: 6 }} />
+                  Booking…
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-circle-check" style={{ marginRight: 6 }} />
+                  Confirm Booking
+                </>
+              )}
             </button>
           </div>
         </div>
